@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Datium - Dashboard</title>
+    <link rel="icon" type="image/jpeg" href="../../img/Isotipo modo oscuro.jpeg" id="favicon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .scale-in {
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        .delay-1 {
+            animation-delay: 0.1s;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        .delay-2 {
+            animation-delay: 0.2s;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        .delay-3 {
+            animation-delay: 0.3s;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="text-center max-w-2xl">
+        <div class="scale-in mb-8">
+            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-500 mb-6">
+                <span class="material-symbols-outlined text-6xl text-white">check_circle</span>
+            </div>
+        </div>
+
+        <h1 class="text-5xl font-black mb-4 fade-in-up delay-1">¡Bienvenido a Datium!</h1>
+        <p class="text-xl text-slate-300 mb-8 fade-in-up delay-2">Has iniciado sesión correctamente.</p>
+
+        <div class="fade-in-up delay-3">
+            <a href="../../index.html"
+                class="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 rounded-lg hover:bg-blue-700 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg">
+                <span class="material-symbols-outlined">home</span>
+                Volver al Inicio
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>
