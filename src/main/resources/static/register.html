@@ -24,32 +24,6 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 5px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        .dark ::-webkit-scrollbar-thumb {
-            background: #334155;
-        }
-
-        .dark ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
     </style>
     <script>
         tailwind.config = {
@@ -74,11 +48,29 @@
             },
         }
     </script>
+    <style>
+        /* Reset any custom scrollbar to default browser style */
+        ::-webkit-scrollbar {
+            width: auto;
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.5);
+            border-radius: 10px;
+        }
+
+        /* Ensure only one scrollbar */
+        html,
+        body {
+            overflow-x: hidden;
+        }
+    </style>
 </head>
 
-<body class="font-display bg-background-light dark:bg-background-dark text-[#0d141b] dark:text-slate-200">
-    <div
-        class="relative flex min-h-screen w-full flex-col items-center justify-center overflow-x-hidden group/design-root">
+<body
+    class="font-display bg-background-light dark:bg-background-dark text-[#0d141b] dark:text-slate-200 overflow-y-hidden">
+    <div class="relative flex min-h-screen w-full flex-col items-center justify-center group/design-root">
         <div
             class="absolute -top-1/4 left-0 h-[500px] w-[500px] rounded-full bg-primary/20 blur-[150px] dark:opacity-50">
         </div>

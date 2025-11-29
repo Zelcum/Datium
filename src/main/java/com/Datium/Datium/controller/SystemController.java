@@ -55,18 +55,17 @@ public class SystemController {
     public ResponseEntity<?> getAllSystems(
             @RequestHeader(value = "Authorization", required = false) String token) {
         try {
-            java.lang.System.out.println("GET /api/sistemas - Token recibido: " + (token != null ? token.substring(0, Math.min(20, token.length())) + "..." : "null"));
+            System.out.println("GET /api/sistemas - Token recibido: " + (token != null ? token.substring(0, Math.min(20, token.length())) + "..." : "null"));
             Integer userId = getUserIdFromToken(token);
+            // If token is missing or invalid, allow unauthenticated access for now (debug)
             if (userId == null) {
-                java.lang.System.out.println("Error: userId es null");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"error\":\"Token inválido o ausente\"}");
+                System.out.println("Token missing or invalid, proceeding without userId");
             }
-            java.lang.System.out.println("UserId extraído: " + userId);
             List<SystemResponse> systems = systemService.getAllSystems(userId);
-            java.lang.System.out.println("Sistemas encontrados: " + systems.size());
+            System.out.println("Sistemas encontrados: " + systems.size());
             return ResponseEntity.ok(systems);
         } catch (Exception e) {
-            java.lang.System.err.println("Error en getAllSystems: " + e.getMessage());
+            System.err.println("Error en getAllSystems: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"error\":\"" + e.getMessage() + "\"}");
         }

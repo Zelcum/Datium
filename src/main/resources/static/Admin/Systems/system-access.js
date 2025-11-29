@@ -1,6 +1,6 @@
-const API_URL = 'http://localhost:8080/api';
-let currentAccessSystemId = null;
-let accessUsers = [];
+// API_URL is defined globally in system.js
+// currentAccessSystemId is defined globally in system.js
+// accessUsers is defined globally in system.js
 
 function showAccessModal(systemId) {
     currentAccessSystemId = systemId;
@@ -16,15 +16,15 @@ function hideAccessModal() {
 
 async function loadAccessUsers() {
     if (!currentAccessSystemId) return;
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         const response = await fetch(API_URL + '/sistemas/' + currentAccessSystemId + '/accesos', {
             headers: headers
         });
-        
+
         if (response.ok) {
             accessUsers = await response.json();
             renderAccessUsers();
@@ -39,14 +39,14 @@ async function loadAccessUsers() {
 function renderAccessUsers() {
     const tbody = document.getElementById('accessTableBody');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
-    
+
     if (accessUsers.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center px-6 py-8 text-gray-500 dark:text-gray-400">No hay usuarios con acceso</td></tr>';
         return;
     }
-    
+
     accessUsers.forEach(user => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors';
@@ -100,22 +100,22 @@ async function saveNewUser() {
     const emailInput = document.getElementById('newUserEmail');
     const roleSelect = document.getElementById('newUserRole');
     const passwordInput = document.getElementById('newUserPassword');
-    
+
     if (!emailInput || !roleSelect) return;
-    
+
     const email = emailInput.value.trim();
     const role = roleSelect.value;
     const password = passwordInput ? passwordInput.value : '';
-    
+
     if (!email) {
         showNotification('El email es requerido', 'error');
         return;
     }
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         const response = await fetch(API_URL + '/sistemas/' + currentAccessSystemId + '/accesos', {
             method: 'POST',
             headers: headers,
@@ -125,7 +125,7 @@ async function saveNewUser() {
                 password: password || null
             })
         });
-        
+
         if (response.ok) {
             cancelAddUser();
             loadAccessUsers();
@@ -146,14 +146,14 @@ async function editAccessUser(email) {
         showNotification('Usuario no encontrado', 'error');
         return;
     }
-    
+
     const newRole = prompt('Nuevo rol (admin, editor, viewer):', user.role);
     if (!newRole) return;
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         const response = await fetch(API_URL + '/sistemas/' + currentAccessSystemId + '/accesos', {
             method: 'PUT',
             headers: headers,
@@ -162,7 +162,7 @@ async function editAccessUser(email) {
                 role: newRole
             })
         });
-        
+
         if (response.ok) {
             loadAccessUsers();
             showNotification('Usuario actualizado exitosamente', 'success');
@@ -179,11 +179,11 @@ async function editAccessUser(email) {
 async function setUserPasswordModal(email) {
     const password = prompt('Nueva contraseña (dejar vacío para eliminar):');
     if (password === null) return;
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         const response = await fetch(API_URL + '/sistemas/' + currentAccessSystemId + '/accesos/password', {
             method: 'POST',
             headers: headers,
@@ -192,7 +192,7 @@ async function setUserPasswordModal(email) {
                 password: password || ''
             })
         });
-        
+
         if (response.ok) {
             loadAccessUsers();
             showNotification('Contraseña actualizada exitosamente', 'success');
@@ -208,11 +208,11 @@ async function setUserPasswordModal(email) {
 
 async function deleteAccessUser(email) {
     if (!confirm('¿Estás seguro de eliminar el acceso de este usuario?')) return;
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         const response = await fetch(API_URL + '/sistemas/' + currentAccessSystemId + '/accesos', {
             method: 'DELETE',
             headers: headers,
@@ -220,7 +220,7 @@ async function deleteAccessUser(email) {
                 email: email
             })
         });
-        
+
         if (response.ok) {
             loadAccessUsers();
             showNotification('Usuario eliminado exitosamente', 'success');
@@ -237,13 +237,13 @@ async function deleteAccessUser(email) {
 async function saveGeneralPassword() {
     const passwordInput = document.getElementById('generalPassword');
     if (!passwordInput) return;
-    
+
     const password = passwordInput.value;
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         const response = await fetch(API_URL + '/sistemas/' + currentAccessSystemId + '/accesos/password/general', {
             method: 'POST',
             headers: headers,
@@ -251,7 +251,7 @@ async function saveGeneralPassword() {
                 password: password || ''
             })
         });
-        
+
         if (response.ok) {
             passwordInput.value = '';
             showNotification('Contraseña general guardada exitosamente', 'success');

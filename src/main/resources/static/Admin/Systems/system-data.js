@@ -34,45 +34,45 @@ function handleLogout() {
     window.location.href = '../../login.html';
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const urlParams = new URLSearchParams(window.location.search);
     currentSystemId = urlParams.get('id');
-    
+
     if (!currentSystemId) {
         showNotification('ID de sistema no proporcionado', 'error');
         goBack();
         return;
     }
-    
+
     const btnLogout = document.getElementById('btnLogout');
     const btnToggleStats = document.getElementById('btnToggleStats');
     const searchRecords = document.getElementById('searchRecords');
     const newFieldType = document.getElementById('newFieldType');
-    
+
     if (btnLogout) btnLogout.addEventListener('click', handleLogout);
     if (btnToggleStats) btnToggleStats.addEventListener('click', toggleStatistics);
     if (searchRecords) searchRecords.addEventListener('input', handleSearchRecords);
     if (newFieldType) newFieldType.addEventListener('change', handleFieldTypeChange);
-    
+
     loadAllData();
 });
 
 async function loadAllData() {
     const startTime = Date.now();
     const minLoadTime = 2000;
-    
+
     try {
         const systemPromise = loadSystemInfo();
         const fieldsPromise = loadFields();
-        
+
         await Promise.all([systemPromise, fieldsPromise]);
         await loadRecords();
-        
+
         updateUIForPermissions();
-        
+
         const elapsedTime = Date.now() - startTime;
         const remainingTime = Math.max(0, minLoadTime - elapsedTime);
-        
+
         setTimeout(() => {
             hideLoadingScreen();
         }, remainingTime);
@@ -102,14 +102,14 @@ function showLoadingSuccess() {
 function hideLoadingScreen() {
     const loadingScreen = document.getElementById('loadingScreen');
     const mainContent = document.getElementById('mainContent');
-    
+
     showLoadingSuccess();
-    
+
     setTimeout(() => {
         if (loadingScreen) {
             loadingScreen.style.display = 'none';
         }
-        
+
         if (mainContent) {
             mainContent.classList.remove('hidden');
         }
@@ -119,10 +119,10 @@ function hideLoadingScreen() {
 function updateUIForPermissions() {
     const canManageFields = isOwner || userRole === 'owner' || userRole === 'admin';
     const canEditRecords = isOwner || userRole === 'owner' || userRole === 'admin' || userRole === 'editor';
-    
+
     const fieldsBtn = document.querySelector('button[onclick="openFieldsModal()"]');
     const recordsBtn = document.querySelector('button[onclick="openRecordsManagement()"]');
-    
+
     if (fieldsBtn) {
         if (!canManageFields) {
             fieldsBtn.disabled = true;
@@ -132,7 +132,7 @@ function updateUIForPermissions() {
             fieldsBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
-    
+
     if (recordsBtn) {
         if (!canEditRecords) {
             recordsBtn.disabled = true;
@@ -147,7 +147,7 @@ function updateUIForPermissions() {
 function toggleStatistics() {
     const statsSection = document.getElementById('statisticsSection');
     const btnToggle = document.getElementById('btnToggleStats');
-    
+
     if (statsSection.classList.contains('hidden')) {
         statsSection.classList.remove('hidden');
         btnToggle.classList.remove('arrow-down');
@@ -165,12 +165,12 @@ async function loadSystemInfo() {
     if (!headers.Authorization) {
         return Promise.resolve();
     }
-    
+
     try {
         const response = await fetch(API_URL + '/sistemas/' + currentSystemId, {
             headers: headers
         });
-        
+
         if (!response.ok) {
             if (response.status === 404) {
                 showNotification('Sistema no encontrado', 'error');
@@ -178,14 +178,14 @@ async function loadSystemInfo() {
             }
             return Promise.resolve();
         }
-        
+
         systemInfo = await response.json();
-        
+
         const imageElement = document.getElementById('systemImage');
         if (imageElement) {
             if (systemInfo.imageUrl && systemInfo.imageUrl.trim() !== '') {
-                const imageUrl = systemInfo.imageUrl.startsWith('http') 
-                    ? systemInfo.imageUrl 
+                const imageUrl = systemInfo.imageUrl.startsWith('http')
+                    ? systemInfo.imageUrl
                     : `http://localhost:8080${systemInfo.imageUrl}`;
                 imageElement.src = imageUrl;
                 imageElement.classList.remove('hidden');
@@ -193,26 +193,26 @@ async function loadSystemInfo() {
                 imageElement.classList.add('hidden');
             }
         }
-        
+
         const nameElement = document.getElementById('systemName');
         if (nameElement && systemInfo.name) {
             nameElement.textContent = systemInfo.name;
         }
-        
+
         const descElement = document.getElementById('systemDescription');
         if (descElement) {
             descElement.textContent = systemInfo.description || '-';
         }
-        
-        const token = getToken();
+
+        const token = obtenerToken();
         if (token) {
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const userId = payload.userId ? parseInt(payload.userId) : (payload.sub ? parseInt(payload.sub) : null);
                 const ownerId = systemInfo.ownerId ? parseInt(systemInfo.ownerId) : null;
-                
+
                 isOwner = (userId && ownerId && ownerId === userId);
-                
+
                 if (isOwner) {
                     userRole = 'owner';
                 } else if (systemInfo.users && Array.isArray(systemInfo.users) && userId) {
@@ -230,7 +230,7 @@ async function loadSystemInfo() {
                 userRole = null;
             }
         }
-        
+
         return Promise.resolve();
     } catch (error) {
         console.error('Error loading system info:', error);
@@ -244,19 +244,19 @@ async function loadFields() {
         fields = [];
         return Promise.resolve();
     }
-    
+
     try {
         const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/campos', {
             headers: headers
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             fields = Array.isArray(data) ? data : [];
         } else {
             fields = [];
         }
-        
+
         renderFields();
         renderRecords();
         updateStatistics();
@@ -274,17 +274,17 @@ async function loadFields() {
 function renderFields() {
     const tbody = document.getElementById('fieldsTableBody');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
-    
+
     if (fields.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center px-6 py-8 text-gray-500 dark:text-gray-400">No hay campos. Agrega campos para comenzar.</td></tr>';
         return;
     }
-    
+
     const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
     const canManageFields = isOwner || userRole === 'owner' || userRole === 'admin';
-    
+
     sortedFields.forEach((field, index) => {
         const row = document.createElement('tr');
         row.className = 'table-row hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors';
@@ -314,16 +314,16 @@ function openFieldsModal() {
         showNotification('No tienes permisos para gestionar campos. Solo el owner y admin pueden gestionar campos.', 'error');
         return;
     }
-    
+
     const modal = document.getElementById('fieldsModal');
     const titleEl = document.getElementById('fieldsModalTitle');
     const imageEl = document.getElementById('fieldsModalImage');
-    
+
     if (systemInfo) {
         titleEl.textContent = systemInfo.name || 'Base de Datos';
         if (systemInfo.imageUrl && systemInfo.imageUrl.trim() !== '') {
-            const imageUrl = systemInfo.imageUrl.startsWith('http') 
-                ? systemInfo.imageUrl 
+            const imageUrl = systemInfo.imageUrl.startsWith('http')
+                ? systemInfo.imageUrl
                 : `http://localhost:8080${systemInfo.imageUrl}`;
             imageEl.src = imageUrl;
             imageEl.classList.remove('hidden');
@@ -334,7 +334,7 @@ function openFieldsModal() {
         titleEl.textContent = 'Base de Datos';
         imageEl.classList.add('hidden');
     }
-    
+
     modal.classList.remove('hidden');
     loadFields();
 }
@@ -381,26 +381,26 @@ async function saveNewField() {
     const order = parseInt(document.getElementById('newFieldOrder').value) || 0;
     const optionsText = document.getElementById('newFieldOptions').value;
     const options = optionsText ? optionsText.split(',').map(o => o.trim()).filter(o => o) : [];
-    
+
     if (!name) {
         showNotification('El nombre del campo es requerido', 'error');
         return;
     }
-    
+
     if ((type === 'select' || type === 'radio') && options.length === 0) {
         showNotification('Los campos de selección y radio requieren al menos una opción', 'error');
         return;
     }
-    
+
     showLoadingAnimation();
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) {
             hideLoadingAnimation();
             return;
         }
-        
+
         const fieldData = {
             name: name,
             type: type,
@@ -408,18 +408,18 @@ async function saveNewField() {
             orderIndex: order,
             options: options
         };
-        
-        const url = editingFieldId 
+
+        const url = editingFieldId
             ? API_URL + '/sistemas/' + currentSystemId + '/campos/' + editingFieldId
             : API_URL + '/sistemas/' + currentSystemId + '/campos';
         const method = editingFieldId ? 'PUT' : 'POST';
-        
+
         const response = await fetch(url, {
             method: method,
             headers: headers,
             body: JSON.stringify(fieldData)
         });
-        
+
         if (response.ok) {
             showLoadingSuccess();
             setTimeout(() => {
@@ -443,16 +443,16 @@ async function saveNewField() {
 
 async function deleteField(fieldId) {
     if (!confirm('¿Estás seguro de eliminar este campo? Esto eliminará todos los valores de este campo en los registros.')) return;
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/campos/' + fieldId, {
             method: 'DELETE',
             headers: headers
         });
-        
+
         if (response.ok) {
             await loadFields();
             showNotification('Campo eliminado exitosamente', 'success');
@@ -472,27 +472,27 @@ function editField(fieldId) {
         showNotification('No tienes permisos para editar campos. Solo el owner y admin pueden gestionar campos.', 'error');
         return;
     }
-    
+
     const field = fields.find(f => f.id === fieldId);
     if (!field) return;
-    
+
     editingFieldId = fieldId;
     document.getElementById('formTitle').textContent = 'Editar Campo';
     document.getElementById('btnSaveField').textContent = 'Actualizar';
     document.getElementById('btnSaveField').onclick = () => saveNewField();
-    
+
     const nameInput = document.getElementById('newFieldName');
     const typeSelect = document.getElementById('newFieldType');
     const requiredCheckbox = document.getElementById('newFieldRequired');
     const orderInput = document.getElementById('newFieldOrder');
     const optionsInput = document.getElementById('newFieldOptions');
-    
+
     if (nameInput) nameInput.value = field.name || '';
     if (typeSelect) typeSelect.value = field.type || 'text';
     if (requiredCheckbox) requiredCheckbox.checked = field.required || false;
     if (orderInput) orderInput.value = field.orderIndex || 0;
     if (optionsInput) optionsInput.value = field.options ? field.options.join(', ') : '';
-    
+
     handleFieldTypeChange();
     document.getElementById('addFieldForm').classList.remove('hidden');
 }
@@ -506,12 +506,12 @@ async function loadRecords() {
         updateStatistics();
         return Promise.resolve();
     }
-    
+
     try {
         const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/registros', {
             headers: headers
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             records = Array.isArray(data) ? data : [];
@@ -520,7 +520,7 @@ async function loadRecords() {
             records = [];
             filteredRecords = [];
         }
-        
+
         renderRecords();
         updateStatistics();
         return Promise.resolve();
@@ -536,18 +536,18 @@ async function loadRecords() {
 
 function handleSearchRecords() {
     const searchTerm = document.getElementById('searchRecords').value.toLowerCase().trim();
-    
+
     if (!searchTerm) {
         filteredRecords = [...records];
     } else {
         filteredRecords = records.filter(record => {
             if (!record.fieldValues) return false;
-            return Object.values(record.fieldValues).some(value => 
+            return Object.values(record.fieldValues).some(value =>
                 String(value).toLowerCase().includes(searchTerm)
             );
         });
     }
-    
+
     renderRecords();
 }
 
@@ -555,44 +555,44 @@ function renderRecords() {
     const thead = document.getElementById('recordsTableHead');
     const tbody = document.getElementById('recordsTableBody');
     const recordsContent = document.getElementById('recordsContent');
-    
+
     if (!thead || !tbody) return;
-    
+
     thead.innerHTML = '';
     tbody.innerHTML = '';
-    
+
     if (fields.length === 0) {
         if (recordsContent) recordsContent.classList.add('hidden');
         return;
     }
-    
+
     const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    
-        const headerRow = document.createElement('tr');
-        sortedFields.forEach(field => {
-            const th = document.createElement('th');
-            th.className = 'px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white whitespace-nowrap';
-            th.textContent = field.name;
-            headerRow.appendChild(th);
-        });
-        const thActions = document.createElement('th');
-        thActions.className = 'px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white whitespace-nowrap';
-        thActions.textContent = 'Acciones';
-        headerRow.appendChild(thActions);
-        thead.appendChild(headerRow);
-        
-        if (recordsContent) recordsContent.classList.remove('hidden');
-        
-        if (filteredRecords.length === 0) {
-            const emptyRow = document.createElement('tr');
-            emptyRow.innerHTML = `<td colspan="${sortedFields.length + 1}" class="text-center px-6 py-8 text-gray-500 dark:text-gray-400">No hay registros. Agrega registros para llenar la tabla.</td>`;
-            tbody.appendChild(emptyRow);
-            return;
-        }
-        
-        const canEdit = isOwner || userRole === 'owner' || userRole === 'admin' || userRole === 'editor';
-        
-        filteredRecords.forEach((record, index) => {
+
+    const headerRow = document.createElement('tr');
+    sortedFields.forEach(field => {
+        const th = document.createElement('th');
+        th.className = 'px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white whitespace-nowrap';
+        th.textContent = field.name;
+        headerRow.appendChild(th);
+    });
+    const thActions = document.createElement('th');
+    thActions.className = 'px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white whitespace-nowrap';
+    thActions.textContent = 'Acciones';
+    headerRow.appendChild(thActions);
+    thead.appendChild(headerRow);
+
+    if (recordsContent) recordsContent.classList.remove('hidden');
+
+    if (filteredRecords.length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `<td colspan="${sortedFields.length + 1}" class="text-center px-6 py-8 text-gray-500 dark:text-gray-400">No hay registros. Agrega registros para llenar la tabla.</td>`;
+        tbody.appendChild(emptyRow);
+        return;
+    }
+
+    const canEdit = isOwner || userRole === 'owner' || userRole === 'admin' || userRole === 'editor';
+
+    filteredRecords.forEach((record, index) => {
         const row = document.createElement('tr');
         row.className = 'table-row hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors';
         row.style.animationDelay = `${index * 0.05}s`;
@@ -630,8 +630,9 @@ function openRecordsManagement() {
         openFieldsModal();
         return;
     }
-    
-    showAddRecordForm();
+
+    document.getElementById('recordsManagementModal').classList.remove('hidden');
+    loadRecordsForManagement();
 }
 
 function closeRecordsManagementModal() {
@@ -642,17 +643,17 @@ function closeRecordsManagementModal() {
 function loadRecordsForManagement() {
     const container = document.getElementById('recordsListContainer');
     if (!container) return;
-    
+
     container.innerHTML = '<p class="text-center">Cargando registros...</p>';
-    
+
     if (filteredRecords.length === 0) {
         container.innerHTML = '<p class="text-center text-gray-500 py-8">No hay registros. Agrega tu primer registro.</p>';
         return;
     }
-    
+
     const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
     const canEdit = isOwner || userRole === 'owner' || userRole === 'admin' || userRole === 'editor';
-    
+
     container.innerHTML = filteredRecords.map(record => {
         const recordFields = sortedFields.map(field => {
             const value = record.fieldValues && record.fieldValues[field.name] ? record.fieldValues[field.name] : '-';
@@ -663,7 +664,7 @@ function loadRecordsForManagement() {
                 </div>
             `;
         }).join('');
-        
+
         return `
             <div class="border rounded-lg p-6 bg-white shadow-sm">
                 <div class="flex justify-between items-start mb-6">
@@ -694,15 +695,15 @@ async function showAddRecordForm() {
         showNotification('No tienes permisos para agregar registros', 'error');
         return;
     }
-    
+
     await loadFields();
-    
+
     if (fields.length === 0) {
         showNotification('Debes crear al menos un campo antes de agregar registros', 'error');
         openFieldsModal();
         return;
     }
-    
+
     editingRecordId = null;
     const btnText = document.getElementById('btnSaveRecordModal');
     if (btnText) {
@@ -715,12 +716,12 @@ function showRecordModal(title) {
     const modal = document.getElementById('recordModal');
     const titleEl = document.getElementById('recordModalTitle');
     const imageEl = document.getElementById('recordModalImage');
-    
+
     if (systemInfo) {
         titleEl.textContent = systemInfo.name || 'Base de Datos';
         if (systemInfo.imageUrl && systemInfo.imageUrl.trim() !== '') {
-            const imageUrl = systemInfo.imageUrl.startsWith('http') 
-                ? systemInfo.imageUrl 
+            const imageUrl = systemInfo.imageUrl.startsWith('http')
+                ? systemInfo.imageUrl
                 : `http://localhost:8080${systemInfo.imageUrl}`;
             imageEl.src = imageUrl;
             imageEl.classList.remove('hidden');
@@ -731,32 +732,32 @@ function showRecordModal(title) {
         titleEl.textContent = title;
         imageEl.classList.add('hidden');
     }
-    
+
     modal.classList.remove('hidden');
-    
+
     const container = document.getElementById('recordFieldsContainer');
-    
+
     if (fields.length === 0) {
         container.innerHTML = '<p class="text-center text-red-500">No hay campos definidos. Por favor, crea al menos un campo primero.</p>';
         return;
     }
-    
+
     container.innerHTML = '<p class="text-center">Cargando campos...</p>';
-    
+
     const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    
+
     setTimeout(() => {
         container.innerHTML = sortedFields.map(field => {
-        let input = '';
-        if (field.type === 'checkbox') {
-            input = `<label class="flex items-center">
+            let input = '';
+            if (field.type === 'checkbox') {
+                input = `<label class="flex items-center">
                 <input type="checkbox" id="record_field_${field.id}" class="mr-2" ${field.required ? 'required' : ''}>
                 ${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}
             </label>`;
-        } else if (field.type === 'radio') {
-            const options = field.options || [];
-            if (options.length > 0) {
-                input = `<div>
+            } else if (field.type === 'radio') {
+                const options = field.options || [];
+                if (options.length > 0) {
+                    input = `<div>
                     <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
                     ${options.map((opt, idx) => `
                         <label class="flex items-center mr-4 mb-2">
@@ -765,48 +766,48 @@ function showRecordModal(title) {
                         </label>
                     `).join('')}
                 </div>`;
-            } else {
-                input = `<div>
+                } else {
+                    input = `<div>
                     <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
                     <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
                 </div>`;
-            }
-        } else if (field.type === 'select') {
-            const options = field.options || [];
-            if (options.length > 0) {
-                input = `<select id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>
+                }
+            } else if (field.type === 'select') {
+                const options = field.options || [];
+                if (options.length > 0) {
+                    input = `<select id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>
                     <option value="">Seleccionar...</option>
                     ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
                 </select>`;
-            } else {
-                input = `<div>
+                } else {
+                    input = `<div>
                     <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
                 </div>`;
+                }
+            } else if (field.type === 'textarea') {
+                input = `<textarea id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''} rows="4"></textarea>`;
+            } else if (field.type === 'date') {
+                input = `<input type="date" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'datetime') {
+                input = `<input type="datetime-local" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'number') {
+                input = `<input type="number" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'email') {
+                input = `<input type="email" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'url') {
+                input = `<input type="url" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'tel') {
+                input = `<input type="tel" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+            } else {
+                input = `<input type="text" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
             }
-        } else if (field.type === 'textarea') {
-            input = `<textarea id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''} rows="4"></textarea>`;
-        } else if (field.type === 'date') {
-            input = `<input type="date" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'datetime') {
-            input = `<input type="datetime-local" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'number') {
-            input = `<input type="number" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'email') {
-            input = `<input type="email" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'url') {
-            input = `<input type="url" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'tel') {
-            input = `<input type="tel" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
-        } else {
-            input = `<input type="text" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
-        }
-        return `
+            return `
             <div class="mb-4">
                 ${field.type !== 'checkbox' ? `<label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>` : ''}
                 ${input}
             </div>
         `;
-    }).join('');
+        }).join('');
     }, 100);
 }
 
@@ -818,7 +819,7 @@ function closeRecordModal() {
 
 function clearRecordForm() {
     const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    
+
     sortedFields.forEach(field => {
         if (field.type === 'checkbox') {
             const checkbox = document.getElementById(`record_field_${field.id}`);
@@ -843,13 +844,13 @@ async function saveNewRecord() {
         showNotification('No tienes permisos para crear registros', 'error');
         return;
     }
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-        
+
         const fieldValues = {};
         sortedFields.forEach(field => {
             let value = '';
@@ -865,22 +866,22 @@ async function saveNewRecord() {
             }
             fieldValues[field.name] = value;
         });
-        
+
         const recordData = {
             fieldValues: fieldValues
         };
-        
-        const url = editingRecordId 
+
+        const url = editingRecordId
             ? API_URL + '/sistemas/' + currentSystemId + '/registros/' + editingRecordId
             : API_URL + '/sistemas/' + currentSystemId + '/registros';
         const method = editingRecordId ? 'PUT' : 'POST';
-        
+
         const response = await fetch(url, {
             method: method,
             headers: headers,
             body: JSON.stringify(recordData)
         });
-        
+
         if (response.ok) {
             const btnText = document.getElementById('btnSaveRecordModal');
             if (btnText) {
@@ -909,111 +910,121 @@ async function editRecord(recordId) {
         showNotification('No tienes permisos para editar registros', 'error');
         return;
     }
-    
-    await loadFields();
-    
-    const record = records.find(r => r.id === recordId);
-    if (!record) return;
-    
-    editingRecordId = recordId;
+
+    // Ensure recordId is a number
+    const id = parseInt(recordId);
+    const record = records.find(r => r.id === id);
+
+    if (!record) {
+        console.error('Record not found:', recordId);
+        showNotification('Error: Registro no encontrado', 'error');
+        return;
+    }
+
+    if (fields.length === 0) {
+        await loadFields();
+    }
+
+    editingRecordId = id;
     const btnText = document.getElementById('btnSaveRecordModal');
     if (btnText) {
         btnText.textContent = 'Guardar';
     }
     showRecordModal('Editar Registro');
-    
+
     const container = document.getElementById('recordFieldsContainer');
     container.innerHTML = '<p class="text-center">Cargando campos...</p>';
-    
+
     if (fields.length === 0) {
         container.innerHTML = '<p class="text-center text-red-500">No hay campos definidos. Por favor, crea al menos un campo primero.</p>';
         return;
     }
-    
+
     const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    
+
     setTimeout(() => {
         container.innerHTML = sortedFields.map(field => {
-        const currentValue = record.fieldValues && record.fieldValues[field.name] ? record.fieldValues[field.name] : '';
-        let input = '';
-        
-        if (field.type === 'checkbox') {
-            const checked = currentValue === 'true' || currentValue === true;
-            input = `<label class="flex items-center">
-                <input type="checkbox" id="record_field_${field.id}" class="mr-2" ${checked ? 'checked' : ''} ${field.required ? 'required' : ''}>
-                ${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}
-            </label>`;
-        } else if (field.type === 'radio') {
-            const options = field.options || [];
-            if (options.length > 0) {
-                input = `<div>
-                    <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
-                    ${options.map((opt, idx) => `
-                        <label class="flex items-center mr-4 mb-2">
-                            <input type="radio" name="record_field_${field.id}" value="${opt}" class="mr-2" ${opt === currentValue ? 'checked' : ''} ${field.required && idx === 0 ? 'required' : ''}>
-                            ${opt}
-                        </label>
-                    `).join('')}
-                </div>`;
+            const currentValue = record.fieldValues && record.fieldValues[field.name] ? record.fieldValues[field.name] : '';
+            let input = '';
+
+            if (field.type === 'checkbox') {
+                const checked = currentValue === 'true' || currentValue === true;
+                input = `<label class="flex items-center">
+                    <input type="checkbox" id="record_field_${field.id}" class="mr-2" ${checked ? 'checked' : ''} ${field.required ? 'required' : ''}>
+                    ${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}
+                </label>`;
+            } else if (field.type === 'radio') {
+                const options = field.options || [];
+                if (options.length > 0) {
+                    input = `<div>
+                        <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
+                        ${options.map((opt, idx) => `
+                            <label class="flex items-center mr-4 mb-2">
+                                <input type="radio" name="record_field_${field.id}" value="${opt}" class="mr-2" ${opt === currentValue ? 'checked' : ''} ${field.required && idx === 0 ? 'required' : ''}>
+                                ${opt}
+                            </label>
+                        `).join('')}
+                    </div>`;
+                } else {
+                    input = `<div>
+                        <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
+                        <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
+                    </div>`;
+                }
+            } else if (field.type === 'select') {
+                const options = field.options || [];
+                if (options.length > 0) {
+                    input = `<select id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>
+                        <option value="">Seleccionar...</option>
+                        ${options.map(opt => `<option value="${opt}" ${opt === currentValue ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>`;
+                } else {
+                    input = `<div>
+                        <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
+                    </div>`;
+                }
+            } else if (field.type === 'textarea') {
+                input = `<textarea id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''} rows="4">${currentValue}</textarea>`;
+            } else if (field.type === 'date') {
+                input = `<input type="date" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'datetime') {
+                input = `<input type="datetime-local" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'number') {
+                input = `<input type="number" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'email') {
+                input = `<input type="email" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'url') {
+                input = `<input type="url" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+            } else if (field.type === 'tel') {
+                input = `<input type="tel" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
             } else {
-                input = `<div>
-                    <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
-                    <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
-                </div>`;
+                input = `<input type="text" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
             }
-        } else if (field.type === 'select') {
-            const options = field.options || [];
-            if (options.length > 0) {
-                input = `<select id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>
-                    <option value="">Seleccionar...</option>
-                    ${options.map(opt => `<option value="${opt}" ${opt === currentValue ? 'selected' : ''}>${opt}</option>`).join('')}
-                </select>`;
-            } else {
-                input = `<div>
-                    <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
-                </div>`;
-            }
-        } else if (field.type === 'textarea') {
-            input = `<textarea id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''} rows="4">${currentValue}</textarea>`;
-        } else if (field.type === 'date') {
-            input = `<input type="date" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'datetime') {
-            input = `<input type="datetime-local" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'number') {
-            input = `<input type="number" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'email') {
-            input = `<input type="email" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'url') {
-            input = `<input type="url" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
-        } else if (field.type === 'tel') {
-            input = `<input type="tel" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
-        } else {
-            input = `<input type="text" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
-        }
-        return `
-            <div class="mb-4">
-                ${field.type !== 'checkbox' ? `<label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>` : ''}
-                ${input}
-            </div>
-        `;
-    }).join('');
+            return `
+                <div class="mb-4">
+                    ${field.type !== 'checkbox' ? `<label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>` : ''}
+                    ${input}
+                </div>
+            `;
+        }).join('');
     }, 100);
 }
 
 async function deleteRecord(recordId) {
     if (!confirm('¿Estás seguro de eliminar este registro?')) return;
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/registros/' + recordId, {
             method: 'DELETE',
             headers: headers
         });
-        
+
         if (response.ok) {
             await loadRecords();
+            showNotification('Registro eliminado exitosamente', 'success');
             if (document.getElementById('recordsManagementModal') && !document.getElementById('recordsManagementModal').classList.contains('hidden')) {
                 loadRecordsForManagement();
             }
@@ -1036,7 +1047,7 @@ function updateStatistics() {
         return recordDate === today;
     }).length;
     const requiredFields = fields.filter(f => f.required === true).length;
-    
+
     document.getElementById('statTotalRecords').textContent = totalRecords;
     document.getElementById('statTotalFields').textContent = totalFields;
     document.getElementById('statRecordsToday').textContent = recordsToday;
@@ -1048,7 +1059,7 @@ function updateCharts() {
     if (charts.activity) charts.activity.destroy();
     if (charts.fieldsDistribution) charts.fieldsDistribution.destroy();
     if (charts.growth) charts.growth.destroy();
-    
+
     const recordsByTypeCtx = document.getElementById('recordsByTypeChart');
     if (recordsByTypeCtx) {
         const typeCounts = {};
@@ -1060,7 +1071,7 @@ function updateCharts() {
                 });
             }
         });
-        
+
         charts.recordsByType = new Chart(recordsByTypeCtx, {
             type: 'doughnut',
             data: {
@@ -1083,7 +1094,7 @@ function updateCharts() {
             }
         });
     }
-    
+
     const activityCtx = document.getElementById('activityChart');
     if (activityCtx) {
         const last7Days = [];
@@ -1093,14 +1104,14 @@ function updateCharts() {
             date.setDate(date.getDate() - i);
             last7Days.push(date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }));
         }
-        
+
         const activityData = last7Days.map(date => {
             return records.filter(r => {
                 const recordDate = new Date(r.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
                 return recordDate === date;
             }).length;
         });
-        
+
         charts.activity = new Chart(activityCtx, {
             type: 'line',
             data: {
@@ -1144,14 +1155,14 @@ function updateCharts() {
             }
         });
     }
-    
+
     const fieldsDistributionCtx = document.getElementById('fieldsDistributionChart');
     if (fieldsDistributionCtx) {
         const typeCounts = {};
         fields.forEach(field => {
             typeCounts[field.type] = (typeCounts[field.type] || 0) + 1;
         });
-        
+
         charts.fieldsDistribution = new Chart(fieldsDistributionCtx, {
             type: 'pie',
             data: {
@@ -1174,7 +1185,7 @@ function updateCharts() {
             }
         });
     }
-    
+
     const growthCtx = document.getElementById('growthChart');
     if (growthCtx) {
         const months = [];
@@ -1184,14 +1195,14 @@ function updateCharts() {
             date.setMonth(date.getMonth() - i);
             months.push(date.toLocaleDateString('es-ES', { month: 'short' }));
         }
-        
+
         const growthData = months.map(month => {
             return records.filter(r => {
                 const recordMonth = new Date(r.createdAt).toLocaleDateString('es-ES', { month: 'short' });
                 return recordMonth === month;
             }).length;
         });
-        
+
         charts.growth = new Chart(growthCtx, {
             type: 'bar',
             data: {
@@ -1260,25 +1271,25 @@ let currentAuditSystemId = null;
 
 async function loadAuditData() {
     if (!currentAuditSystemId) return;
-    
+
     const auditType = document.getElementById('auditTypeSelect')?.value || 'logs';
     const search = document.getElementById('auditSearchInput')?.value.trim() || '';
-    
+
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
-        
+
         let url;
         if (search) {
             url = `http://localhost:8080/api/auditoria/sistema/${currentAuditSystemId}/${auditType === 'logs' ? 'logs/buscar' : 'seguridad/buscar'}?search=${encodeURIComponent(search)}`;
         } else {
             url = `http://localhost:8080/api/auditoria/sistema/${currentAuditSystemId}/${auditType === 'logs' ? 'logs' : 'seguridad'}`;
         }
-        
+
         const response = await fetch(url, {
             headers: headers
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             renderAuditTable(data, auditType);
@@ -1291,14 +1302,14 @@ async function loadAuditData() {
 function renderAuditTable(items, type) {
     const tbody = document.getElementById('auditTableBody');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
-    
+
     if (!items || items.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center px-6 py-8 text-gray-500 dark:text-gray-400">No hay registros</td></tr>';
         return;
     }
-    
+
     items.forEach(item => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors';
