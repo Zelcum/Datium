@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datium - Sistemas</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/loading.css">
+    <link rel="stylesheet" href="system-styles.css">
+    <script src="notification.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#111418] dark:text-gray-200 min-h-screen">
+    <div class="relative w-full flex flex-col items-center min-h-screen" id="mainContent">
+        <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-white dark:from-blue-900/30 dark:via-purple-900/30 dark:to-background-dark -z-10 continuous-background"></div>
+        <div class="container mx-auto p-4 md:p-8 w-full max-w-7xl">
+            <div class="mb-8 fade-in-up text-center">
+                <h1 class="text-4xl font-black mb-8 text-[#111418] dark:text-white">Sistemas</h1>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 rounded-lg bg-blue-500/20">
+                            <span class="material-symbols-outlined text-blue-500 text-2xl">apps</span>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Total Sistemas</div>
+                    </div>
+                    <div id="statTotalSystems" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                </div>
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-2">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 rounded-lg bg-green-500/20">
+                            <span class="material-symbols-outlined text-green-500 text-2xl">security</span>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Sin Seguridad</div>
+                    </div>
+                    <div id="statSecurityNone" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                </div>
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-3">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 rounded-lg bg-purple-500/20">
+                            <span class="material-symbols-outlined text-purple-500 text-2xl">people</span>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Total Usuarios</div>
+                    </div>
+                    <div id="statTotalUsers" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                </div>
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-4">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 rounded-lg bg-orange-500/20">
+                            <span class="material-symbols-outlined text-orange-500 text-2xl">database</span>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Total Registros</div>
+                    </div>
+                    <div id="statTotalRecords" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                </div>
+            </div>
+
+            <div id="statisticsSection" class="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4 fade-in">
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift scale-in delay-1">
+                    <h3 class="font-bold mb-4 flex items-center gap-2 text-[#111418] dark:text-white text-sm sm:text-base">
+                        <span class="material-symbols-outlined text-primary">pie_chart</span> Distribución de Seguridad
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="securityChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift scale-in delay-2">
+                    <h3 class="font-bold mb-4 flex items-center gap-2 text-[#111418] dark:text-white text-sm sm:text-base">
+                        <span class="material-symbols-outlined text-primary">bar_chart</span> Actividad Temporal
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift scale-in delay-3">
+                    <h3 class="font-bold mb-4 flex items-center gap-2 text-[#111418] dark:text-white text-sm sm:text-base">
+                        <span class="material-symbols-outlined text-primary">business</span> Uso del Plan
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="planChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <div id="statPlanUsage" class="text-xl sm:text-2xl font-bold text-[#111418] dark:text-white">-</div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1" id="statPlanDetails">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4 flex flex-col sm:flex-row gap-2 fade-in-up delay-2">
+                <button id="btnCreateSystem" class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-4 sm:px-6 bg-primary text-white text-sm sm:text-base font-bold shadow-lg hover:bg-primary/90 transition-colors flex-1 sm:flex-none">
+                    <span class="material-symbols-outlined">add</span>
+                    <span>Crear Sistema</span>
+                </button>
+                <button id="btnLogout" class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-4 sm:px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm sm:text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-1 sm:flex-none">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+
+            <div class="mb-4 flex flex-col sm:flex-row gap-4">
+                <input type="text" id="searchInput" placeholder="Buscar sistema..." autocomplete="off" class="flex-1 px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                <select id="filterSelect" class="w-full sm:w-auto px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="" class="bg-white dark:bg-slate-800">Todos</option>
+                    <option value="none" class="bg-white dark:bg-slate-800">Sin seguridad</option>
+                    <option value="general" class="bg-white dark:bg-slate-800">Seguridad general</option>
+                    <option value="individual" class="bg-white dark:bg-slate-800">Seguridad individual</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="systemsTable" class="glass-card rounded-xl shadow-lg overflow-hidden fade-in delay-3 w-full">
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700/50">
+                    <thead class="bg-gradient-to-r from-primary/10 to-secondary/10 dark:from-primary/20 dark:to-secondary/20">
+                        <tr>
+                            <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Logo</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Nombre</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden lg:table-cell">Seguridad</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden md:table-cell">Usuarios</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden lg:table-cell">Creado</th>
+                            <th class="px-4 py-4 text-center text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Acciones</th>
+                        </tr>
+                    </thead>
+                        <tbody id="systemsTableBody" class="bg-white/30 dark:bg-slate-800/30 divide-y divide-gray-200 dark:divide-slate-700/50">
+                            <tr>
+                                <td colspan="6" class="text-center px-6 py-8">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <div class="loading-spinner rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+                                        <span class="text-gray-500 dark:text-gray-400">Cargando sistemas desde la base de datos...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
+    </div>
+
+        <div id="createSystemForm" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="glass-card p-8 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl modal-enter">
+                <h2 class="text-2xl font-black mb-6 text-[#111418] dark:text-white" id="formTitle">Crear Sistema</h2>
+                <form id="systemForm">
+                    <input type="hidden" id="systemId">
+                    
+                    <div class="mb-4">
+                        <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Nombre <span class="text-red-500">*</span></label>
+                        <input type="text" id="systemName" required class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Descripción</label>
+                        <textarea id="systemDescription" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Logo del Sistema</label>
+                        <div class="mb-3">
+                            <label for="systemImageFile" class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500 mb-2">cloud_upload</span>
+                                    <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click para subir</span> o arrastra la imagen</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF hasta 10MB</p>
+                                </div>
+                                <input type="file" id="systemImageFile" accept="image/*" class="hidden" />
+                            </label>
+                        </div>
+                        <input type="hidden" id="systemImageUrl">
+                        <div id="imagePreview" class="hidden"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Modo de Seguridad</label>
+                        <select id="systemSecurityMode" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            <option value="none" class="bg-white dark:bg-slate-800">Sin seguridad</option>
+                            <option value="general" class="bg-white dark:bg-slate-800">Seguridad general</option>
+                            <option value="individual" class="bg-white dark:bg-slate-800">Seguridad individual</option>
+                        </select>
+                    </div>
+
+                    <div id="generalPasswordSection" class="mb-4 hidden">
+                        <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Contraseña General</label>
+                        <input type="password" id="systemGeneralPassword" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Campos del Sistema</label>
+                        <div id="systemFieldsContainer"></div>
+                        <button type="button" id="btnAddField" class="mt-2 hover-smooth flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <span class="material-symbols-outlined text-lg">add</span>
+                            <span>Agregar Campo</span>
+                        </button>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Usuarios con Acceso</label>
+                        <div id="systemUsersContainer"></div>
+                        <button type="button" id="btnAddUser" class="mt-2 hover-smooth flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <span class="material-symbols-outlined text-lg">add</span>
+                            <span>Agregar Usuario</span>
+                        </button>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Contraseñas de Usuarios (modo individual)</label>
+                        <div id="systemUserPasswordsContainer"></div>
+                        <button type="button" id="btnAddUserPassword" class="mt-2 hover-smooth flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <span class="material-symbols-outlined text-lg">add</span>
+                            <span>Agregar Contraseña</span>
+                        </button>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="submit" class="btn-primary-hover flex-1 flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                            <span class="material-symbols-outlined">save</span>
+                            <span>Guardar</span>
+                        </button>
+                        <button type="button" id="btnCancel" class="hover-smooth flex-1 flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                            <span>Cancelar</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="deleteConfirmModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="glass-card p-8 rounded-xl max-w-md w-full shadow-2xl modal-enter">
+                <h2 class="text-2xl font-black mb-4 text-[#111418] dark:text-white">Confirmar Eliminación</h2>
+                <p class="mb-4 text-gray-600 dark:text-gray-300">Esta acción no se puede deshacer. Escribe tu email para confirmar:</p>
+                <input type="email" id="confirmEmail" placeholder="tu@email.com" autocomplete="off" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4">
+                <div class="flex gap-4">
+                    <button id="btnConfirmDelete" class="hover-smooth flex-1 flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <span class="material-symbols-outlined">delete</span>
+                        <span>Eliminar</span>
+                    </button>
+                    <button id="btnCancelDelete" class="hover-smooth flex-1 flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                        <span>Cancelar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="auditModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="glass-card p-8 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl modal-enter">
+                <h2 class="text-2xl font-black mb-6 text-[#111418] dark:text-white">Auditoría del Sistema</h2>
+                <div class="mb-4 flex gap-4">
+                    <input type="text" id="auditSearchInput" placeholder="Buscar en auditoría..." autocomplete="off" class="flex-1 px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <select id="auditTypeSelect" class="px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="logs" class="bg-white dark:bg-slate-800">Logs de Auditoría</option>
+                        <option value="security" class="bg-white dark:bg-slate-800">Auditoría de Seguridad</option>
+                    </select>
+                    <button id="btnSearchAudit" class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined">search</span>
+                        <span>Buscar</span>
+                    </button>
+                </div>
+                <div class="overflow-x-auto glass-card rounded-xl">
+                    <table class="min-w-full">
+                        <thead class="bg-white/50 dark:bg-slate-800/50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Fecha</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Usuario</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Acción/Evento</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Detalles</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">IP/Severidad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody" class="divide-y divide-gray-200 dark:divide-slate-700/50">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button onclick="hideAuditModal()" class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                        <span>Cerrar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="accessModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="glass-card p-8 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl modal-enter">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-[#111418] dark:text-white">Gestión de Accesos</h2>
+                    <button onclick="hideAccessModal()" class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                
+                <div class="mb-4">
+                    <button onclick="showAddUserForm()" class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined">add</span>
+                        <span>Agregar Usuario</span>
+                    </button>
+                </div>
+
+                <div id="addUserForm" class="hidden mb-4 p-6 glass-card rounded-xl">
+                    <h3 class="font-bold mb-4 text-[#111418] dark:text-white">Agregar Usuario</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Email del Usuario *</label>
+                            <input type="email" id="newUserEmail" placeholder="email@ejemplo.com" autocomplete="off" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" required>
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Rol *</label>
+                            <select id="newUserRole" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50" required>
+                                <option value="viewer" class="bg-white dark:bg-slate-800">Viewer</option>
+                                <option value="editor" class="bg-white dark:bg-slate-800">Editor</option>
+                                <option value="admin" class="bg-white dark:bg-slate-800">Admin</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Contraseña (opcional, solo si modo individual)</label>
+                            <input type="password" id="newUserPassword" placeholder="Contraseña" autocomplete="off" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="saveNewUser()" class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                            <span class="material-symbols-outlined">save</span>
+                            <span>Guardar</span>
+                        </button>
+                        <button onclick="cancelAddUser()" class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                            <span>Cancelar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-4 p-6 glass-card rounded-xl">
+                    <h3 class="font-bold mb-2 text-[#111418] dark:text-white">Contraseña General</h3>
+                    <div class="flex gap-2">
+                        <input type="password" id="generalPassword" placeholder="Contraseña general para todos" autocomplete="off" class="flex-1 px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <button onclick="saveGeneralPassword()" class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                            <span class="material-symbols-outlined">save</span>
+                            <span>Guardar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto glass-card rounded-xl">
+                    <table class="min-w-full">
+                        <thead class="bg-white/50 dark:bg-slate-800/50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Email</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Nombre</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Rol</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Contraseña</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accessTableBody" class="divide-y divide-gray-200 dark:divide-slate-700/50">
+                            <tr>
+                                <td colspan="5" class="text-center px-6 py-8 text-gray-500 dark:text-gray-400">Cargando usuarios...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="notification.js"></script>
+    <script src="system-access.js"></script>
+    <script src="system.js"></script>
+</body>
+</html>
