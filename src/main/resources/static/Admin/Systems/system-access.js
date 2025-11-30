@@ -1,6 +1,4 @@
-// API_URL is defined globally in system.js
-// currentAccessSystemId is defined globally in system.js
-// accessUsers is defined globally in system.js
+let editingUserEmail = null;
 
 function showAccessModal(systemId) {
     currentAccessSystemId = systemId;
@@ -56,18 +54,15 @@ function renderAccessUsers() {
             <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${user.role || '-'}</td>
             <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${user.hasPassword ? '✓' : '-'}</td>
             <td class="px-6 py-4">
-                <div class="flex gap-2 flex-wrap">
-                    <button onclick="editAccessUser('${user.userEmail || ''}')" class="hover-smooth flex items-center justify-center gap-1 rounded-lg h-9 px-3 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <div class="flex items-center justify-center gap-1.5">
+                    <button onclick="editAccessUser('${user.userEmail || ''}')" class="action-btn action-btn-edit p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Editar">
                         <span class="material-symbols-outlined text-lg">edit</span>
-                        <span>Editar</span>
                     </button>
-                    <button onclick="setUserPasswordModal('${user.userEmail || ''}')" class="btn-primary-hover flex items-center justify-center gap-1 rounded-lg h-9 px-3 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                    <button onclick="setUserPasswordModal('${user.userEmail || ''}')" class="action-btn action-btn-lock p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Contraseña">
                         <span class="material-symbols-outlined text-lg">lock</span>
-                        <span>Contraseña</span>
                     </button>
-                    <button onclick="deleteAccessUser('${user.userEmail || ''}')" class="hover-smooth flex items-center justify-center gap-1 rounded-lg h-9 px-3 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <button onclick="deleteAccessUser('${user.userEmail || ''}')" class="action-btn action-btn-delete p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Eliminar">
                         <span class="material-symbols-outlined text-lg">delete</span>
-                        <span>Eliminar</span>
                     </button>
                 </div>
             </td>
@@ -77,15 +72,35 @@ function renderAccessUsers() {
 }
 
 function showAddUserForm() {
+    editingUserEmail = null;
     const form = document.getElementById('addUserForm');
     if (form) {
-        form.classList.remove('hidden');
+        const formTitle = form.querySelector('h3');
+        if (formTitle) formTitle.textContent = 'Agregar Usuario';
+        
         const emailInput = document.getElementById('newUserEmail');
         const roleSelect = document.getElementById('newUserRole');
         const passwordInput = document.getElementById('newUserPassword');
-        if (emailInput) emailInput.value = '';
+        const passwordContainer = passwordInput ? passwordInput.closest('div') : null;
+        const btnSaveUser = document.getElementById('btnSaveUser');
+        
+        if (emailInput) {
+            emailInput.value = '';
+            emailInput.disabled = false;
+        }
         if (roleSelect) roleSelect.value = 'viewer';
         if (passwordInput) passwordInput.value = '';
+        if (passwordContainer) passwordContainer.classList.remove('hidden');
+        
+        if (btnSaveUser) {
+            btnSaveUser.innerHTML = '<span class="material-symbols-outlined">save</span><span>Guardar</span>';
+            btnSaveUser.setAttribute('onclick', 'saveNewUser()');
+        }
+        
+        form.classList.remove('hidden');
+        setTimeout(() => {
+            form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
     }
 }
 
@@ -94,6 +109,7 @@ function cancelAddUser() {
     if (form) {
         form.classList.add('hidden');
     }
+    editingUserEmail = null;
 }
 
 async function saveNewUser() {
@@ -101,7 +117,10 @@ async function saveNewUser() {
     const roleSelect = document.getElementById('newUserRole');
     const passwordInput = document.getElementById('newUserPassword');
 
-    if (!emailInput || !roleSelect) return;
+    if (!emailInput || !roleSelect) {
+        showNotification('Error: No se encontraron los campos del formulario', 'error');
+        return;
+    }
 
     const email = emailInput.value.trim();
     const role = roleSelect.value;
@@ -112,67 +131,104 @@ async function saveNewUser() {
         return;
     }
 
+    if (!currentAccessSystemId) {
+        showNotification('Error: No se encontró el ID del sistema', 'error');
+        return;
+    }
+
+    const isEditing = editingUserEmail !== null && editingUserEmail !== undefined;
+
     try {
         const headers = getAuthHeaders();
-        if (!headers.Authorization) return;
+        if (!headers.Authorization) {
+            showNotification('Error: No hay token de autenticación', 'error');
+            return;
+        }
 
-        const response = await fetch(API_URL + '/sistemas/' + currentAccessSystemId + '/accesos', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
+        const url = isEditing
+            ? API_URL + '/sistemas/' + currentAccessSystemId + '/accesos'
+            : API_URL + '/sistemas/' + currentAccessSystemId + '/accesos';
+        const method = isEditing ? 'PUT' : 'POST';
+
+        const requestBody = isEditing
+            ? {
+                email: editingUserEmail,
+                role: role
+            }
+            : {
                 email: email,
                 role: role,
                 password: password || null
-            })
+            };
+
+        console.log(`Saving user: ${method} ${url}`, requestBody, 'isEditing:', isEditing);
+
+        const response = await fetch(url, {
+            method: method,
+            headers: headers,
+            body: JSON.stringify(requestBody)
         });
 
         if (response.ok) {
             cancelAddUser();
-            loadAccessUsers();
-            showNotification('Usuario agregado exitosamente', 'success');
+            await loadAccessUsers();
+            showNotification(isEditing ? 'Usuario actualizado exitosamente' : 'Usuario agregado exitosamente', 'success');
+            if (typeof loadSystems === 'function') {
+                loadSystems();
+            }
         } else {
-            const error = await response.json();
-            showNotification('Error: ' + (error.error || 'Error al agregar usuario'), 'error');
+            let errorMessage = isEditing ? 'Error al actualizar usuario' : 'Error al agregar usuario';
+            try {
+                const error = await response.json();
+                errorMessage = error.error || error.message || errorMessage;
+            } catch (e) {
+                errorMessage = `Error ${response.status}: ${response.statusText}`;
+            }
+            console.error('Error saving user:', errorMessage);
+            showNotification('Error: ' + errorMessage, 'error');
         }
     } catch (error) {
         console.error('Error saving user:', error);
-        showNotification('Error al agregar usuario', 'error');
+        showNotification('Error: ' + (error.message || 'Error de conexión'), 'error');
     }
 }
 
-async function editAccessUser(email) {
+function editAccessUser(email) {
     const user = accessUsers.find(u => u.userEmail === email);
     if (!user) {
         showNotification('Usuario no encontrado', 'error');
         return;
     }
 
-    const newRole = prompt('Nuevo rol (admin, editor, viewer):', user.role);
-    if (!newRole) return;
-
-    try {
-        const headers = getAuthHeaders();
-        if (!headers.Authorization) return;
-
-        const response = await fetch(API_URL + '/sistemas/' + currentAccessSystemId + '/accesos', {
-            method: 'PUT',
-            headers: headers,
-            body: JSON.stringify({
-                email: email,
-                role: newRole
-            })
-        });
-
-        if (response.ok) {
-            loadAccessUsers();
-            showNotification('Usuario actualizado exitosamente', 'success');
-        } else {
-            const error = await response.json();
-            showNotification('Error: ' + (error.error || 'Error al actualizar usuario'), 'error');
+    editingUserEmail = email;
+    const form = document.getElementById('addUserForm');
+    if (form) {
+        const formTitle = form.querySelector('h3');
+        if (formTitle) formTitle.textContent = 'Editar Usuario';
+        
+        const emailInput = document.getElementById('newUserEmail');
+        const roleSelect = document.getElementById('newUserRole');
+        const passwordInput = document.getElementById('newUserPassword');
+        const passwordContainer = passwordInput ? passwordInput.closest('div') : null;
+        const btnSaveUser = document.getElementById('btnSaveUser');
+        
+        if (emailInput) {
+            emailInput.value = user.userEmail || '';
+            emailInput.disabled = true;
         }
-    } catch (error) {
-        console.error('Error updating user:', error);
-        showNotification('Error al actualizar usuario', 'error');
+        if (roleSelect) roleSelect.value = user.role || 'viewer';
+        if (passwordInput) passwordInput.value = '';
+        if (passwordContainer) passwordContainer.classList.add('hidden');
+        
+        if (btnSaveUser) {
+            btnSaveUser.innerHTML = '<span class="material-symbols-outlined">save</span><span>Guardar</span>';
+            btnSaveUser.setAttribute('onclick', 'saveNewUser()');
+        }
+        
+        form.classList.remove('hidden');
+        setTimeout(() => {
+            form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
     }
 }
 

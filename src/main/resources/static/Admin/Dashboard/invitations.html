@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datium</title>
+    <link rel="icon" type="image/jpeg" href="../../img/Isotipo modo oscuro.jpeg" id="favicon">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/loading.css">
+    <link rel="stylesheet" href="../Systems/system-styles.css">
+    <script src="../Systems/notification.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#111418] dark:text-gray-200 min-h-screen">
+    <div class="relative w-full flex flex-col items-center min-h-screen" id="mainContent">
+        <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-white dark:from-blue-900/30 dark:via-purple-900/30 dark:to-background-dark -z-10 continuous-background"></div>
+        <div class="container mx-auto p-4 md:p-8 w-full max-w-7xl">
+            <div class="mb-8 fade-in-up">
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-4xl font-black text-[#111418] dark:text-white">Invitaciones</h1>
+                    <div class="flex gap-3">
+                        <button onclick="goBack()"
+                            class="glass-card p-4 rounded-xl shadow-lg hover-lift transition-all flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-2xl">arrow_back</span>
+                            <span class="font-semibold text-[#111418] dark:text-white text-sm">Volver</span>
+                        </button>
+                        <button onclick="handleLogout()"
+                            class="glass-card p-4 rounded-xl shadow-lg hover-lift transition-all flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-2xl">logout</span>
+                            <span class="font-semibold text-[#111418] dark:text-white text-sm">Cerrar Sesión</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                    <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2 rounded-lg bg-yellow-500/20">
+                                <span class="material-symbols-outlined text-yellow-500 text-2xl">mail</span>
+                            </div>
+                            <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Recibidas</div>
+                        </div>
+                        <div id="statPendingReceived" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                    </div>
+                    <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-2">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2 rounded-lg bg-blue-500/20">
+                                <span class="material-symbols-outlined text-blue-500 text-2xl">send</span>
+                            </div>
+                            <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Enviadas</div>
+                        </div>
+                        <div id="statPendingSent" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                    </div>
+                    <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-3">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2 rounded-lg bg-green-500/20">
+                                <span class="material-symbols-outlined text-green-500 text-2xl">check_circle</span>
+                            </div>
+                            <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Aceptadas</div>
+                        </div>
+                        <div id="statAccepted" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                    </div>
+                    <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-4">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2 rounded-lg bg-red-500/20">
+                                <span class="material-symbols-outlined text-red-500 text-2xl">cancel</span>
+                            </div>
+                            <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Rechazadas</div>
+                        </div>
+                        <div id="statRejected" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                    </div>
+                    <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-5">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2 rounded-lg bg-gray-500/20">
+                                <span class="material-symbols-outlined text-gray-500 text-2xl">schedule</span>
+                            </div>
+                            <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Expiradas</div>
+                        </div>
+                        <div id="statExpired" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                    </div>
+                </div>
+
+                <div class="mb-4 flex gap-2 border-b border-gray-200 dark:border-gray-700">
+                    <button onclick="switchTab('received')" id="tabReceived"
+                        class="px-6 py-3 font-semibold text-[#111418] dark:text-white border-b-2 border-primary tab-active">
+                        Invitaciones Recibidas
+                    </button>
+                    <button onclick="switchTab('sent')" id="tabSent"
+                        class="px-6 py-3 font-semibold text-gray-600 dark:text-gray-400 border-b-2 border-transparent hover:text-primary">
+                        Invitaciones Enviadas
+                    </button>
+                    <button onclick="switchTab('create')" id="tabCreate"
+                        class="px-6 py-3 font-semibold text-gray-600 dark:text-gray-400 border-b-2 border-transparent hover:text-primary">
+                        Crear Invitación
+                    </button>
+                </div>
+
+                <div id="tabContentReceived" class="tab-content">
+                    <div class="mb-4 flex flex-col sm:flex-row gap-4">
+                        <input type="text" id="searchReceived" placeholder="Buscar invitación..." autocomplete="off"
+                            class="flex-1 px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <select id="filterReceived" class="w-full sm:w-auto px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            <option value="all" class="bg-white dark:bg-slate-800">Todas</option>
+                            <option value="pending" class="bg-white dark:bg-slate-800">Pendientes</option>
+                            <option value="accepted" class="bg-white dark:bg-slate-800">Aceptadas</option>
+                            <option value="rejected" class="bg-white dark:bg-slate-800">Rechazadas</option>
+                        </select>
+                    </div>
+                    <div id="receivedInvitationsTable" class="glass-card rounded-xl shadow-lg overflow-hidden fade-in delay-3 w-full">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700/50">
+                                <thead class="bg-gradient-to-r from-primary/10 to-secondary/10 dark:from-primary/20 dark:to-secondary/20">
+                                    <tr>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Sistema</th>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Remitente</th>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden lg:table-cell">Rol</th>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden md:table-cell">Acceso</th>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden lg:table-cell">Fecha</th>
+                                        <th class="px-4 py-4 text-center text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Estado</th>
+                                        <th class="px-4 py-4 text-center text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="receivedTableBody" class="bg-white/30 dark:bg-slate-800/30 divide-y divide-gray-200 dark:divide-slate-700/50">
+                                    <tr>
+                                        <td colspan="7" class="text-center px-6 py-8">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <div class="loading-spinner rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+                                                <span class="text-gray-500 dark:text-gray-400">Cargando invitaciones...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tabContentSent" class="tab-content hidden">
+                    <div class="mb-4 flex flex-col sm:flex-row gap-4">
+                        <input type="text" id="searchSent" placeholder="Buscar invitación..." autocomplete="off"
+                            class="flex-1 px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <select id="filterSent" class="w-full sm:w-auto px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            <option value="all" class="bg-white dark:bg-slate-800">Todas</option>
+                            <option value="pending" class="bg-white dark:bg-slate-800">Pendientes</option>
+                            <option value="accepted" class="bg-white dark:bg-slate-800">Aceptadas</option>
+                            <option value="rejected" class="bg-white dark:bg-slate-800">Rechazadas</option>
+                            <option value="expired" class="bg-white dark:bg-slate-800">Expiradas</option>
+                        </select>
+                    </div>
+                    <div id="sentInvitationsTable" class="glass-card rounded-xl shadow-lg overflow-hidden fade-in delay-3 w-full">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700/50">
+                                <thead class="bg-gradient-to-r from-primary/10 to-secondary/10 dark:from-primary/20 dark:to-secondary/20">
+                                    <tr>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Sistema</th>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Invitado</th>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden lg:table-cell">Rol</th>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden md:table-cell">Acceso</th>
+                                        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden lg:table-cell">Fecha</th>
+                                        <th class="px-4 py-4 text-center text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Estado</th>
+                                        <th class="px-4 py-4 text-center text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sentTableBody" class="bg-white/30 dark:bg-slate-800/30 divide-y divide-gray-200 dark:divide-slate-700/50">
+                                    <tr>
+                                        <td colspan="7" class="text-center px-6 py-8">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <div class="loading-spinner rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+                                                <span class="text-gray-500 dark:text-gray-400">Cargando invitaciones...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tabContentCreate" class="tab-content hidden">
+                    <div class="glass-card p-6 rounded-xl shadow-lg mb-6">
+                        <h2 class="text-2xl font-black mb-6 text-[#111418] dark:text-white">Crear Nueva Invitación</h2>
+                        <form id="createInvitationForm" class="space-y-4">
+                            <div>
+                                <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Sistema <span class="text-red-500">*</span></label>
+                                <select id="invitationSystemId" required
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                    <option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Email del Invitado <span class="text-red-500">*</span></label>
+                                <input type="email" id="invitationEmail" required placeholder="email@ejemplo.com" autocomplete="off"
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Rol <span class="text-red-500">*</span></label>
+                                <select id="invitationRole" required
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                    <option value="viewer" class="bg-white dark:bg-slate-800">Viewer (Solo lectura)</option>
+                                    <option value="editor" class="bg-white dark:bg-slate-800">Editor (Lectura y escritura)</option>
+                                    <option value="admin" class="bg-white dark:bg-slate-800">Admin (Control total)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Tipo de Acceso <span class="text-red-500">*</span></label>
+                                <select id="invitationAccessType" required
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                    <option value="none" class="bg-white dark:bg-slate-800">Sin seguridad (entra directo)</option>
+                                    <option value="general" class="bg-white dark:bg-slate-800">Seguridad general del sistema</option>
+                                    <option value="individual" class="bg-white dark:bg-slate-800">Seguridad individual (contraseña única)</option>
+                                </select>
+                            </div>
+                            <div id="individualPasswordSection" class="hidden">
+                                <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Contraseña Individual <span class="text-red-500">*</span></label>
+                                <input type="password" id="invitationPassword" placeholder="Contraseña para el usuario" autocomplete="off"
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Días hasta expiración</label>
+                                <input type="number" id="invitationExpirationDays" min="1" max="365" value="30"
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            </div>
+                            <div class="flex gap-4">
+                                <button type="submit"
+                                    class="btn-primary-hover flex-1 flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                                    <span class="material-symbols-outlined">send</span>
+                                    <span>Enviar Invitación</span>
+                                </button>
+                                <button type="button" onclick="resetInvitationForm()"
+                                    class="hover-smooth flex-1 flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    <span class="material-symbols-outlined">refresh</span>
+                                    <span>Limpiar</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="invitations.js"></script>
+</body>
+</html>

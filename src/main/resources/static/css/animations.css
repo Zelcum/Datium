@@ -222,5 +222,13 @@
     animation: isotipoPulse 2s ease-in-out infinite;
 }
 
+.animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
 
 

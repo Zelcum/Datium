@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datium - Base de Datos</title>
+    <title>Datium</title>
+    <link rel="icon" type="image/jpeg" href="../../img/Isotipo modo oscuro.jpeg" id="favicon">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
@@ -55,7 +56,7 @@
 </head>
 
 <body class="font-display bg-background-light dark:bg-background-dark text-[#111418] dark:text-gray-200 min-h-screen">
-    <div class="relative w-full flex flex-col items-center">
+    <div class="relative w-full flex flex-col items-center min-h-screen">
         <div
             class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-white dark:from-blue-900/30 dark:via-purple-900/30 dark:to-background-dark -z-10 continuous-background">
         </div>
@@ -116,7 +117,7 @@
                 <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-4">
                     <div class="flex items-center gap-3 mb-2">
                         <div class="p-2 rounded-lg bg-orange-500/20">
-                            <span class="material-symbols-outlined text-orange-500 text-2xl">required</span>
+                            <span class="material-symbols-outlined text-orange-500 text-2xl">check_circle</span>
                         </div>
                         <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Campos Requeridos</div>
                     </div>
@@ -125,24 +126,17 @@
                 </div>
             </div>
 
-            <div class="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div class="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 <button onclick="openFieldsModal()"
                     class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift transition-all flex flex-col items-center justify-center gap-2 sm:gap-3">
                     <span class="material-symbols-outlined text-3xl sm:text-4xl text-primary">settings</span>
                     <span class="font-semibold text-[#111418] dark:text-white text-xs sm:text-sm text-center">Gestión de
                         Campos</span>
                 </button>
-                <button onclick="openRecordsManagement()"
+                <button onclick="showAddRecordForm()"
                     class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift transition-all flex flex-col items-center justify-center gap-2 sm:gap-3">
-                    <span class="material-symbols-outlined text-3xl sm:text-4xl text-primary">list</span>
-                    <span class="font-semibold text-[#111418] dark:text-white text-xs sm:text-sm text-center">Gestión de
-                        Registros</span>
-                </button>
-                <button onclick="showAccessModal(currentSystemId)"
-                    class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift transition-all flex flex-col items-center justify-center gap-2 sm:gap-3">
-                    <span class="material-symbols-outlined text-3xl sm:text-4xl text-primary">people</span>
-                    <span class="font-semibold text-[#111418] dark:text-white text-xs sm:text-sm text-center">Gestión de
-                        Accesos</span>
+                    <span class="material-symbols-outlined text-3xl sm:text-4xl text-primary">add</span>
+                    <span class="font-semibold text-[#111418] dark:text-white text-xs sm:text-sm text-center">Agregar Registro</span>
                 </button>
                 <button onclick="goBack()"
                     class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift transition-all flex flex-col items-center justify-center gap-2 sm:gap-3">
@@ -224,13 +218,17 @@
                 </h2>
             </div>
             <div id="recordFieldsContainer" class="space-y-4 mb-4 max-w-2xl mx-auto"></div>
-            <div class="flex gap-2 justify-center">
+            <div class="flex gap-2 justify-center items-center">
                 <button onclick="saveRecordFromModal()" id="btnSaveRecordModal"
-                    class="btn-primary-hover px-6 py-3 text-white rounded-lg font-semibold">Agregar</button>
+                    class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors" title="Guardar">
+                    <span class="material-symbols-outlined">save</span>
+                    <span>Guardar</span>
+                </button>
                 <button onclick="clearRecordForm()"
-                    class="hover-smooth px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all font-semibold">Limpiar</button>
-                <button onclick="closeRecordModal()"
-                    class="hover-smooth px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-semibold">Cancelar</button>
+                    class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors" title="Limpiar">
+                    <span class="material-symbols-outlined">refresh</span>
+                    <span>Limpiar</span>
+                </button>
             </div>
         </div>
     </div>
@@ -250,7 +248,10 @@
             </div>
             <div class="mb-4">
                 <button onclick="showAddFieldForm()"
-                    class="btn-primary-hover px-6 py-3 text-white rounded-lg font-semibold">+ Agregar Campo</button>
+                    class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                    <span class="material-symbols-outlined">add</span>
+                    <span>Agregar Campo</span>
+                </button>
             </div>
             <div id="addFieldForm" class="hidden mb-4 p-6 glass-card rounded-xl">
                 <h3 class="font-bold mb-4 text-[#111418] dark:text-white" id="formTitle">Agregar Campo</h3>
@@ -301,9 +302,15 @@
                 </div>
                 <div class="flex gap-2 mt-4">
                     <button onclick="saveNewField()" id="btnSaveField"
-                        class="btn-primary-hover px-6 py-3 text-white rounded-lg font-semibold">Guardar</button>
+                        class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined">save</span>
+                        <span>Guardar</span>
+                    </button>
                     <button onclick="cancelAddField()"
-                        class="hover-smooth px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-semibold">Cancelar</button>
+                        class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                        <span>Cancelar</span>
+                    </button>
                 </div>
             </div>
             <div class="overflow-x-auto glass-card rounded-xl">
@@ -333,160 +340,8 @@
         </div>
     </div>
 
-    <div id="auditModal"
-        class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-card p-8 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl modal-enter">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black text-[#111418] dark:text-white">Auditoría del Sistema</h2>
-                <button onclick="hideAuditModal()"
-                    class="hover-smooth px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all">✕
-                    Cerrar</button>
-            </div>
-            <div class="mb-4 flex gap-4">
-                <input type="text" id="auditSearchInput" placeholder="Buscar en auditoría..." autocomplete="off"
-                    class="flex-1 px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
-                <select id="auditTypeSelect"
-                    class="px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
-                    <option value="logs" class="bg-white dark:bg-slate-800">Logs de Auditoría</option>
-                    <option value="security" class="bg-white dark:bg-slate-800">Auditoría de Seguridad</option>
-                </select>
-                <button onclick="searchAudit()"
-                    class="btn-primary-hover px-6 py-3 text-white rounded-lg font-semibold">Buscar</button>
-            </div>
-            <div id="auditContent" class="overflow-x-auto glass-card rounded-xl">
-                <table class="min-w-full">
-                    <thead class="bg-white/50 dark:bg-slate-800/50">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Fecha
-                            </th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Usuario
-                            </th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">
-                                Acción/Evento</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">
-                                Detalles</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">
-                                IP/Severidad</th>
-                        </tr>
-                    </thead>
-                    <tbody id="auditTableBody" class="divide-y divide-gray-200 dark:divide-slate-700/50">
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="accessModal"
-        class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-card p-8 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl modal-enter">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black text-[#111418] dark:text-white">Gestión de Accesos</h2>
-                <button onclick="hideAccessModal()"
-                    class="hover-smooth px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all">✕
-                    Cerrar</button>
-            </div>
-
-            <div class="mb-4">
-                <button onclick="showAddUserForm()"
-                    class="btn-primary-hover px-6 py-3 text-white rounded-lg font-semibold">+ Agregar Usuario</button>
-            </div>
-
-            <div id="addUserForm" class="hidden mb-4 p-6 glass-card rounded-xl">
-                <h3 class="font-bold mb-4 text-[#111418] dark:text-white">Agregar Usuario</h3>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Email del Usuario
-                            *</label>
-                        <input type="email" id="newUserEmail" placeholder="email@ejemplo.com" autocomplete="off"
-                            class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            required>
-                    </div>
-                    <div>
-                        <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Rol *</label>
-                        <select id="newUserRole"
-                            class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            required>
-                            <option value="viewer" class="bg-white dark:bg-slate-800">Viewer</option>
-                            <option value="editor" class="bg-white dark:bg-slate-800">Editor</option>
-                            <option value="admin" class="bg-white dark:bg-slate-800">Admin</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Contraseña (opcional,
-                            solo si modo individual)</label>
-                        <input type="password" id="newUserPassword" placeholder="Contraseña" autocomplete="off"
-                            class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
-                    </div>
-                </div>
-                <div class="flex gap-2 mt-4">
-                    <button onclick="saveNewUser()"
-                        class="btn-primary-hover px-6 py-3 text-white rounded-lg font-semibold">Guardar</button>
-                    <button onclick="cancelAddUser()"
-                        class="hover-smooth px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-semibold">Cancelar</button>
-                </div>
-            </div>
-
-            <div class="mb-4 p-6 glass-card rounded-xl">
-                <h3 class="font-bold mb-2 text-[#111418] dark:text-white">Contraseña General</h3>
-                <div class="flex gap-2">
-                    <input type="password" id="generalPassword" placeholder="Contraseña general para todos"
-                        autocomplete="off"
-                        class="flex-1 px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
-                    <button onclick="saveGeneralPassword()"
-                        class="btn-primary-hover px-6 py-3 text-white rounded-lg font-semibold">Guardar</button>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto glass-card rounded-xl">
-                <table class="min-w-full">
-                    <thead class="bg-white/50 dark:bg-slate-800/50">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Email
-                            </th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Nombre
-                            </th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">Rol
-                            </th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">
-                                Contraseña</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-[#111418] dark:text-white">
-                                Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="accessTableBody" class="divide-y divide-gray-200 dark:divide-slate-700/50">
-                        <tr>
-                            <td colspan="5" class="text-center px-6 py-8 text-gray-500 dark:text-gray-400">Cargando
-                                usuarios...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="recordsManagementModal"
-        class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-card p-8 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl modal-enter">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black text-[#111418] dark:text-white">Gestión de Registros</h2>
-                <div class="flex gap-2">
-                    <button onclick="showAddRecordForm()"
-                        class="btn-primary-hover px-4 py-2 text-white rounded-lg font-bold text-sm">+ Nuevo
-                        Registro</button>
-                    <button onclick="closeRecordsManagementModal()"
-                        class="hover-smooth px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all">✕
-                        Cerrar</button>
-                </div>
-            </div>
-
-            <div id="recordsListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Records will be loaded here -->
-            </div>
-        </div>
-    </div>
 
     <script src="system-data.js"></script>
-    <script src="system-access.js"></script>
 </body>
 
 </html>

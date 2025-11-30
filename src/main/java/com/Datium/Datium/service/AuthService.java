@@ -25,22 +25,18 @@ public class AuthService {
     private JwtUtil jwtUtil;
 
     public AuthResponse register(RegisterRequest request) {
-        // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("El email ya está registrado");
         }
 
-        // Create new user
         User user = new User();
         user.setName(request.getNombre());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setPlanId(request.getPlanId() != null ? request.getPlanId() : 1);
 
-        // Save user
         user = userRepository.save(user);
 
-        // Generate token
         String token = jwtUtil.generateToken(user.getEmail(), user.getId());
 
         return new AuthResponse(
@@ -52,7 +48,6 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        // Find user by email
         Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
 
         if (userOpt.isEmpty()) {
@@ -61,12 +56,10 @@ public class AuthService {
 
         User user = userOpt.get();
 
-        // Verify password
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Credenciales inválidas");
         }
 
-        // Generate token
         String token = jwtUtil.generateToken(user.getEmail(), user.getId());
 
         return new AuthResponse(

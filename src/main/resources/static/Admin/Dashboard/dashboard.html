@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Datium - Dashboard</title>
+    <title>Datium</title>
     <link rel="icon" type="image/jpeg" href="../../img/Isotipo modo oscuro.jpeg" id="favicon">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
@@ -80,11 +80,36 @@
         <h1 class="text-5xl font-black mb-4 fade-in-up delay-1">¡Bienvenido a Datium!</h1>
         <p class="text-xl text-slate-300 mb-8 fade-in-up delay-2">Has iniciado sesión correctamente.</p>
 
-        <div class="fade-in-up delay-3 flex gap-4 justify-center">
+        <div class="fade-in-up delay-3 flex flex-wrap gap-4 justify-center">
             <a href="../Systems/system.html"
                 class="btn-primary-hover inline-flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg">
                 <span class="material-symbols-outlined">settings</span>
                 Sistemas
+            </a>
+            <a href="connections.html"
+                class="btn-primary-hover inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg">
+                <span class="material-symbols-outlined">hub</span>
+                Conexiones
+            </a>
+            <a href="invitations.html"
+                class="btn-primary-hover inline-flex items-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg">
+                <span class="material-symbols-outlined">mail</span>
+                Invitaciones
+            </a>
+            <a href="audit.html"
+                class="btn-primary-hover inline-flex items-center gap-2 px-8 py-4 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg">
+                <span class="material-symbols-outlined">history</span>
+                Auditoría
+            </a>
+            <a href="profile.html"
+                class="btn-primary-hover inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg">
+                <span class="material-symbols-outlined">person</span>
+                Perfil
+            </a>
+            <a href="chatbot.html"
+                class="btn-primary-hover inline-flex items-center gap-2 px-8 py-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg">
+                <span class="material-symbols-outlined">smart_toy</span>
+                ChatBot
             </a>
             <button onclick="handleLogout()"
                 class="inline-flex items-center gap-2 px-8 py-4 bg-red-600 rounded-lg hover:bg-red-700 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg">
