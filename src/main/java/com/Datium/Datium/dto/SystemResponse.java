@@ -13,6 +13,7 @@ public class SystemResponse {
     private LocalDateTime createdAt;
     private Long userCount;
     private List<UserResponse> users;
+    private Boolean isInvited;
 
     public static class UserResponse {
         private Integer userId;
@@ -48,6 +49,8 @@ public class SystemResponse {
     public void setUserCount(Long userCount) { this.userCount = userCount; }
     public List<UserResponse> getUsers() { return users; }
     public void setUsers(List<UserResponse> users) { this.users = users; }
+    public Boolean getIsInvited() { return isInvited; }
+    public void setIsInvited(Boolean isInvited) { this.isInvited = isInvited; }
 }
 
 

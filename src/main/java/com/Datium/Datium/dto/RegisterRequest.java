@@ -6,7 +6,6 @@ public class RegisterRequest {
     private String password;
     private Integer planId;
 
-    // Getters and Setters
     public String getNombre() {
         return nombre;
     }

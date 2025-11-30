@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datium</title>
+    <link rel="icon" type="image/jpeg" href="../../img/Isotipo modo oscuro.jpeg" id="favicon">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/loading.css">
+    <link rel="stylesheet" href="../Systems/system-styles.css">
+    <script src="../Systems/notification.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#111418] dark:text-gray-200 min-h-screen">
+    <div class="relative w-full flex flex-col items-center min-h-screen">
+        <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-white dark:from-blue-900/30 dark:via-purple-900/30 dark:to-background-dark -z-10 continuous-background"></div>
+        <div class="container mx-auto p-4 md:p-8 w-full max-w-7xl">
+            <div class="mb-8 fade-in-up">
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-4xl font-black text-[#111418] dark:text-white">Auditoría</h1>
+                    <div class="flex gap-3">
+                        <button onclick="goBack()"
+                            class="glass-card p-4 rounded-xl shadow-lg hover-lift transition-all flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-2xl">arrow_back</span>
+                            <span class="font-semibold text-[#111418] dark:text-white text-sm">Volver</span>
+                        </button>
+                        <button onclick="handleLogout()"
+                            class="glass-card p-4 rounded-xl shadow-lg hover-lift transition-all flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-2xl">logout</span>
+                            <span class="font-semibold text-[#111418] dark:text-white text-sm">Cerrar Sesión</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Seleccionar Sistema</label>
+                    <select id="systemSelect"
+                        class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema...</option>
+                    </select>
+                </div>
+
+                <div id="auditContent" class="hidden">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-blue-500/20">
+                                    <span class="material-symbols-outlined text-blue-500 text-2xl">description</span>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Total Logs</div>
+                            </div>
+                            <div id="statTotalLogs" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                        </div>
+                        <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-2">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-red-500/20">
+                                    <span class="material-symbols-outlined text-red-500 text-2xl">security</span>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Alta Severidad</div>
+                            </div>
+                            <div id="statHighSeverity" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                        </div>
+                        <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-3">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-yellow-500/20">
+                                    <span class="material-symbols-outlined text-yellow-500 text-2xl">warning</span>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Media Severidad</div>
+                            </div>
+                            <div id="statMediumSeverity" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                        </div>
+                        <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-4">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-green-500/20">
+                                    <span class="material-symbols-outlined text-green-500 text-2xl">check_circle</span>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Baja Severidad</div>
+                            </div>
+                            <div id="statLowSeverity" class="text-3xl font-bold text-[#111418] dark:text-white">-</div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-xl shadow-lg mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-2xl font-black text-[#111418] dark:text-white">Filtros Avanzados</h2>
+                            <div class="flex gap-2">
+                                <button onclick="exportAuditData()"
+                                    class="btn-primary-hover px-4 py-2 text-white rounded-lg font-semibold flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-lg">download</span>
+                                    <span>Exportar</span>
+                                </button>
+                                <button onclick="resetFilters()"
+                                    class="glass-card px-4 py-2 rounded-lg font-semibold text-[#111418] dark:text-white hover:bg-white/10 transition-colors">
+                                    Limpiar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <label class="block mb-2 text-sm font-semibold text-[#111418] dark:text-white">Tipo de Auditoría</label>
+                                <select id="auditTypeSelect"
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                    <option value="logs" class="bg-white dark:bg-slate-800">Logs de Auditoría</option>
+                                    <option value="security" class="bg-white dark:bg-slate-800">Auditoría de Seguridad</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-semibold text-[#111418] dark:text-white">Fecha Desde</label>
+                                <input type="date" id="dateFrom"
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-semibold text-[#111418] dark:text-white">Fecha Hasta</label>
+                                <input type="date" id="dateTo"
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            </div>
+                            <div id="severityFilterContainer" class="hidden">
+                                <label class="block mb-2 text-sm font-semibold text-[#111418] dark:text-white">Severidad</label>
+                                <select id="severityFilter"
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                    <option value="" class="bg-white dark:bg-slate-800">Todas</option>
+                                    <option value="high" class="bg-white dark:bg-slate-800">Alta</option>
+                                    <option value="medium" class="bg-white dark:bg-slate-800">Media</option>
+                                    <option value="low" class="bg-white dark:bg-slate-800">Baja</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block mb-2 text-sm font-semibold text-[#111418] dark:text-white">Buscar</label>
+                                <input type="text" id="auditSearchInput" placeholder="Buscar en auditoría..." autocomplete="off"
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-semibold text-[#111418] dark:text-white">Usuario</label>
+                                <select id="userFilter"
+                                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                    <option value="" class="bg-white dark:bg-slate-800">Todos los usuarios</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex gap-2">
+                            <button onclick="applyFilters()"
+                                class="btn-primary-hover px-6 py-3 text-white rounded-lg font-semibold flex items-center gap-2">
+                                <span class="material-symbols-outlined">search</span>
+                                <span>Buscar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <div class="lg:col-span-2">
+                            <div class="glass-card p-6 rounded-xl shadow-lg">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h2 class="text-xl font-black text-[#111418] dark:text-white">Registros de Auditoría</h2>
+                                    <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <span id="recordsInfo">Mostrando 0 de 0</span>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto custom-scrollbar">
+                                    <table class="min-w-full">
+                                        <thead class="bg-gradient-to-r from-primary/10 to-secondary/10 dark:from-primary/20 dark:to-secondary/20">
+                                            <tr>
+                                                <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Fecha</th>
+                                                <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Usuario</th>
+                                                <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Acción/Evento</th>
+                                                <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white hidden md:table-cell">Detalles</th>
+                                                <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">IP/Severidad</th>
+                                                <th class="px-4 py-4 text-center text-xs font-bold uppercase tracking-wider text-[#111418] dark:text-white">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="auditTableBody" class="bg-white/30 dark:bg-slate-800/30 divide-y divide-gray-200 dark:divide-slate-700/50">
+                                            <tr>
+                                                <td colspan="6" class="text-center px-6 py-8 text-gray-500 dark:text-gray-400">Cargando...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="paginationContainer" class="mt-4 flex items-center justify-between hidden">
+                                    <button onclick="previousPage()" id="prevBtn" disabled
+                                        class="glass-card px-4 py-2 rounded-lg font-semibold text-[#111418] dark:text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-colors">
+                                        Anterior
+                                    </button>
+                                    <span id="pageInfo" class="text-sm text-gray-600 dark:text-gray-400"></span>
+                                    <button onclick="nextPage()" id="nextBtn" disabled
+                                        class="glass-card px-4 py-2 rounded-lg font-semibold text-[#111418] dark:text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-colors">
+                                        Siguiente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="glass-card p-6 rounded-xl shadow-lg mb-6">
+                                <h2 class="text-xl font-black text-[#111418] dark:text-white mb-4">Distribución por Severidad</h2>
+                                <canvas id="severityChart"></canvas>
+                            </div>
+                            <div class="glass-card p-6 rounded-xl shadow-lg">
+                                <h2 class="text-xl font-black text-[#111418] dark:text-white mb-4">Actividad por Día</h2>
+                                <canvas id="activityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="auditDetailModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="glass-card p-6 rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-black text-[#111418] dark:text-white">Detalles del Registro</h2>
+                <button onclick="closeDetailModal()"
+                    class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <span class="material-symbols-outlined text-3xl">close</span>
+                </button>
+            </div>
+            <div id="auditDetailContent" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <script src="audit.js"></script>
+</body>
+</html>

@@ -31,7 +31,6 @@ public class SystemController {
         }
         if (!token.startsWith("Bearer ")) {
             java.lang.System.out.println("Token no empieza con Bearer: " + token.substring(0, Math.min(20, token.length())));
-            // Intentar sin Bearer por si acaso
             try {
                 return jwtUtil.extractUserId(token);
             } catch (Exception e) {
@@ -57,9 +56,9 @@ public class SystemController {
         try {
             System.out.println("GET /api/sistemas - Token recibido: " + (token != null ? token.substring(0, Math.min(20, token.length())) + "..." : "null"));
             Integer userId = getUserIdFromToken(token);
-            // If token is missing or invalid, allow unauthenticated access for now (debug)
             if (userId == null) {
-                System.out.println("Token missing or invalid, proceeding without userId");
+                System.out.println("Token missing or invalid, returning unauthorized");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"error\":\"Token inválido o ausente\"}");
             }
             List<SystemResponse> systems = systemService.getAllSystems(userId);
             System.out.println("Sistemas encontrados: " + systems.size());
@@ -155,9 +154,12 @@ public class SystemController {
             java.lang.System.out.println("GET /api/sistemas/estadisticas - Token recibido");
             Integer userId = getUserIdFromToken(token);
             if (userId == null) {
+                java.lang.System.err.println("getStatistics: userId es null después de extraer del token");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"error\":\"Token inválido o ausente\"}");
             }
+            java.lang.System.out.println("getStatistics: Usuario autenticado - userId: " + userId);
             SystemStatisticsResponse stats = systemService.getStatistics(userId);
+            java.lang.System.out.println("getStatistics: Estadísticas calculadas - Total sistemas: " + stats.getTotalSystems());
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
             java.lang.System.err.println("Error en getStatistics: " + e.getMessage());

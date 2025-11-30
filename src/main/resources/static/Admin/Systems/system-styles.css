@@ -1,10 +1,6 @@
-/* System Module Styles - Based on Index Design */
-
-/* Import base styles */
 @import url('../../css/components.css');
 @import url('../../css/layout.css');
 
-/* Base Variables */
 :root {
     --primary-color: #137fec;
     --primary-dark: #0d5ba8;
@@ -20,7 +16,6 @@
     --text-muted: #94a3b8;
 }
 
-/* Body and Background - Slower Animation */
 body {
     font-family: 'Inter', sans-serif;
     background: var(--background-dark);
@@ -30,7 +25,6 @@ body {
     min-height: 100vh;
 }
 
-/* Loading Spinner */
 .loading-spinner {
     border: 4px solid rgba(19, 127, 236, 0.2);
     border-top-color: var(--primary-color);
@@ -43,7 +37,6 @@ body {
     }
 }
 
-/* Button Styles - Monochromatic like Index */
 .btn-secondary {
     background: var(--background-light);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -64,7 +57,6 @@ body {
     background: rgba(30, 41, 59, 1);
 }
 
-/* Animated Background - Much Slower (80s instead of 40s) - Same as Index */
 body::before {
     content: '';
     position: fixed;
@@ -78,7 +70,6 @@ body::before {
     z-index: -1;
 }
 
-/* Glass Card Effect - Same as Index */
 .glass-card {
     background: rgba(16, 25, 34, 0.7);
     backdrop-filter: blur(10px);
@@ -93,19 +84,16 @@ body::before {
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Material Icons */
 .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-/* Chart Container */
 .chart-container {
     height: 200px;
     position: relative;
     width: 100%;
 }
 
-/* Animations - Same as Index */
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -173,7 +161,6 @@ body::before {
     animation-fill-mode: forwards;
 }
 
-/* Button Styles - Same as Index */
 .btn-primary {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     position: relative;
@@ -186,7 +173,6 @@ body::before {
     box-shadow: 0 8px 20px rgba(19, 127, 236, 0.4);
 }
 
-/* Table Row Hover */
 .table-row {
     transition: all 0.2s ease;
 }
@@ -195,13 +181,11 @@ body::before {
     background: rgba(255, 255, 255, 0.05);
 }
 
-/* Stat Card */
 .stat-card {
     position: relative;
     overflow: hidden;
 }
 
-/* Modal Animation */
 .modal-enter {
     animation: modalFadeIn 0.3s ease-out;
 }
@@ -217,7 +201,6 @@ body::before {
     }
 }
 
-/* Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -238,7 +221,6 @@ body::before {
     background: rgba(255, 255, 255, 0.3);
 }
 
-/* Input Focus */
 input:focus,
 select:focus,
 textarea:focus {
@@ -247,7 +229,6 @@ textarea:focus {
     ring-color: rgba(19, 127, 236, 0.5);
 }
 
-/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
     height: 8px;
     width: 8px;
@@ -323,7 +304,6 @@ textarea:focus {
     transform: scale(1.1);
 }
 
-/* Responsive */
 @media (max-width: 1024px) {
     .container {
         padding-left: 1rem;

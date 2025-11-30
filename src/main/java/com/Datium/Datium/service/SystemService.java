@@ -57,10 +57,42 @@ public class SystemService {
     public List<SystemResponse> getAllSystems(Integer userId) {
         java.lang.System.out.println("SystemService.getAllSystems - userId: " + userId);
         try {
-            List<System> systems = systemRepository.findByOwnerId(userId);
-            java.lang.System.out.println("Sistemas encontrados en BD: " + systems.size());
-            List<SystemResponse> responses = systems.stream().map(this::convertToResponse).collect(Collectors.toList());
+            if (userId == null) {
+                java.lang.System.out.println("UserId es null, retornando lista vacía");
+                return new ArrayList<>();
+            }
+            
+            List<System> ownedSystems = systemRepository.findByOwnerId(userId);
+            List<SystemUser> invitedSystems = systemUserRepository.findByUserId(userId);
+            
+            java.lang.System.out.println("Sistemas propios: " + ownedSystems.size());
+            java.lang.System.out.println("Sistemas invitados: " + invitedSystems.size());
+            
+            java.util.Set<Integer> systemIds = new java.util.HashSet<>();
+            List<System> allSystems = new ArrayList<>();
+            
+            for (System system : ownedSystems) {
+                systemIds.add(system.getId());
+                allSystems.add(system);
+            }
+            
+            for (SystemUser systemUser : invitedSystems) {
+                if (!systemIds.contains(systemUser.getSystemId())) {
+                    System system = systemRepository.findById(systemUser.getSystemId()).orElse(null);
+                    if (system != null) {
+                        allSystems.add(system);
+                        systemIds.add(system.getId());
+                    }
+                }
+            }
+            
+            java.lang.System.out.println("Sistemas encontrados en BD: " + allSystems.size());
+            List<SystemResponse> responses = allSystems.stream()
+                .map(system -> convertToResponse(system, userId))
+                .collect(Collectors.toList());
             java.lang.System.out.println("Sistemas convertidos: " + responses.size());
+            long invitedCount = responses.stream().filter(r -> r.getIsInvited() != null && r.getIsInvited()).count();
+            java.lang.System.out.println("Sistemas invitados en respuesta: " + invitedCount);
             return responses;
         } catch (Exception e) {
             java.lang.System.err.println("Error en getAllSystems: " + e.getMessage());
@@ -73,11 +105,14 @@ public class SystemService {
         System system = systemRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Sistema no encontrado"));
         
-        if (!system.getOwnerId().equals(userId)) {
+        boolean isOwner = system.getOwnerId().equals(userId);
+        boolean isInvited = systemUserRepository.existsBySystemIdAndUserId(id, userId);
+        
+        if (!isOwner && !isInvited) {
             throw new RuntimeException("No tienes permisos para ver este sistema");
         }
         
-        return convertToResponse(system);
+        return convertToResponse(system, userId);
     }
 
     @Transactional
@@ -120,7 +155,7 @@ public class SystemService {
             }
         }
         
-        return convertToResponse(system);
+        return convertToResponse(system, userId);
     }
 
     @Transactional
@@ -150,7 +185,7 @@ public class SystemService {
         
         system = systemRepository.save(system);
         
-        return convertToResponse(system);
+        return convertToResponse(system, userId);
     }
 
     @Transactional
@@ -188,6 +223,10 @@ public class SystemService {
         User user = userRepository.findByEmail(userReq.getEmail())
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + userReq.getEmail()));
         
+        if (systemUserRepository.existsBySystemIdAndUserId(systemId, user.getId())) {
+            return;
+        }
+        
         SystemUser systemUser = new SystemUser();
         systemUser.setSystemId(systemId);
         systemUser.setUserId(user.getId());
@@ -216,7 +255,7 @@ public class SystemService {
         systemUserPasswordRepository.save(password);
     }
 
-    private SystemResponse convertToResponse(System system) {
+    private SystemResponse convertToResponse(System system, Integer userId) {
         SystemResponse response = new SystemResponse();
         response.setId(system.getId());
         response.setOwnerId(system.getOwnerId());
@@ -226,11 +265,19 @@ public class SystemService {
         response.setSecurityMode(system.getSecurityMode().name());
         response.setCreatedAt(system.getCreatedAt());
         
-        Long userCount = systemUserRepository.countDistinctUsersBySystemId(system.getId());
-        response.setUserCount(Math.max(1, userCount != null ? userCount : 0));
-        
         List<SystemUser> systemUsers = systemUserRepository.findBySystemId(system.getId());
         List<SystemResponse.UserResponse> users = new ArrayList<>();
+        
+        User owner = userRepository.findById(system.getOwnerId()).orElse(null);
+        if (owner != null) {
+            SystemResponse.UserResponse ownerResponse = new SystemResponse.UserResponse();
+            ownerResponse.setUserId(owner.getId());
+            ownerResponse.setUserEmail(owner.getEmail());
+            ownerResponse.setUserName(owner.getName());
+            ownerResponse.setRole("owner");
+            users.add(ownerResponse);
+        }
+        
         for (SystemUser su : systemUsers) {
             User user = userRepository.findById(su.getUserId()).orElse(null);
             if (user != null) {
@@ -242,7 +289,16 @@ public class SystemService {
                 users.add(ur);
             }
         }
+        
+        Long userCount = (long) users.size();
+        response.setUserCount(Math.max(1, userCount));
         response.setUsers(users);
+        
+        boolean isOwner = system.getOwnerId().equals(userId);
+        boolean isInvited = !isOwner && systemUserRepository.existsBySystemIdAndUserId(system.getId(), userId);
+        response.setIsInvited(isInvited);
+        
+        java.lang.System.out.println("convertToResponse - System ID: " + system.getId() + ", User ID: " + userId + ", isOwner: " + isOwner + ", isInvited: " + isInvited);
         
         return response;
     }
@@ -250,25 +306,100 @@ public class SystemService {
     public SystemStatisticsResponse getStatistics(Integer userId) {
         SystemStatisticsResponse stats = new SystemStatisticsResponse();
         
-        Long totalSystems = systemRepository.countByOwnerId(userId);
-        stats.setTotalSystems(totalSystems != null ? totalSystems : 0L);
+        if (userId == null) {
+            java.lang.System.out.println("getStatistics: userId es null, retornando estadísticas vacías");
+            stats.setTotalSystems(0L);
+            stats.setSecurityNone(0L);
+            stats.setSecurityGeneral(0L);
+            stats.setSecurityIndividual(0L);
+            stats.setTotalUsers(0L);
+            stats.setTotalRecords(0L);
+            return stats;
+        }
         
-        stats.setSecurityNone(systemRepository.countBySecurityMode(System.SecurityMode.none));
-        stats.setSecurityGeneral(systemRepository.countBySecurityMode(System.SecurityMode.general));
-        stats.setSecurityIndividual(systemRepository.countBySecurityMode(System.SecurityMode.individual));
+        java.lang.System.out.println("getStatistics: Calculando estadísticas para userId: " + userId);
         
-        Long totalUsers = systemUserRepository.count();
-        stats.setTotalUsers(totalUsers != null ? totalUsers : 0L);
+        List<System> ownedSystems = systemRepository.findByOwnerId(userId);
+        java.lang.System.out.println("getStatistics: Sistemas propios encontrados: " + ownedSystems.size());
         
-        Long totalRecords = systemRecordRepository.count();
-        stats.setTotalRecords(totalRecords != null ? totalRecords : 0L);
+        if (ownedSystems.isEmpty()) {
+            stats.setTotalSystems(0L);
+            stats.setSecurityNone(0L);
+            stats.setSecurityGeneral(0L);
+            stats.setSecurityIndividual(0L);
+            stats.setTotalUsers(0L);
+            stats.setTotalRecords(0L);
+            
+            SystemStatisticsResponse.PlanUsage planUsage = new SystemStatisticsResponse.PlanUsage();
+            planUsage.setCurrent(0L);
+            planUsage.setMax(999L);
+            planUsage.setPlanName("Básico");
+            stats.setPlanUsage(planUsage);
+            
+            List<String> labels = new ArrayList<>();
+            List<Long> data = new ArrayList<>();
+            for (int i = 6; i >= 0; i--) {
+                LocalDate date = LocalDate.now().minusDays(i);
+                labels.add(date.toString());
+                data.add(0L);
+            }
+            stats.setActivityLabels(labels);
+            stats.setActivityData(data);
+            
+            return stats;
+        }
+        
+        stats.setTotalSystems((long) ownedSystems.size());
+        
+        long securityNone = ownedSystems.stream()
+            .filter(s -> s.getSecurityMode() == System.SecurityMode.none)
+            .count();
+        long securityGeneral = ownedSystems.stream()
+            .filter(s -> s.getSecurityMode() == System.SecurityMode.general)
+            .count();
+        long securityIndividual = ownedSystems.stream()
+            .filter(s -> s.getSecurityMode() == System.SecurityMode.individual)
+            .count();
+        
+        stats.setSecurityNone(securityNone);
+        stats.setSecurityGeneral(securityGeneral);
+        stats.setSecurityIndividual(securityIndividual);
+        
+        java.util.Set<Integer> distinctUserIds = new java.util.HashSet<>();
+        for (System system : ownedSystems) {
+            if (!system.getOwnerId().equals(userId)) {
+                java.lang.System.out.println("ADVERTENCIA: Sistema " + system.getId() + " no pertenece al usuario " + userId);
+                continue;
+            }
+            
+            distinctUserIds.add(system.getOwnerId());
+            List<SystemUser> systemUsers = systemUserRepository.findBySystemId(system.getId());
+            for (SystemUser su : systemUsers) {
+                distinctUserIds.add(su.getUserId());
+            }
+        }
+        stats.setTotalUsers((long) distinctUserIds.size());
+        java.lang.System.out.println("getStatistics: Total usuarios únicos: " + distinctUserIds.size());
+        
+        long totalRecords = 0L;
+        for (System system : ownedSystems) {
+            if (!system.getOwnerId().equals(userId)) {
+                continue;
+            }
+            Long count = systemRecordRepository.countBySystemId(system.getId());
+            if (count != null) {
+                totalRecords += count;
+            }
+        }
+        stats.setTotalRecords(totalRecords);
+        java.lang.System.out.println("getStatistics: Total registros: " + totalRecords);
         
         stats.setPlanBasic(0L);
         stats.setPlanPro(0L);
         stats.setPlanEnterprise(0L);
         
         SystemStatisticsResponse.PlanUsage planUsage = new SystemStatisticsResponse.PlanUsage();
-        planUsage.setCurrent(totalSystems != null ? totalSystems : 0L);
+        planUsage.setCurrent((long) ownedSystems.size());
         planUsage.setMax(999L);
         planUsage.setPlanName("Básico");
         stats.setPlanUsage(planUsage);

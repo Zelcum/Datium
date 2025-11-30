@@ -15,7 +15,6 @@ public class AuthResponse {
         this.email = email;
     }
 
-    // Getters and Setters
     public String getToken() {
         return token;
     }

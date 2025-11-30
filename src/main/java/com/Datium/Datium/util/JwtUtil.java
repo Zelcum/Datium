@@ -41,6 +41,10 @@ public class JwtUtil {
         return extractAllClaims(token).getSubject();
     }
 
+    public String extractSubject(String token) {
+        return extractAllClaims(token).getSubject();
+    }
+
     public Integer extractUserId(String token) {
         return extractAllClaims(token).get("userId", Integer.class);
     }

@@ -18,6 +18,11 @@ public interface SystemUserRepository extends JpaRepository<SystemUser, Integer>
     
     @Query("SELECT COUNT(DISTINCT su.userId) FROM SystemUser su WHERE su.systemId = :systemId")
     Long countDistinctUsersBySystemId(Integer systemId);
+    
+    @Query("SELECT COUNT(su) FROM SystemUser su WHERE su.systemId = :systemId")
+    Long countBySystemId(Integer systemId);
+    
+    List<SystemUser> findByUserId(Integer userId);
 }
 
 

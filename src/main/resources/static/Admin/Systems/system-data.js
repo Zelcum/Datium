@@ -14,6 +14,20 @@ function obtenerToken() {
     return localStorage.getItem('token');
 }
 
+function obtenerEmailDelUsuario() {
+    const token = obtenerToken();
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.sub || payload.email || null;
+        } catch (e) {
+            console.error('Error parsing token:', e);
+            return null;
+        }
+    }
+    return null;
+}
+
 function getAuthHeaders() {
     const token = obtenerToken();
     if (!token) {
@@ -54,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (searchRecords) searchRecords.addEventListener('input', handleSearchRecords);
     if (newFieldType) newFieldType.addEventListener('change', handleFieldTypeChange);
 
+    loadAllSystems();
     loadAllData();
 });
 
@@ -297,9 +312,13 @@ function renderFields() {
             <td class="px-6 py-4 text-[#111418] dark:text-white">${field.orderIndex || 0}</td>
             <td class="px-6 py-4">
                 ${canManageFields ? `
-                    <div class="flex gap-2">
-                        <button onclick="editField(${field.id})" class="hover-smooth px-3 py-1.5 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all text-sm font-semibold">Editar</button>
-                        <button onclick="deleteField(${field.id})" class="hover-smooth px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm font-semibold">Eliminar</button>
+                    <div class="flex items-center justify-center gap-1.5">
+                        <button onclick="editField(${field.id})" class="action-btn action-btn-edit p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Editar">
+                            <span class="material-symbols-outlined text-lg">edit</span>
+                        </button>
+                        <button onclick="deleteField(${field.id})" class="action-btn action-btn-delete p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Eliminar">
+                            <span class="material-symbols-outlined text-lg">delete</span>
+                        </button>
                     </div>
                 ` : '<span class="text-gray-400 dark:text-gray-400">Sin permisos</span>'}
             </td>
@@ -347,8 +366,11 @@ function closeFieldsModal() {
 function showAddFieldForm() {
     editingFieldId = null;
     document.getElementById('formTitle').textContent = 'Agregar Campo';
-    document.getElementById('btnSaveField').textContent = 'Guardar';
-    document.getElementById('btnSaveField').onclick = () => saveNewField();
+    const btnSaveField = document.getElementById('btnSaveField');
+    if (btnSaveField) {
+        btnSaveField.innerHTML = '<span class="material-symbols-outlined">save</span><span>Guardar</span>';
+        btnSaveField.onclick = () => saveNewField();
+    }
     document.getElementById('newFieldName').value = '';
     document.getElementById('newFieldType').value = 'text';
     document.getElementById('newFieldRequired').checked = false;
@@ -375,11 +397,22 @@ function handleFieldTypeChange() {
 }
 
 async function saveNewField() {
-    const name = document.getElementById('newFieldName').value.trim();
-    const type = document.getElementById('newFieldType').value;
-    const required = document.getElementById('newFieldRequired').checked;
-    const order = parseInt(document.getElementById('newFieldOrder').value) || 0;
-    const optionsText = document.getElementById('newFieldOptions').value;
+    const nameInput = document.getElementById('newFieldName');
+    const typeSelect = document.getElementById('newFieldType');
+    const requiredCheckbox = document.getElementById('newFieldRequired');
+    const orderInput = document.getElementById('newFieldOrder');
+    const optionsInput = document.getElementById('newFieldOptions');
+
+    if (!nameInput || !typeSelect || !requiredCheckbox || !orderInput) {
+        showNotification('Error: No se encontraron los campos del formulario', 'error');
+        return;
+    }
+
+    const name = nameInput.value.trim();
+    const type = typeSelect.value;
+    const required = requiredCheckbox.checked;
+    const order = parseInt(orderInput.value) || 0;
+    const optionsText = optionsInput ? optionsInput.value : '';
     const options = optionsText ? optionsText.split(',').map(o => o.trim()).filter(o => o) : [];
 
     if (!name) {
@@ -392,12 +425,15 @@ async function saveNewField() {
         return;
     }
 
-    showLoadingAnimation();
+    if (!currentSystemId) {
+        showNotification('Error: No se encontró el ID del sistema', 'error');
+        return;
+    }
 
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) {
-            hideLoadingAnimation();
+            showNotification('Error: No hay token de autenticación', 'error');
             return;
         }
 
@@ -409,10 +445,13 @@ async function saveNewField() {
             options: options
         };
 
-        const url = editingFieldId
+        const isEditing = editingFieldId !== null && editingFieldId !== undefined && editingFieldId !== 0;
+        const url = isEditing
             ? API_URL + '/sistemas/' + currentSystemId + '/campos/' + editingFieldId
             : API_URL + '/sistemas/' + currentSystemId + '/campos';
-        const method = editingFieldId ? 'PUT' : 'POST';
+        const method = isEditing ? 'PUT' : 'POST';
+
+        console.log('Saving field:', { method, url, fieldData, editingFieldId, isEditing });
 
         const response = await fetch(url, {
             method: method,
@@ -421,23 +460,25 @@ async function saveNewField() {
         });
 
         if (response.ok) {
-            showLoadingSuccess();
-            setTimeout(() => {
-                hideLoadingAnimation();
-                cancelAddField();
-                loadFields();
-                showNotification(editingFieldId ? 'Campo actualizado exitosamente' : 'Campo creado exitosamente', 'success');
-                editingFieldId = null;
-            }, 1000);
+            cancelAddField();
+            await loadFields();
+            const isEditing = editingFieldId !== null && editingFieldId !== undefined && editingFieldId !== 0;
+            showNotification(isEditing ? 'Campo actualizado exitosamente' : 'Campo creado exitosamente', 'success');
+            editingFieldId = null;
         } else {
-            hideLoadingAnimation();
-            const error = await response.json();
-            showNotification('Error: ' + (error.error || 'Error al guardar campo'), 'error');
+            let errorMessage = 'Error al guardar campo';
+            try {
+                const error = await response.json();
+                errorMessage = error.error || error.message || errorMessage;
+            } catch (e) {
+                errorMessage = `Error ${response.status}: ${response.statusText}`;
+            }
+            console.error('Error saving field:', errorMessage);
+            showNotification('Error: ' + errorMessage, 'error');
         }
     } catch (error) {
-        hideLoadingAnimation();
         console.error('Error saving field:', error);
-        showNotification('Error al guardar campo', 'error');
+        showNotification('Error al guardar campo: ' + (error.message || 'Error de conexión'), 'error');
     }
 }
 
@@ -473,13 +514,23 @@ function editField(fieldId) {
         return;
     }
 
-    const field = fields.find(f => f.id === fieldId);
-    if (!field) return;
+    const fieldIdNum = parseInt(fieldId);
+    const field = fields.find(f => f.id === fieldIdNum || f.id === fieldId);
+    if (!field) {
+        console.error('Field not found. fieldId:', fieldId, 'fields:', fields);
+        showNotification('Error: Campo no encontrado', 'error');
+        return;
+    }
 
-    editingFieldId = fieldId;
+    console.log('Editing field:', field, 'fieldId:', fieldId, 'fieldIdNum:', fieldIdNum);
+
+    editingFieldId = fieldIdNum || field.id;
     document.getElementById('formTitle').textContent = 'Editar Campo';
-    document.getElementById('btnSaveField').textContent = 'Actualizar';
-    document.getElementById('btnSaveField').onclick = () => saveNewField();
+    const btnSaveField = document.getElementById('btnSaveField');
+    if (btnSaveField) {
+        btnSaveField.innerHTML = '<span class="material-symbols-outlined">save</span><span>Guardar</span>';
+        btnSaveField.setAttribute('onclick', 'saveNewField()');
+    }
 
     const nameInput = document.getElementById('newFieldName');
     const typeSelect = document.getElementById('newFieldType');
@@ -488,13 +539,27 @@ function editField(fieldId) {
     const optionsInput = document.getElementById('newFieldOptions');
 
     if (nameInput) nameInput.value = field.name || '';
-    if (typeSelect) typeSelect.value = field.type || 'text';
+    if (typeSelect) {
+        typeSelect.value = field.type || 'text';
+        setTimeout(() => {
+            typeSelect.dispatchEvent(new Event('change'));
+        }, 100);
+    }
     if (requiredCheckbox) requiredCheckbox.checked = field.required || false;
     if (orderInput) orderInput.value = field.orderIndex || 0;
-    if (optionsInput) optionsInput.value = field.options ? field.options.join(', ') : '';
+    if (optionsInput) {
+        const optionsValue = field.options && Array.isArray(field.options) ? field.options.join(', ') : '';
+        optionsInput.value = optionsValue;
+    }
 
     handleFieldTypeChange();
-    document.getElementById('addFieldForm').classList.remove('hidden');
+    const addFieldForm = document.getElementById('addFieldForm');
+    if (addFieldForm) {
+        addFieldForm.classList.remove('hidden');
+        setTimeout(() => {
+            addFieldForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    }
 }
 
 async function loadRecords() {
@@ -608,15 +673,19 @@ function renderRecords() {
         tdActions.className = 'px-6 py-4';
         if (canEdit) {
             tdActions.innerHTML = `
-                <div class="flex gap-2 flex-wrap">
-                    <button onclick="editRecord(${record.id})" class="hover-smooth px-3 py-1.5 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all text-sm font-semibold">Editar</button>
-                    <button onclick="deleteRecord(${record.id})" class="hover-smooth px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm font-semibold">Eliminar</button>
-                    <button onclick="showAuditModal(${currentSystemId})" class="hover-smooth px-3 py-1.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all text-sm font-semibold">Auditoría</button>
+                <div class="flex items-center justify-center gap-1.5">
+                    <button onclick="editRecord(${record.id})" class="action-btn action-btn-edit p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Editar">
+                        <span class="material-symbols-outlined text-lg">edit</span>
+                    </button>
+                    <button onclick="deleteRecord(${record.id})" class="action-btn action-btn-delete p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Eliminar">
+                        <span class="material-symbols-outlined text-lg">delete</span>
+                    </button>
                 </div>
             `;
         } else {
             tdActions.innerHTML = `
-                <button onclick="showAuditModal(${currentSystemId})" class="hover-smooth px-3 py-1.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all text-sm font-semibold">Auditoría</button>
+                <div class="flex items-center justify-center gap-1.5">
+                </div>
             `;
         }
         row.appendChild(tdActions);
@@ -624,70 +693,6 @@ function renderRecords() {
     });
 }
 
-function openRecordsManagement() {
-    if (fields.length === 0) {
-        showNotification('Debes crear al menos un campo antes de gestionar registros', 'error');
-        openFieldsModal();
-        return;
-    }
-
-    document.getElementById('recordsManagementModal').classList.remove('hidden');
-    loadRecordsForManagement();
-}
-
-function closeRecordsManagementModal() {
-    document.getElementById('recordsManagementModal').classList.add('hidden');
-    document.getElementById('recordsListContainer').innerHTML = '';
-}
-
-function loadRecordsForManagement() {
-    const container = document.getElementById('recordsListContainer');
-    if (!container) return;
-
-    container.innerHTML = '<p class="text-center">Cargando registros...</p>';
-
-    if (filteredRecords.length === 0) {
-        container.innerHTML = '<p class="text-center text-gray-500 py-8">No hay registros. Agrega tu primer registro.</p>';
-        return;
-    }
-
-    const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    const canEdit = isOwner || userRole === 'owner' || userRole === 'admin' || userRole === 'editor';
-
-    container.innerHTML = filteredRecords.map(record => {
-        const recordFields = sortedFields.map(field => {
-            const value = record.fieldValues && record.fieldValues[field.name] ? record.fieldValues[field.name] : '-';
-            return `
-                <div class="mb-4">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">${field.name}</label>
-                    <div class="px-4 py-3 bg-gray-50 border rounded">${value}</div>
-                </div>
-            `;
-        }).join('');
-
-        return `
-            <div class="border rounded-lg p-6 bg-white shadow-sm">
-                <div class="flex justify-between items-start mb-6">
-                    <h3 class="font-bold text-lg">Registro #${record.id}</h3>
-                    ${canEdit ? `
-                        <div class="flex gap-2">
-                            <button onclick="editRecordFromManagement(${record.id})" class="px-4 py-2 bg-yellow-500 text-white rounded text-sm hover:bg-yellow-600">Editar</button>
-                            <button onclick="deleteRecord(${record.id})" class="px-4 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600">Eliminar</button>
-                        </div>
-                    ` : ''}
-                </div>
-                <div class="space-y-4">
-                    ${recordFields}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function editRecordFromManagement(recordId) {
-    closeRecordsManagementModal();
-    editRecord(recordId);
-}
 
 async function showAddRecordForm() {
     const canEdit = isOwner || userRole === 'owner' || userRole === 'admin' || userRole === 'editor';
@@ -757,53 +762,49 @@ function showRecordModal(title) {
             } else if (field.type === 'radio') {
                 const options = field.options || [];
                 if (options.length > 0) {
-                    input = `<div>
-                    <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
-                    ${options.map((opt, idx) => `
-                        <label class="flex items-center mr-4 mb-2">
-                            <input type="radio" name="record_field_${field.id}" value="${opt}" class="mr-2" ${field.required && idx === 0 ? 'required' : ''}>
-                            ${opt}
-                        </label>
-                    `).join('')}
-                </div>`;
+                    input = `
+                        <div class="flex flex-wrap gap-3">
+                            ${options.map((opt, idx) => `
+                                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 glass-card rounded-lg hover:bg-primary/10 transition-colors">
+                                    <input type="radio" name="record_field_${field.id}" value="${opt}" class="w-4 h-4 text-primary focus:ring-primary" ${field.required && idx === 0 ? 'required' : ''}>
+                                    <span class="text-[#111418] dark:text-white text-sm">${opt}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
                 } else {
-                    input = `<div>
-                    <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
-                    <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
-                </div>`;
+                    input = `<p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>`;
                 }
             } else if (field.type === 'select') {
                 const options = field.options || [];
                 if (options.length > 0) {
-                    input = `<select id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>
-                    <option value="">Seleccionar...</option>
-                    ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-                </select>`;
+                    input = `<select id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''}>
+                        <option value="" class="bg-white dark:bg-slate-800">Selecciona ${field.name.toLowerCase()}...</option>
+                        ${options.map(opt => `<option value="${opt}" class="bg-white dark:bg-slate-800">${opt}</option>`).join('')}
+                    </select>`;
                 } else {
-                    input = `<div>
-                    <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
-                </div>`;
+                    input = `<p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>`;
                 }
             } else if (field.type === 'textarea') {
-                input = `<textarea id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''} rows="4"></textarea>`;
+                input = `<textarea id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''} rows="4" placeholder="Ingresa ${field.name.toLowerCase()}..."></textarea>`;
             } else if (field.type === 'date') {
-                input = `<input type="date" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+                input = `<input type="date" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''}>`;
             } else if (field.type === 'datetime') {
-                input = `<input type="datetime-local" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+                input = `<input type="datetime-local" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''}>`;
             } else if (field.type === 'number') {
-                input = `<input type="number" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+                input = `<input type="number" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''} placeholder="Ingresa ${field.name.toLowerCase()}...">`;
             } else if (field.type === 'email') {
-                input = `<input type="email" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+                input = `<input type="email" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''} placeholder="ejemplo@email.com">`;
             } else if (field.type === 'url') {
-                input = `<input type="url" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+                input = `<input type="url" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''} placeholder="https://ejemplo.com">`;
             } else if (field.type === 'tel') {
-                input = `<input type="tel" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+                input = `<input type="tel" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''} placeholder="+1234567890">`;
             } else {
-                input = `<input type="text" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>`;
+                input = `<input type="text" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''} placeholder="Ingresa ${field.name.toLowerCase()}...">`;
             }
             return `
             <div class="mb-4">
-                ${field.type !== 'checkbox' ? `<label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>` : ''}
+                ${field.type !== 'checkbox' ? `<label class="block mb-2 text-[#111418] dark:text-white font-semibold">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>` : ''}
                 ${input}
             </div>
         `;
@@ -862,9 +863,13 @@ async function saveNewRecord() {
                 value = radio ? radio.value : '';
             } else {
                 const input = document.getElementById(`record_field_${field.id}`);
-                value = input ? input.value : '';
+                if (input) {
+                    value = input.value || '';
+                }
             }
-            fieldValues[field.name] = value;
+            if (value !== '' || field.type === 'checkbox') {
+                fieldValues[field.name] = value;
+            }
         });
 
         const recordData = {
@@ -891,16 +896,20 @@ async function saveNewRecord() {
             await loadRecords();
             showNotification(editingRecordId ? 'Registro actualizado exitosamente' : 'Registro creado exitosamente', 'success');
             editingRecordId = null;
-            if (document.getElementById('recordsManagementModal') && !document.getElementById('recordsManagementModal').classList.contains('hidden')) {
-                loadRecordsForManagement();
-            }
         } else {
-            const error = await response.json();
-            showNotification('Error: ' + (error.error || 'Error al guardar registro'), 'error');
+            let errorMessage = 'Error al guardar registro';
+            try {
+                const error = await response.json();
+                errorMessage = error.error || error.message || errorMessage;
+            } catch (e) {
+                errorMessage = `Error ${response.status}: ${response.statusText}`;
+            }
+            console.error('Error saving record:', errorMessage);
+            showNotification('Error: ' + errorMessage, 'error');
         }
     } catch (error) {
         console.error('Error saving record:', error);
-        showNotification('Error al guardar registro', 'error');
+        showNotification('Error: ' + (error.message || 'Error de conexión al guardar registro'), 'error');
     }
 }
 
@@ -911,7 +920,6 @@ async function editRecord(recordId) {
         return;
     }
 
-    // Ensure recordId is a number
     const id = parseInt(recordId);
     const record = records.find(r => r.id === id);
 
@@ -928,7 +936,7 @@ async function editRecord(recordId) {
     editingRecordId = id;
     const btnText = document.getElementById('btnSaveRecordModal');
     if (btnText) {
-        btnText.textContent = 'Guardar';
+        btnText.innerHTML = '<span class="material-symbols-outlined">save</span><span>Guardar</span>';
     }
     showRecordModal('Editar Registro');
 
@@ -944,65 +952,79 @@ async function editRecord(recordId) {
 
     setTimeout(() => {
         container.innerHTML = sortedFields.map(field => {
-            const currentValue = record.fieldValues && record.fieldValues[field.name] ? record.fieldValues[field.name] : '';
+            let currentValue = '';
+            if (record && record.fieldValues && record.fieldValues[field.name] !== undefined && record.fieldValues[field.name] !== null) {
+                currentValue = String(record.fieldValues[field.name]);
+            }
+            const escapedValue = currentValue.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             let input = '';
 
             if (field.type === 'checkbox') {
-                const checked = currentValue === 'true' || currentValue === true;
-                input = `<label class="flex items-center">
-                    <input type="checkbox" id="record_field_${field.id}" class="mr-2" ${checked ? 'checked' : ''} ${field.required ? 'required' : ''}>
-                    ${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}
-                </label>`;
+                const checked = currentValue === 'true' || currentValue === '1' || currentValue === true;
+                input = `
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="record_field_${field.id}" class="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary" ${checked ? 'checked' : ''} ${field.required ? 'required' : ''}>
+                        <span class="text-[#111418] dark:text-white">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</span>
+                    </label>
+                `;
             } else if (field.type === 'radio') {
                 const options = field.options || [];
                 if (options.length > 0) {
-                    input = `<div>
-                        <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
-                        ${options.map((opt, idx) => `
-                            <label class="flex items-center mr-4 mb-2">
-                                <input type="radio" name="record_field_${field.id}" value="${opt}" class="mr-2" ${opt === currentValue ? 'checked' : ''} ${field.required && idx === 0 ? 'required' : ''}>
-                                ${opt}
-                            </label>
-                        `).join('')}
-                    </div>`;
+                    input = `
+                        <div class="flex flex-wrap gap-3">
+                            ${options.map((opt, idx) => {
+                                const escapedOpt = String(opt).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                                return `
+                                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 glass-card rounded-lg hover:bg-primary/10 transition-colors">
+                                    <input type="radio" name="record_field_${field.id}" value="${escapedOpt}" class="w-4 h-4 text-primary focus:ring-primary" ${String(opt) === currentValue ? 'checked' : ''} ${field.required && idx === 0 ? 'required' : ''}>
+                                    <span class="text-[#111418] dark:text-white text-sm">${opt}</span>
+                                </label>
+                            `;
+                            }).join('')}
+                        </div>
+                    `;
                 } else {
-                    input = `<div>
-                        <label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
-                        <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
-                    </div>`;
+                    input = `<p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>`;
                 }
             } else if (field.type === 'select') {
                 const options = field.options || [];
                 if (options.length > 0) {
-                    input = `<select id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''}>
-                        <option value="">Seleccionar...</option>
-                        ${options.map(opt => `<option value="${opt}" ${opt === currentValue ? 'selected' : ''}>${opt}</option>`).join('')}
-                    </select>`;
+                    input = `
+                        <select id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''}>
+                            <option value="" class="bg-white dark:bg-slate-800">Selecciona ${field.name.toLowerCase()}...</option>
+                            ${options.map(opt => {
+                                const escapedOpt = String(opt).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                                return `<option value="${escapedOpt}" ${String(opt) === currentValue ? 'selected' : ''} class="bg-white dark:bg-slate-800">${opt}</option>`;
+                            }).join('')}
+                        </select>
+                    `;
                 } else {
-                    input = `<div>
-                        <p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>
-                    </div>`;
+                    input = `<p class="text-sm text-red-500">Este campo requiere opciones. Por favor, edita el campo para agregar opciones.</p>`;
                 }
             } else if (field.type === 'textarea') {
-                input = `<textarea id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" ${field.required ? 'required' : ''} rows="4">${currentValue}</textarea>`;
+                input = `<textarea id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''} rows="4" placeholder="Ingresa ${field.name.toLowerCase()}...">${escapedValue}</textarea>`;
             } else if (field.type === 'date') {
-                input = `<input type="date" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+                input = `<input type="date" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" value="${escapedValue}" ${field.required ? 'required' : ''}>`;
             } else if (field.type === 'datetime') {
-                input = `<input type="datetime-local" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+                let datetimeValue = escapedValue;
+                if (datetimeValue && datetimeValue.includes('T')) {
+                    datetimeValue = datetimeValue.substring(0, 16);
+                }
+                input = `<input type="datetime-local" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" value="${datetimeValue}" ${field.required ? 'required' : ''}>`;
             } else if (field.type === 'number') {
-                input = `<input type="number" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+                input = `<input type="number" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" value="${escapedValue}" ${field.required ? 'required' : ''} placeholder="Ingresa ${field.name.toLowerCase()}...">`;
             } else if (field.type === 'email') {
-                input = `<input type="email" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+                input = `<input type="email" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" value="${escapedValue}" ${field.required ? 'required' : ''} placeholder="ejemplo@email.com">`;
             } else if (field.type === 'url') {
-                input = `<input type="url" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+                input = `<input type="url" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" value="${escapedValue}" ${field.required ? 'required' : ''} placeholder="https://ejemplo.com">`;
             } else if (field.type === 'tel') {
-                input = `<input type="tel" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+                input = `<input type="tel" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" value="${escapedValue}" ${field.required ? 'required' : ''} placeholder="+1234567890">`;
             } else {
-                input = `<input type="text" id="record_field_${field.id}" class="w-full px-4 py-2 border rounded" value="${currentValue}" ${field.required ? 'required' : ''}>`;
+                input = `<input type="text" id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" value="${escapedValue}" ${field.required ? 'required' : ''} placeholder="Ingresa ${field.name.toLowerCase()}...">`;
             }
             return `
                 <div class="mb-4">
-                    ${field.type !== 'checkbox' ? `<label class="block mb-2 font-semibold text-gray-700">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>` : ''}
+                    ${field.type !== 'checkbox' ? `<label class="block mb-2 text-[#111418] dark:text-white font-semibold">${field.name} ${field.required ? '<span class="text-red-500">*</span>' : ''}</label>` : ''}
                     ${input}
                 </div>
             `;
@@ -1011,11 +1033,70 @@ async function editRecord(recordId) {
 }
 
 async function deleteRecord(recordId) {
-    if (!confirm('¿Estás seguro de eliminar este registro?')) return;
+    const userEmail = obtenerEmailDelUsuario();
+    if (!userEmail) {
+        showNotification('Error: No se pudo obtener el correo del usuario', 'error');
+        return;
+    }
+
+    const deleteModal = document.createElement('div');
+    deleteModal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    deleteModal.innerHTML = `
+        <div class="glass-card p-8 rounded-xl max-w-md w-full shadow-2xl modal-enter">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black text-[#111418] dark:text-white">Confirmar Eliminación</h2>
+                <button onclick="this.closest('.fixed').remove()"
+                    class="hover-smooth px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all">✕
+                    Cerrar</button>
+            </div>
+            <p class="text-[#111418] dark:text-white mb-4">Para confirmar la eliminación, ingresa tu correo electrónico:</p>
+            <div class="mb-4">
+                <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Correo Electrónico *</label>
+                <input type="email" id="deleteConfirmEmail" placeholder="tu@email.com" autocomplete="off"
+                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button onclick="confirmDeleteRecord(${recordId}, '${userEmail.replace(/'/g, "\\'")}')"
+                    class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-red-600 text-white text-base font-bold shadow-lg hover:bg-red-700 transition-colors">
+                    <span class="material-symbols-outlined">delete</span>
+                    <span>Eliminar</span>
+                </button>
+                <button onclick="this.closest('.fixed').remove()"
+                    class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                    <span>Cancelar</span>
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(deleteModal);
+}
+
+async function confirmDeleteRecord(recordId, userEmail) {
+    const inputEmail = document.getElementById('deleteConfirmEmail').value.trim();
+    
+    if (!inputEmail) {
+        showNotification('Por favor ingresa tu correo electrónico', 'error');
+        return;
+    }
+
+    if (inputEmail.toLowerCase() !== userEmail.toLowerCase()) {
+        showNotification('El correo electrónico no coincide', 'error');
+        return;
+    }
+
+    const deleteModal = document.querySelector('.fixed.inset-0.bg-black\\/70');
+    if (deleteModal) {
+        deleteModal.remove();
+    }
 
     try {
         const headers = getAuthHeaders();
-        if (!headers.Authorization) return;
+        if (!headers.Authorization) {
+            showNotification('Error: No hay token de autenticación', 'error');
+            return;
+        }
 
         const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/registros/' + recordId, {
             method: 'DELETE',
@@ -1025,9 +1106,6 @@ async function deleteRecord(recordId) {
         if (response.ok) {
             await loadRecords();
             showNotification('Registro eliminado exitosamente', 'success');
-            if (document.getElementById('recordsManagementModal') && !document.getElementById('recordsManagementModal').classList.contains('hidden')) {
-                loadRecordsForManagement();
-            }
         } else {
             const error = await response.json();
             showNotification('Error: ' + (error.error || 'Error al eliminar registro'), 'error');
@@ -1246,107 +1324,505 @@ function updateCharts() {
     }
 }
 
-function showAuditModal(systemId) {
-    currentAuditSystemId = systemId;
-    const modal = document.getElementById('auditModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        const searchInput = document.getElementById('auditSearchInput');
-        const typeSelect = document.getElementById('auditTypeSelect');
-        if (searchInput) searchInput.value = '';
-        if (typeSelect) typeSelect.value = 'logs';
-        loadAuditData();
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        return '-';
     }
 }
 
-function hideAuditModal() {
-    const modal = document.getElementById('auditModal');
-    if (modal) {
-        modal.classList.add('hidden');
-    }
-    currentAuditSystemId = null;
-}
+let allSystemsList = [];
 
-let currentAuditSystemId = null;
-
-async function loadAuditData() {
-    if (!currentAuditSystemId) return;
-
-    const auditType = document.getElementById('auditTypeSelect')?.value || 'logs';
-    const search = document.getElementById('auditSearchInput')?.value.trim() || '';
-
+async function loadAllSystems() {
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
 
-        let url;
-        if (search) {
-            url = `http://localhost:8080/api/auditoria/sistema/${currentAuditSystemId}/${auditType === 'logs' ? 'logs/buscar' : 'seguridad/buscar'}?search=${encodeURIComponent(search)}`;
-        } else {
-            url = `http://localhost:8080/api/auditoria/sistema/${currentAuditSystemId}/${auditType === 'logs' ? 'logs' : 'seguridad'}`;
-        }
-
-        const response = await fetch(url, {
+        const response = await fetch(API_URL + '/sistemas', {
             headers: headers
         });
 
         if (response.ok) {
-            const data = await response.json();
-            renderAuditTable(data, auditType);
+            allSystemsList = await response.json();
         }
     } catch (error) {
-        console.error('Error loading audit data:', error);
+        console.error('Error loading systems:', error);
     }
 }
 
-function renderAuditTable(items, type) {
-    const tbody = document.getElementById('auditTableBody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    if (!items || items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center px-6 py-8 text-gray-500 dark:text-gray-400">No hay registros</td></tr>';
+function showTransferFieldsModal() {
+    const canManageFields = isOwner || userRole === 'owner' || userRole === 'admin';
+    if (!canManageFields) {
+        showNotification('No tienes permisos para transferir campos. Solo el owner y admin pueden gestionar campos.', 'error');
         return;
     }
 
-    items.forEach(item => {
-        const row = document.createElement('tr');
-        row.className = 'hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors';
-        if (type === 'logs') {
-            row.innerHTML = `
-                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${formatDate(item.createdAt)}</td>
-                <td class="px-6 py-4 text-[#111418] dark:text-white">${item.userName || '-'}</td>
-                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${item.action || '-'}</td>
-                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${item.details || '-'}</td>
-                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${item.ip || '-'}</td>
-            `;
-        } else {
-            const severityColor = item.severity === 'high' ? 'bg-red-500' : item.severity === 'medium' ? 'bg-yellow-500' : 'bg-green-500';
-            row.innerHTML = `
-                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${formatDate(item.createdAt)}</td>
-                <td class="px-6 py-4 text-[#111418] dark:text-white">${item.userName || '-'}</td>
-                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${item.event || '-'}</td>
-                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${item.details || '-'}</td>
-                <td class="px-6 py-4">
-                    <span class="px-3 py-1 rounded-lg text-white text-sm font-semibold ${severityColor}">${item.severity || '-'}</span>
-                </td>
-            `;
-        }
-        tbody.appendChild(row);
+    if (fields.length === 0) {
+        showNotification('No hay campos para transferir', 'error');
+        return;
+    }
+
+    loadAllSystems().then(() => {
+        const modal = document.getElementById('transferFieldsModal');
+        const targetSelect = document.getElementById('transferTargetSystem');
+        const fieldsList = document.getElementById('transferFieldsList');
+
+        targetSelect.innerHTML = '<option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema...</option>';
+
+        allSystemsList.forEach(system => {
+            if (system.id !== currentSystemId) {
+                const option = document.createElement('option');
+                option.value = system.id;
+                option.textContent = system.name;
+                option.className = 'bg-white dark:bg-slate-800';
+                targetSelect.appendChild(option);
+            }
+        });
+
+        fieldsList.innerHTML = fields.map(field => `
+            <label class="flex items-center gap-2 p-3 glass-card rounded-lg hover:bg-primary/10 transition-colors cursor-pointer">
+                <input type="checkbox" value="${field.id}" class="w-4 h-4 text-primary focus:ring-primary rounded">
+                <span class="text-[#111418] dark:text-white font-medium">${field.name}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 ml-auto">${field.type}</span>
+            </label>
+        `).join('');
+
+        modal.classList.remove('hidden');
     });
 }
 
-function searchAudit() {
-    if (!currentAuditSystemId) {
-        currentAuditSystemId = currentSystemId;
-    }
-    loadAuditData();
+function closeTransferFieldsModal() {
+    const modal = document.getElementById('transferFieldsModal');
+    modal.classList.add('hidden');
+    document.getElementById('transferTargetSystem').value = '';
+    document.getElementById('transferFieldsList').innerHTML = '';
 }
 
-function formatDate(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES');
+async function transferSelectedFields() {
+    const targetSystemId = document.getElementById('transferTargetSystem').value;
+    if (!targetSystemId) {
+        showNotification('Por favor selecciona un sistema destino', 'error');
+        return;
+    }
+
+    const checkboxes = document.querySelectorAll('#transferFieldsList input[type="checkbox"]:checked');
+    if (checkboxes.length === 0) {
+        showNotification('Por favor selecciona al menos un campo para transferir', 'error');
+        return;
+    }
+
+    const fieldIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    try {
+        const headers = getAuthHeaders();
+        if (!headers.Authorization) {
+            showNotification('Error: No hay token de autenticación', 'error');
+            return;
+        }
+
+        const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/campos/transferir', {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                fieldIds: fieldIds,
+                targetSystemId: parseInt(targetSystemId)
+            })
+        });
+
+        if (response.ok) {
+            closeTransferFieldsModal();
+            await loadFields();
+            showNotification('Campos transferidos exitosamente', 'success');
+        } else {
+            let errorMessage = 'Error al transferir campos';
+            try {
+                const error = await response.json();
+                errorMessage = error.error || error.message || errorMessage;
+            } catch (e) {
+                errorMessage = `Error ${response.status}: ${response.statusText}`;
+            }
+            showNotification('Error: ' + errorMessage, 'error');
+        }
+    } catch (error) {
+        console.error('Error transferring fields:', error);
+        showNotification('Error al transferir campos: ' + (error.message || 'Error de conexión'), 'error');
+    }
+}
+
+let availableFieldsToImport = [];
+
+async function showImportFieldsModal() {
+    const canManageFields = isOwner || userRole === 'owner' || userRole === 'admin';
+    if (!canManageFields) {
+        showNotification('No tienes permisos para importar campos. Solo el owner y admin pueden gestionar campos.', 'error');
+        return;
+    }
+
+    showLoadingScreen();
+
+    try {
+        const headers = getAuthHeaders();
+        if (!headers.Authorization) {
+            hideLoadingScreen();
+            showNotification('Error: No hay token de autenticación', 'error');
+            return;
+        }
+
+        const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/campos/disponibles-importar', {
+            headers: headers
+        });
+
+        if (!response.ok) {
+            hideLoadingScreen();
+            showNotification('Error al cargar sistemas disponibles', 'error');
+            return;
+        }
+
+        availableFieldsToImport = await response.json();
+        hideLoadingScreen();
+
+        if (availableFieldsToImport.length === 0) {
+            showNotification('No hay sistemas con campos disponibles para importar', 'error');
+            return;
+        }
+
+        const modal = document.getElementById('importFieldsModal');
+        const sourceSelect = document.getElementById('importSourceSystem');
+        const fieldsList = document.getElementById('importFieldsList');
+
+        sourceSelect.innerHTML = '<option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema...</option>';
+
+        availableFieldsToImport.forEach(system => {
+            const option = document.createElement('option');
+            option.value = system.systemId;
+            option.textContent = system.systemName;
+            option.className = 'bg-white dark:bg-slate-800';
+            sourceSelect.appendChild(option);
+        });
+
+        sourceSelect.onchange = function () {
+            const selectedSystemId = parseInt(this.value);
+            const selectedSystem = availableFieldsToImport.find(s => s.systemId === selectedSystemId);
+
+            if (selectedSystem && selectedSystem.fields) {
+                fieldsList.innerHTML = selectedSystem.fields.map(field => `
+                    <label class="flex items-center gap-2 p-3 glass-card rounded-lg hover:bg-primary/10 transition-colors cursor-pointer">
+                        <input type="checkbox" value="${field.id}" class="w-4 h-4 text-primary focus:ring-primary rounded">
+                        <div class="flex-1">
+                            <span class="text-[#111418] dark:text-white font-medium">${field.name}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${field.type}</span>
+                            ${field.required ? '<span class="text-xs text-red-500 ml-2">*Requerido</span>' : ''}
+                        </div>
+                    </label>
+                `).join('');
+            } else {
+                fieldsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">No hay campos disponibles</p>';
+            }
+        };
+
+        fieldsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema primero</p>';
+        modal.classList.remove('hidden');
+    } catch (error) {
+        hideLoadingScreen();
+        console.error('Error loading available fields:', error);
+        showNotification('Error al cargar campos disponibles: ' + (error.message || 'Error de conexión'), 'error');
+    }
+}
+
+function closeImportFieldsModal() {
+    const modal = document.getElementById('importFieldsModal');
+    modal.classList.add('hidden');
+    document.getElementById('importSourceSystem').value = '';
+    document.getElementById('importFieldsList').innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema primero</p>';
+}
+
+async function importSelectedFields() {
+    const sourceSystemId = document.getElementById('importSourceSystem').value;
+    if (!sourceSystemId) {
+        showNotification('Por favor selecciona un sistema origen', 'error');
+        return;
+    }
+
+    const checkboxes = document.querySelectorAll('#importFieldsList input[type="checkbox"]:checked');
+    if (checkboxes.length === 0) {
+        showNotification('Por favor selecciona al menos un campo para importar', 'error');
+        return;
+    }
+
+    const fieldIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    const importAnimation = document.createElement('div');
+    importAnimation.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]';
+    importAnimation.innerHTML = `
+        <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
+            <div class="loading-spinner rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent mx-auto mb-4 animate-spin"></div>
+            <p class="text-[#111418] dark:text-white text-lg font-semibold">Importando campos...</p>
+        </div>
+    `;
+    document.body.appendChild(importAnimation);
+
+    try {
+        const headers = getAuthHeaders();
+        if (!headers.Authorization) {
+            importAnimation.remove();
+            showNotification('Error: No hay token de autenticación', 'error');
+            return;
+        }
+
+        const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/campos/importar', {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                sourceSystemId: parseInt(sourceSystemId),
+                fieldIds: fieldIds
+            })
+        });
+
+        if (response.ok) {
+            const responseData = await response.json();
+            const transferredRecords = responseData.transferredRecords || 0;
+            
+            importAnimation.innerHTML = `
+                <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
+                    <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
+                        <span class="material-symbols-outlined text-white text-3xl">check</span>
+                    </div>
+                    <p class="text-[#111418] dark:text-white text-lg font-semibold">¡Campos importados exitosamente!</p>
+                    ${transferredRecords > 0 ? `<p class="text-[#111418] dark:text-white text-sm mt-2">Se importaron ${transferredRecords} registros con datos</p>` : ''}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                importAnimation.remove();
+                closeImportFieldsModal();
+                loadFields();
+                loadRecords();
+                if (transferredRecords > 0) {
+                    showNotification(`Campos y ${transferredRecords} registros importados exitosamente`, 'success');
+                } else {
+                    showNotification('Campos importados exitosamente', 'success');
+                }
+            }, 1500);
+        } else {
+            importAnimation.innerHTML = `
+                <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
+                    <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
+                        <span class="material-symbols-outlined text-white text-3xl">close</span>
+                    </div>
+                    <p class="text-[#111418] dark:text-white text-lg font-semibold">Error al importar campos</p>
+                </div>
+            `;
+
+            let errorMessage = 'Error al importar campos';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                errorMessage = `Error ${response.status}: ${response.statusText}`;
+            }
+
+            setTimeout(() => {
+                importAnimation.remove();
+                showNotification(errorMessage, 'error');
+            }, 2000);
+        }
+    } catch (error) {
+        importAnimation.remove();
+        console.error('Error importing fields:', error);
+        showNotification('Error al importar campos: ' + (error.message || 'Error de conexión'), 'error');
+    }
+}
+
+async function showExportFieldsModal() {
+    const canManageFields = isOwner || userRole === 'owner' || userRole === 'admin';
+    if (!canManageFields) {
+        showNotification('No tienes permisos para exportar campos. Solo el owner y admin pueden gestionar campos.', 'error');
+        return;
+    }
+
+    if (fields.length === 0) {
+        showNotification('No hay campos para exportar', 'error');
+        return;
+    }
+
+    showLoadingScreen();
+
+    try {
+        await loadAllSystems();
+        hideLoadingScreen();
+
+        const modal = document.getElementById('exportFieldsModal');
+        const targetSelect = document.getElementById('exportTargetSystem');
+        const fieldsList = document.getElementById('exportFieldsList');
+
+        targetSelect.innerHTML = '<option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema...</option>';
+
+        if (allSystemsList.length === 0) {
+            hideLoadingScreen();
+            showNotification('No hay sistemas disponibles para exportar campos', 'error');
+            return;
+        }
+
+        allSystemsList.forEach(system => {
+            if (system.id !== currentSystemId) {
+                const option = document.createElement('option');
+                option.value = system.id;
+                option.textContent = system.name;
+                option.className = 'bg-white dark:bg-slate-800';
+                targetSelect.appendChild(option);
+            }
+        });
+
+        fieldsList.innerHTML = fields.map(field => `
+            <label class="flex items-center gap-2 p-3 glass-card rounded-lg hover:bg-primary/10 transition-colors cursor-pointer">
+                <input type="checkbox" value="${field.id}" class="w-4 h-4 text-primary focus:ring-primary rounded">
+                <div class="flex-1">
+                    <span class="text-[#111418] dark:text-white font-medium">${field.name}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${field.type}</span>
+                    ${field.required ? '<span class="text-xs text-red-500 ml-2">*Requerido</span>' : ''}
+                </div>
+            </label>
+        `).join('');
+
+        modal.classList.remove('hidden');
+    } catch (error) {
+        hideLoadingScreen();
+        console.error('Error loading systems:', error);
+        showNotification('Error al cargar sistemas: ' + (error.message || 'Error de conexión'), 'error');
+    }
+}
+
+function closeExportFieldsModal() {
+    const modal = document.getElementById('exportFieldsModal');
+    modal.classList.add('hidden');
+    document.getElementById('exportTargetSystem').value = '';
+    document.getElementById('exportFieldsList').innerHTML = '';
+}
+
+async function exportSelectedFields() {
+    const targetSystemId = document.getElementById('exportTargetSystem').value;
+    if (!targetSystemId) {
+        showNotification('Por favor selecciona un sistema destino', 'error');
+        return;
+    }
+
+    const checkboxes = document.querySelectorAll('#exportFieldsList input[type="checkbox"]:checked');
+    if (checkboxes.length === 0) {
+        showNotification('Por favor selecciona al menos un campo para exportar', 'error');
+        return;
+    }
+
+    const fieldIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    const exportAnimation = document.createElement('div');
+    exportAnimation.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]';
+    exportAnimation.innerHTML = `
+        <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
+            <div class="loading-spinner rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4 animate-spin"></div>
+            <p class="text-[#111418] dark:text-white text-lg font-semibold">Exportando campos...</p>
+        </div>
+    `;
+    document.body.appendChild(exportAnimation);
+
+    try {
+        const headers = getAuthHeaders();
+        if (!headers.Authorization) {
+            exportAnimation.remove();
+            showNotification('Error: No hay token de autenticación', 'error');
+            return;
+        }
+
+        const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/campos/transferir', {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                fieldIds: fieldIds,
+                targetSystemId: parseInt(targetSystemId)
+            })
+        });
+
+        if (response.ok) {
+            const responseData = await response.json();
+            const transferredRecords = responseData.transferredRecords || 0;
+            
+            exportAnimation.innerHTML = `
+                <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
+                    <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
+                        <span class="material-symbols-outlined text-white text-3xl">check</span>
+                    </div>
+                    <p class="text-[#111418] dark:text-white text-lg font-semibold">¡Campos exportados exitosamente!</p>
+                    ${transferredRecords > 0 ? `<p class="text-[#111418] dark:text-white text-sm mt-2">Se importaron ${transferredRecords} registros con datos</p>` : ''}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                exportAnimation.remove();
+                closeExportFieldsModal();
+                if (transferredRecords > 0) {
+                    showNotification(`Campos y ${transferredRecords} registros exportados exitosamente`, 'success');
+                    loadRecords();
+                } else {
+                    showNotification('Campos exportados exitosamente', 'success');
+                }
+            }, 1500);
+        } else {
+            exportAnimation.innerHTML = `
+                <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
+                    <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
+                        <span class="material-symbols-outlined text-white text-3xl">close</span>
+                    </div>
+                    <p class="text-[#111418] dark:text-white text-lg font-semibold">Error al exportar campos</p>
+                </div>
+            `;
+
+            let errorMessage = 'Error al exportar campos';
+            try {
+                const error = await response.json();
+                errorMessage = error.error || error.message || errorMessage;
+            } catch (e) {
+                errorMessage = `Error ${response.status}: ${response.statusText}`;
+            }
+
+            setTimeout(() => {
+                exportAnimation.remove();
+                showNotification('Error: ' + errorMessage, 'error');
+            }, 2000);
+        }
+    } catch (error) {
+        exportAnimation.innerHTML = `
+            <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
+                <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
+                    <span class="material-symbols-outlined text-white text-3xl">close</span>
+                </div>
+                <p class="text-[#111418] dark:text-white text-lg font-semibold">Error de conexión</p>
+            </div>
+        `;
+
+        setTimeout(() => {
+            exportAnimation.remove();
+            console.error('Error exporting fields:', error);
+            showNotification('Error al exportar campos: ' + (error.message || 'Error de conexión'), 'error');
+        }, 2000);
+    }
 }
 

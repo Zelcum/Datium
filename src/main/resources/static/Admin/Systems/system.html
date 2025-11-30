@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datium - Sistemas</title>
+    <title>Datium</title>
+    <link rel="icon" type="image/jpeg" href="../../img/Isotipo modo oscuro.jpeg" id="favicon">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
@@ -34,9 +35,7 @@
     <div class="relative w-full flex flex-col items-center min-h-screen" id="mainContent">
         <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-white dark:from-blue-900/30 dark:via-purple-900/30 dark:to-background-dark -z-10 continuous-background"></div>
         <div class="container mx-auto p-4 md:p-8 w-full max-w-7xl">
-            <div class="mb-8 fade-in-up text-center">
-                <h1 class="text-4xl font-black mb-8 text-[#111418] dark:text-white">Sistemas</h1>
-            
+            <div class="mb-8 fade-in-up">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-1">
                     <div class="flex items-center gap-3 mb-2">
@@ -84,6 +83,7 @@
                     <div class="chart-container">
                         <canvas id="securityChart"></canvas>
                     </div>
+                    <div id="securityLegend" class="flex flex-col gap-2 mt-4"></div>
                 </div>
                 <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift scale-in delay-2">
                     <h3 class="font-bold mb-4 flex items-center gap-2 text-[#111418] dark:text-white text-sm sm:text-base">
@@ -111,6 +111,11 @@
                 <button id="btnCreateSystem" class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-4 sm:px-6 bg-primary text-white text-sm sm:text-base font-bold shadow-lg hover:bg-primary/90 transition-colors flex-1 sm:flex-none">
                     <span class="material-symbols-outlined">add</span>
                     <span>Crear Sistema</span>
+                </button>
+                <button id="btnInvitations" onclick="openInvitations()" class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-4 sm:px-6 bg-purple-600 text-white text-sm sm:text-base font-bold shadow-lg hover:bg-purple-700 transition-colors flex-1 sm:flex-none relative">
+                    <span class="material-symbols-outlined">mail</span>
+                    <span>Invitaciones</span>
+                    <span id="invitationsBadge" class="hidden absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
                 </button>
                 <button id="btnLogout" class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-4 sm:px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm sm:text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-1 sm:flex-none">
                     <span class="material-symbols-outlined">logout</span>
@@ -207,10 +212,12 @@
                     <div class="mb-4">
                         <label class="block mb-2 text-[#111418] dark:text-white font-semibold">Campos del Sistema</label>
                         <div id="systemFieldsContainer"></div>
-                        <button type="button" id="btnAddField" class="mt-2 hover-smooth flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                            <span class="material-symbols-outlined text-lg">add</span>
-                            <span>Agregar Campo</span>
-                        </button>
+                        <div class="mt-2 flex gap-2 flex-wrap">
+                            <button type="button" id="btnAddField" class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <span class="material-symbols-outlined text-lg">add</span>
+                                <span>Agregar Campo</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -385,5 +392,6 @@
     <script src="notification.js"></script>
     <script src="system-access.js"></script>
     <script src="system.js"></script>
+
 </body>
 </html>
