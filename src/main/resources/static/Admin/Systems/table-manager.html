@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Tablas - Datium</title>
+    <link rel="icon" type="image/jpeg" href="../../img/Isotipo modo oscuro.jpeg" id="favicon">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/loading.css">
+    <link rel="stylesheet" href="system-styles.css">
+    <script src="notification.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="font-display bg-background-light dark:bg-background-dark text-[#111418] dark:text-gray-200 min-h-screen">
+    <div class="relative w-full flex flex-col items-center min-h-screen" id="mainContent">
+        <div
+            class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-white dark:from-blue-900/30 dark:via-purple-900/30 dark:to-background-dark -z-10 continuous-background">
+        </div>
+        <div class="container mx-auto p-4 md:p-8 w-full max-w-7xl">
+            <!-- Breadcrumb -->
+            <div class="mb-6 fade-in-up">
+                <nav class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <a href="system.html" class="hover:text-primary transition-colors">Sistemas</a>
+                    <span class="material-symbols-outlined text-xs">chevron_right</span>
+                    <span id="systemName" class="text-[#111418] dark:text-white font-medium">Sistema</span>
+                    <span class="material-symbols-outlined text-xs">chevron_right</span>
+                    <span class="text-[#111418] dark:text-white font-medium">Tablas</span>
+                </nav>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 rounded-lg bg-blue-500/20">
+                            <span class="material-symbols-outlined text-blue-500 text-2xl">table_chart</span>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Total Tablas</div>
+                    </div>
+                    <div id="statTotalTables" class="text-3xl font-bold text-[#111418] dark:text-white">0</div>
+                </div>
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-2">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 rounded-lg bg-green-500/20">
+                            <span class="material-symbols-outlined text-green-500 text-2xl">view_column</span>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Total Campos</div>
+                    </div>
+                    <div id="statTotalFields" class="text-3xl font-bold text-[#111418] dark:text-white">0</div>
+                </div>
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-3">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 rounded-lg bg-purple-500/20">
+                            <span class="material-symbols-outlined text-purple-500 text-2xl">description</span>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Total Registros</div>
+                    </div>
+                    <div id="statTotalRecords" class="text-3xl font-bold text-[#111418] dark:text-white">0</div>
+                </div>
+                <div class="glass-card p-4 sm:p-6 rounded-xl shadow-lg hover-lift stat-card fade-in-up delay-4">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 rounded-lg bg-orange-500/20">
+                            <span class="material-symbols-outlined text-orange-500 text-2xl">hub</span>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-600 dark:text-gray-400">Relaciones</div>
+                    </div>
+                    <div id="statTotalRelationships" class="text-3xl font-bold text-[#111418] dark:text-white">0</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mb-4 flex flex-col sm:flex-row gap-2 fade-in-up delay-2">
+                <button id="btnCreateTable"
+                    class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-4 sm:px-6 bg-primary text-white text-sm sm:text-base font-bold shadow-lg hover:bg-primary/90 transition-colors flex-1 sm:flex-none">
+                    <span class="material-symbols-outlined">add</span>
+                    <span>Crear Tabla</span>
+                </button>
+                <button id="btnManageRelationships"
+                    class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-4 sm:px-6 bg-purple-600 text-white text-sm sm:text-base font-bold shadow-lg hover:bg-purple-700 transition-colors flex-1 sm:flex-none">
+                    <span class="material-symbols-outlined">hub</span>
+                    <span>Relaciones</span>
+                </button>
+                <button id="btnBackToSystems"
+                    class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-4 sm:px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-sm sm:text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-1 sm:flex-none">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    <span>Volver</span>
+                </button>
+            </div>
+
+            <!-- Search -->
+            <div class="mb-4 fade-in-up delay-3">
+                <input type="text" id="searchInput" placeholder="Buscar tabla..." autocomplete="off"
+                    class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50">
+            </div>
+
+            <!-- Tables Grid -->
+            <div id="tablesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in delay-4">
+                <!-- Tables will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Table Modal -->
+    <div id="tableModal"
+        class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="glass-card max-w-md w-full rounded-2xl shadow-2xl p-8 modal-enter">
+            <h2 id="tableModalTitle" class="text-2xl font-bold text-[#111418] dark:text-white mb-6">Crear Tabla</h2>
+
+            <form id="tableForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Nombre de la tabla
+                    </label>
+                    <input type="text" id="tableName" required
+                        class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        placeholder="ej: Clientes">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Descripción (opcional)
+                    </label>
+                    <textarea id="tableDescription" rows="3"
+                        class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                        placeholder="Describe el propósito de esta tabla..."></textarea>
+                </div>
+
+                <div class="flex gap-3 justify-end pt-4">
+                    <button type="button" id="btnCancelTable"
+                        class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                        class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined">save</span>
+                        <span>Guardar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <img src="../../img/Datium modo oscuro.png" alt="Datium" class="loading-logo">
+            <div class="loading-spinner"></div>
+            <div class="checkmark"></div>
+            <p class="loading-text">Procesando...</p>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal"
+        class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="glass-card p-8 rounded-xl max-w-md w-full shadow-2xl modal-enter">
+            <h2 class="text-2xl font-black mb-4 text-[#111418] dark:text-white">Confirmar Eliminación</h2>
+            <p class="mb-4 text-gray-600 dark:text-gray-300">Esta acción no se puede deshacer. Escribe tu email para
+                confirmar:</p>
+            <input type="email" id="confirmEmail" placeholder="tu@email.com" autocomplete="off"
+                class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4">
+            <div class="flex gap-4">
+                <button id="btnConfirmDelete"
+                    class="hover-smooth flex-1 flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-red-500 text-white text-base font-bold hover:bg-red-600 transition-colors">
+                    <span class="material-symbols-outlined">delete</span>
+                    <span>Eliminar</span>
+                </button>
+                <button id="btnCancelDelete"
+                    class="hover-smooth flex-1 flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                    <span>Cancelar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="table-manager.js"></script>
+</body>
+
+</html>

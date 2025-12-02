@@ -1,15 +1,13 @@
 const API_URL = 'http://localhost:8080/api';
 let allSystems = [];
-let availableFieldsToImport = [];
-
-function obtenerToken() {
-    return localStorage.getItem('token');
-}
+let sourceBlockCounter = 0;
+let processChart = null;
 
 function getAuthHeaders() {
-    const token = obtenerToken();
+    const token = localStorage.getItem('token');
     if (!token) {
-        return { 'Content-Type': 'application/json' };
+        window.location.href = '../../login.html';
+        return null;
     }
     return {
         'Authorization': 'Bearer ' + token,
@@ -17,653 +15,348 @@ function getAuthHeaders() {
     };
 }
 
-function goBack() {
-    window.location.href = 'dashboard.html';
-}
+document.addEventListener('DOMContentLoaded', async () => {
+    initChart();
+    await loadSystems();
+    showLoadingSuccess();
+    setTimeout(() => {
+        hideLoadingScreen();
+    }, 1000);
+});
 
-function handleLogout() {
-    localStorage.removeItem('token');
-    window.location.href = '../../login.html';
-}
+function showLoadingSuccess() {
+    const spinner = document.getElementById('loading-spinner');
+    const checkmark = document.getElementById('checkmark');
+    const loadingText = document.getElementById('loading-text');
 
-function showLoadingScreen() {
-    const loadingScreen = document.createElement('div');
-    loadingScreen.id = 'loadingScreen';
-    loadingScreen.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]';
-    loadingScreen.innerHTML = `
-        <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
-            <div class="loading-spinner rounded-full h-16 w-16 border-4 border-primary border-t-transparent mx-auto mb-4 animate-spin"></div>
-            <p class="text-[#111418] dark:text-white text-lg font-semibold">Cargando...</p>
-        </div>
-    `;
-    document.body.appendChild(loadingScreen);
+    if (spinner) spinner.style.display = 'none';
+    if (checkmark) checkmark.classList.add('show');
+    if (loadingText) {
+        loadingText.textContent = '¡Listo!';
+        loadingText.classList.add('success-text');
+    }
 }
 
 function hideLoadingScreen() {
     const loadingScreen = document.getElementById('loadingScreen');
     if (loadingScreen) {
-        loadingScreen.remove();
+        loadingScreen.style.display = 'none';
     }
 }
 
-async function loadAllSystems() {
+function initChart() {
+    const ctx = document.getElementById('processChart').getContext('2d');
+    processChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pendiente', 'Exitoso', 'Error'],
+            datasets: [{
+                data: [100, 0, 0],
+                backgroundColor: ['#374151', '#10B981', '#EF4444'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#9CA3AF', font: { family: 'Inter' } }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+}
+
+function updateChart(pending, success, error) {
+    if (processChart) {
+        processChart.data.datasets[0].data = [pending, success, error];
+        processChart.update();
+    }
+    document.getElementById('successCount').textContent = success;
+    document.getElementById('errorCount').textContent = error;
+}
+
+async function loadSystems() {
     try {
         const headers = getAuthHeaders();
-        if (!headers.Authorization) {
-            showNotification('Error: No hay token de autenticación', 'error');
-            return;
-        }
+        if (!headers) return;
 
-        const response = await fetch(API_URL + '/sistemas', {
-            method: 'GET',
-            headers: headers
-        });
-
+        const response = await fetch(API_URL + '/sistemas', { headers });
         if (response.ok) {
             allSystems = await response.json();
+            populateTargetSelect();
         } else {
             showNotification('Error al cargar sistemas', 'error');
         }
     } catch (error) {
-        console.error('Error loading systems:', error);
-        showNotification('Error al cargar sistemas: ' + (error.message || 'Error de conexión'), 'error');
+        console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
     }
 }
 
-async function showImportModal() {
-    showLoadingScreen();
+function populateTargetSelect() {
+    const targetSelect = document.getElementById('targetSystem');
+    targetSelect.innerHTML = '<option value="" class="bg-slate-800">Selecciona el sistema donde se guardarán los datos...</option>';
 
-    try {
-        await loadAllSystems();
-        hideLoadingScreen();
+    allSystems.forEach(system => {
+        targetSelect.insertAdjacentHTML('beforeend', `<option value="${system.id}" class="bg-slate-800">${system.name}</option>`);
+    });
+}
 
-        if (allSystems.length < 2) {
-            showNotification('Necesitas al menos 2 sistemas para importar', 'error');
-            return;
+function handleTargetChange() {
+    const targetId = document.getElementById('targetSystem').value;
+    const btnAddSource = document.getElementById('btnAddSource');
+    const sourcesContainer = document.getElementById('sourcesContainer');
+
+    if (targetId) {
+        btnAddSource.disabled = false;
+        if (sourcesContainer.children.length === 0) {
+            addSourceBlock();
         }
-
-        const modal = document.getElementById('importModal');
-        const targetSelect = document.getElementById('importTargetSystem');
-        const sourceSelect = document.getElementById('importSourceSystem');
-        const fieldsList = document.getElementById('importFieldsList');
-
-        targetSelect.innerHTML = '<option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema destino...</option>';
-        sourceSelect.innerHTML = '<option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema origen...</option>';
-
-        allSystems.forEach(system => {
-            const targetOption = document.createElement('option');
-            targetOption.value = system.id;
-            targetOption.textContent = system.name;
-            targetOption.className = 'bg-white dark:bg-slate-800';
-            targetSelect.appendChild(targetOption);
-
-            const sourceOption = document.createElement('option');
-            sourceOption.value = system.id;
-            sourceOption.textContent = system.name;
-            sourceOption.className = 'bg-white dark:bg-slate-800';
-            sourceSelect.appendChild(sourceOption);
-        });
-
-        sourceSelect.onchange = async function () {
-            const selectedSystemId = parseInt(this.value);
-            const targetSystemId = parseInt(targetSelect.value);
-
-            if (!selectedSystemId) {
-                fieldsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema origen primero</p>';
-                return;
-            }
-
-            if (selectedSystemId === targetSystemId) {
-                fieldsList.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">No puedes importar del mismo sistema</p>';
-                return;
-            }
-
-            showLoadingScreen();
-            try {
-                const headers = getAuthHeaders();
-                const response = await fetch(API_URL + '/sistemas/' + targetSystemId + '/campos/disponibles-importar', {
-                    headers: headers
-                });
-
-                if (response.ok) {
-                    const availableFields = await response.json();
-                    const selectedSystem = availableFields.find(s => s.systemId === selectedSystemId);
-
-                    if (selectedSystem && selectedSystem.fields) {
-                        fieldsList.innerHTML = selectedSystem.fields.map(field => `
-                            <label class="flex items-center gap-2 p-3 glass-card rounded-lg hover:bg-primary/10 transition-colors cursor-pointer">
-                                <input type="checkbox" value="${field.id}" class="w-4 h-4 text-primary focus:ring-primary rounded">
-                                <div class="flex-1">
-                                    <span class="text-[#111418] dark:text-white font-medium">${field.name}</span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${field.type}</span>
-                                    ${field.required ? '<span class="text-xs text-red-500 ml-2">*Requerido</span>' : ''}
-                                </div>
-                            </label>
-                        `).join('');
-                    } else {
-                        fieldsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">No hay campos disponibles</p>';
-                    }
-                } else {
-                    fieldsList.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">Error al cargar campos</p>';
-                }
-            } catch (error) {
-                fieldsList.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">Error al cargar campos</p>';
-            }
-            hideLoadingScreen();
-        };
-
-        fieldsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema origen primero</p>';
-        modal.classList.remove('hidden');
-    } catch (error) {
-        hideLoadingScreen();
-        console.error('Error loading systems:', error);
-        showNotification('Error al cargar sistemas: ' + (error.message || 'Error de conexión'), 'error');
+        updateAllSourceSelects();
+    } else {
+        btnAddSource.disabled = true;
+        sourcesContainer.innerHTML = '';
+        checkExportValidity();
     }
 }
 
-function closeImportModal() {
-    const modal = document.getElementById('importModal');
-    modal.classList.add('hidden');
-    document.getElementById('importTargetSystem').value = '';
-    document.getElementById('importSourceSystem').value = '';
-    document.getElementById('importFieldsList').innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema origen primero</p>';
-}
+function addSourceBlock() {
+    sourceBlockCounter++;
+    const container = document.getElementById('sourcesContainer');
+    const blockId = `source-block-${sourceBlockCounter}`;
 
-async function executeImport() {
-    const targetSystemId = document.getElementById('importTargetSystem').value;
-    const sourceSystemId = document.getElementById('importSourceSystem').value;
-
-    if (!targetSystemId || !sourceSystemId) {
-        showNotification('Por favor selecciona ambos sistemas', 'error');
-        return;
-    }
-
-    if (targetSystemId === sourceSystemId) {
-        showNotification('No puedes importar del mismo sistema', 'error');
-        return;
-    }
-
-    const checkboxes = document.querySelectorAll('#importFieldsList input[type="checkbox"]:checked');
-    if (checkboxes.length === 0) {
-        showNotification('Por favor selecciona al menos un campo para importar', 'error');
-        return;
-    }
-
-    const fieldIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-
-    const importAnimation = document.createElement('div');
-    importAnimation.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]';
-    importAnimation.innerHTML = `
-        <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
-            <div class="loading-spinner rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent mx-auto mb-4 animate-spin"></div>
-            <p class="text-[#111418] dark:text-white text-lg font-semibold">Importando campos...</p>
+    const blockHTML = `
+        <div id="${blockId}" class="glass-card p-6 rounded-2xl shadow-lg relative slide-up">
+            <button onclick="removeSourceBlock('${blockId}')" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-500/10">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-green-500">database</span>
+                Origen #${document.querySelectorAll('[id^="source-block-"]').length + 1}
+            </h3>
+            
+            <div class="mb-4">
+                <select onchange="loadFieldsForBlock('${blockId}')" class="source-system-select w-full pl-4 pr-10 py-3 bg-white/5 dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none appearance-none cursor-pointer text-white">
+                    <option value="" class="bg-slate-800">Selecciona un sistema de origen...</option>
+                </select>
+            </div>
+            
+            <div class="fields-container hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-semibold text-gray-400">Columnas a exportar:</label>
+                    <button onclick="toggleSelectAll('${blockId}')" class="text-xs text-primary hover:text-primary/80 font-bold">Seleccionar Todo</button>
+                </div>
+                <div class="fields-list grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-2 bg-black/20 rounded-xl">
+                    <!-- Fields will be loaded here -->
+                </div>
+            </div>
         </div>
     `;
-    document.body.appendChild(importAnimation);
+
+    container.insertAdjacentHTML('beforeend', blockHTML);
+    populateSourceSelect(blockId);
+    checkExportValidity();
+}
+
+function removeSourceBlock(blockId) {
+    const block = document.getElementById(blockId);
+    block.style.opacity = '0';
+    block.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        block.remove();
+        document.querySelectorAll('[id^="source-block-"] h3').forEach((header, index) => {
+            header.innerHTML = `
+                <span class="material-symbols-outlined text-green-500">database</span>
+                Origen #${index + 1}
+            `;
+        });
+        checkExportValidity();
+    }, 200);
+}
+
+function populateSourceSelect(blockId) {
+    const block = document.getElementById(blockId);
+    const select = block.querySelector('.source-system-select');
+    const targetId = document.getElementById('targetSystem').value;
+
+    select.innerHTML = '<option value="" class="bg-slate-800">Selecciona un sistema de origen...</option>';
+
+    allSystems.forEach(system => {
+        if (system.id != targetId) {
+            select.insertAdjacentHTML('beforeend', `<option value="${system.id}" class="bg-slate-800">${system.name}</option>`);
+        }
+    });
+}
+
+function updateAllSourceSelects() {
+    const blocks = document.querySelectorAll('[id^="source-block-"]');
+    blocks.forEach(block => {
+        const select = block.querySelector('.source-system-select');
+        const currentVal = select.value;
+        populateSourceSelect(block.id);
+        select.value = currentVal;
+        if (!select.value) {
+            block.querySelector('.fields-container').classList.add('hidden');
+        }
+    });
+}
+
+async function loadFieldsForBlock(blockId) {
+    const block = document.getElementById(blockId);
+    const select = block.querySelector('.source-system-select');
+    const fieldsContainer = block.querySelector('.fields-container');
+    const fieldsList = block.querySelector('.fields-list');
+    const systemId = select.value;
+
+    if (!systemId) {
+        fieldsContainer.classList.add('hidden');
+        checkExportValidity();
+        return;
+    }
+
+    fieldsList.innerHTML = '<div class="col-span-full text-center py-4"><div class="loading-spinner w-6 h-6 border-2 mx-auto"></div></div>';
+    fieldsContainer.classList.remove('hidden');
 
     try {
         const headers = getAuthHeaders();
-        if (!headers.Authorization) {
-            importAnimation.remove();
-            showNotification('Error: No hay token de autenticación', 'error');
-            return;
-        }
-
-        const response = await fetch(API_URL + '/sistemas/' + targetSystemId + '/campos/importar', {
-            method: 'POST',
-            headers: {
-                ...headers,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                sourceSystemId: parseInt(sourceSystemId),
-                fieldIds: fieldIds
-            })
-        });
+        const response = await fetch(API_URL + `/sistemas/${systemId}/campos`, { headers });
 
         if (response.ok) {
-            const responseData = await response.json();
-            const transferredRecords = responseData.transferredRecords || 0;
-            
-            importAnimation.innerHTML = `
-                <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
-                    <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
-                        <span class="material-symbols-outlined text-white text-3xl">check</span>
-                    </div>
-                    <p class="text-[#111418] dark:text-white text-lg font-semibold">¡Campos importados exitosamente!</p>
-                    ${transferredRecords > 0 ? `<p class="text-[#111418] dark:text-white text-sm mt-2">Se importaron ${transferredRecords} registros con datos</p>` : ''}
-                </div>
-            `;
-            
-            setTimeout(() => {
-                importAnimation.remove();
-                closeImportModal();
-                if (transferredRecords > 0) {
-                    showNotification(`Campos y ${transferredRecords} registros importados exitosamente`, 'success');
-                } else {
-                    showNotification('Campos importados exitosamente', 'success');
-                }
-            }, 1500);
-        } else {
-            importAnimation.innerHTML = `
-                <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
-                    <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
-                        <span class="material-symbols-outlined text-white text-3xl">close</span>
-                    </div>
-                    <p class="text-[#111418] dark:text-white text-lg font-semibold">Error al importar campos</p>
-                </div>
-            `;
+            const fields = await response.json();
+            fieldsList.innerHTML = '';
 
-            let errorMessage = 'Error al importar campos';
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.error || errorMessage;
-            } catch (e) {
-                errorMessage = `Error ${response.status}: ${response.statusText}`;
-            }
-
-            setTimeout(() => {
-                importAnimation.remove();
-                showNotification(errorMessage, 'error');
-            }, 2000);
-        }
-    } catch (error) {
-        importAnimation.remove();
-        console.error('Error importing fields:', error);
-        showNotification('Error al importar campos: ' + (error.message || 'Error de conexión'), 'error');
-    }
-}
-
-async function showExportModal() {
-    showLoadingScreen();
-
-    try {
-        await loadAllSystems();
-        hideLoadingScreen();
-
-        if (allSystems.length < 2) {
-            showNotification('Necesitas al menos 2 sistemas para exportar', 'error');
-            return;
-        }
-
-        const modal = document.getElementById('exportModal');
-        const sourceSelect = document.getElementById('exportSourceSystem');
-        const targetSelect = document.getElementById('exportTargetSystem');
-        const fieldsList = document.getElementById('exportFieldsList');
-
-        sourceSelect.innerHTML = '<option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema origen...</option>';
-        targetSelect.innerHTML = '<option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema destino...</option>';
-
-        allSystems.forEach(system => {
-            const sourceOption = document.createElement('option');
-            sourceOption.value = system.id;
-            sourceOption.textContent = system.name;
-            sourceOption.className = 'bg-white dark:bg-slate-800';
-            sourceSelect.appendChild(sourceOption);
-
-            const targetOption = document.createElement('option');
-            targetOption.value = system.id;
-            targetOption.textContent = system.name;
-            targetOption.className = 'bg-white dark:bg-slate-800';
-            targetSelect.appendChild(targetOption);
-        });
-
-        sourceSelect.onchange = async function () {
-            const selectedSystemId = parseInt(this.value);
-            const targetSystemId = parseInt(targetSelect.value);
-
-            if (!selectedSystemId) {
-                fieldsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema origen primero</p>';
+            if (fields.length === 0) {
+                fieldsList.innerHTML = '<div class="col-span-full text-center text-gray-500 py-2">No hay campos disponibles</div>';
                 return;
             }
 
-            if (selectedSystemId === targetSystemId) {
-                fieldsList.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">No puedes exportar al mismo sistema</p>';
-                return;
-            }
-
-            showLoadingScreen();
-            try {
-                const headers = getAuthHeaders();
-                const response = await fetch(API_URL + '/sistemas/' + selectedSystemId + '/campos', {
-                    headers: headers
-                });
-
-                if (response.ok) {
-                    const fields = await response.json();
-                    if (fields.length > 0) {
-                        fieldsList.innerHTML = fields.map(field => `
-                            <label class="flex items-center gap-2 p-3 glass-card rounded-lg hover:bg-primary/10 transition-colors cursor-pointer">
-                                <input type="checkbox" value="${field.id}" class="w-4 h-4 text-primary focus:ring-primary rounded">
-                                <div class="flex-1">
-                                    <span class="text-[#111418] dark:text-white font-medium">${field.name}</span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${field.type}</span>
-                                    ${field.required ? '<span class="text-xs text-red-500 ml-2">*Requerido</span>' : ''}
-                                </div>
-                            </label>
-                        `).join('');
-                    } else {
-                        fieldsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">No hay campos disponibles</p>';
-                    }
-                } else {
-                    fieldsList.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">Error al cargar campos</p>';
-                }
-            } catch (error) {
-                fieldsList.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">Error al cargar campos</p>';
-            }
-            hideLoadingScreen();
-        };
-
-        fieldsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema origen primero</p>';
-        modal.classList.remove('hidden');
+            fields.forEach(field => {
+                fieldsList.insertAdjacentHTML('beforeend', `
+                    <label class="checkbox-wrapper cursor-pointer select-none hover:bg-white/5 transition-colors rounded-lg p-2">
+                        <input type="checkbox" value="${field.id}" onchange="checkExportValidity()" class="w-4 h-4 text-primary rounded border-gray-600 bg-slate-800 focus:ring-primary transition-all">
+                        <span class="ml-2 text-sm text-gray-200">${field.name} <span class="text-xs text-gray-500">(${field.type})</span></span>
+                    </label>
+                `);
+            });
+        }
     } catch (error) {
-        hideLoadingScreen();
-        console.error('Error loading systems:', error);
-        showNotification('Error al cargar sistemas: ' + (error.message || 'Error de conexión'), 'error');
+        console.error('Error:', error);
+        fieldsList.innerHTML = '<div class="col-span-full text-center text-red-500 py-2">Error al cargar campos</div>';
     }
+    checkExportValidity();
 }
 
-function closeExportModal() {
-    const modal = document.getElementById('exportModal');
-    modal.classList.add('hidden');
-    document.getElementById('exportSourceSystem').value = '';
-    document.getElementById('exportTargetSystem').value = '';
-    document.getElementById('exportFieldsList').innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema origen primero</p>';
+function toggleSelectAll(blockId) {
+    const block = document.getElementById(blockId);
+    const checkboxes = block.querySelectorAll('input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+    checkExportValidity();
+}
+
+function checkExportValidity() {
+    const targetId = document.getElementById('targetSystem').value;
+    const blocks = document.querySelectorAll('[id^="source-block-"]');
+    let hasValidSource = false;
+
+    blocks.forEach(block => {
+        const checked = block.querySelectorAll('input[type="checkbox"]:checked');
+        if (checked.length > 0) hasValidSource = true;
+    });
+
+    const btnExport = document.getElementById('btnExportAll');
+    btnExport.disabled = !(targetId && hasValidSource);
 }
 
 async function executeExport() {
-    const sourceSystemId = document.getElementById('exportSourceSystem').value;
-    const targetSystemId = document.getElementById('exportTargetSystem').value;
+    const targetId = document.getElementById('targetSystem').value;
+    const btnExport = document.getElementById('btnExportAll');
+    const blocks = document.querySelectorAll('[id^="source-block-"]');
 
-    if (!sourceSystemId || !targetSystemId) {
-        showNotification('Por favor selecciona ambos sistemas', 'error');
-        return;
-    }
+    if (!targetId) return;
 
-    if (sourceSystemId === targetSystemId) {
-        showNotification('No puedes exportar al mismo sistema', 'error');
-        return;
-    }
+    // UI Updates start
+    const originalText = btnExport.innerHTML;
+    btnExport.disabled = true;
+    btnExport.innerHTML = '<div class="loading-spinner w-6 h-6 border-2"></div><span>Procesando...</span>';
 
-    const checkboxes = document.querySelectorAll('#exportFieldsList input[type="checkbox"]:checked');
-    if (checkboxes.length === 0) {
-        showNotification('Por favor selecciona al menos un campo para exportar', 'error');
-        return;
-    }
+    document.getElementById('processStats').classList.remove('hidden');
+    document.getElementById('visualFlow').classList.remove('hidden');
 
-    const fieldIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    let successCount = 0;
+    let errorCount = 0;
+    let totalBlocks = 0;
 
-    const exportAnimation = document.createElement('div');
-    exportAnimation.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]';
-    exportAnimation.innerHTML = `
-        <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
-            <div class="loading-spinner rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4 animate-spin"></div>
-            <p class="text-[#111418] dark:text-white text-lg font-semibold">Exportando campos...</p>
-        </div>
-    `;
-    document.body.appendChild(exportAnimation);
+    // Count valid blocks first
+    blocks.forEach(block => {
+        if (block.querySelector('input[type="checkbox"]:checked').length > 0) totalBlocks++;
+    });
 
-    try {
-        const headers = getAuthHeaders();
-        if (!headers.Authorization) {
-            exportAnimation.remove();
-            showNotification('Error: No hay token de autenticación', 'error');
-            return;
-        }
+    updateChart(totalBlocks, 0, 0);
 
-        const response = await fetch(API_URL + '/sistemas/' + sourceSystemId + '/campos/transferir', {
-            method: 'POST',
-            headers: {
-                ...headers,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fieldIds: fieldIds,
-                targetSystemId: parseInt(targetSystemId)
-            })
-        });
+    for (const block of blocks) {
+        const sourceId = block.querySelector('.source-system-select').value;
+        const checkboxes = block.querySelectorAll('input[type="checkbox"]:checked');
+        const fieldIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
-        if (response.ok) {
-            const responseData = await response.json();
-            const transferredRecords = responseData.transferredRecords || 0;
-            
-            exportAnimation.innerHTML = `
-                <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
-                    <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
-                        <span class="material-symbols-outlined text-white text-3xl">check</span>
-                    </div>
-                    <p class="text-[#111418] dark:text-white text-lg font-semibold">¡Campos exportados exitosamente!</p>
-                    ${transferredRecords > 0 ? `<p class="text-[#111418] dark:text-white text-sm mt-2">Se exportaron ${transferredRecords} registros con datos</p>` : ''}
-                </div>
-            `;
-            
-            setTimeout(() => {
-                exportAnimation.remove();
-                closeExportModal();
-                if (transferredRecords > 0) {
-                    showNotification(`Campos y ${transferredRecords} registros exportados exitosamente`, 'success');
-                } else {
-                    showNotification('Campos exportados exitosamente', 'success');
-                }
-            }, 1500);
-        } else {
-            exportAnimation.innerHTML = `
-                <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
-                    <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
-                        <span class="material-symbols-outlined text-white text-3xl">close</span>
-                    </div>
-                    <p class="text-[#111418] dark:text-white text-lg font-semibold">Error al exportar campos</p>
-                </div>
-            `;
+        if (sourceId && fieldIds.length > 0) {
+            // Highlight current block
+            block.classList.add('ring-2', 'ring-primary', 'scale-[1.02]');
 
-            let errorMessage = 'Error al exportar campos';
             try {
-                const errorData = await response.json();
-                errorMessage = errorData.error || errorMessage;
-            } catch (e) {
-                errorMessage = `Error ${response.status}: ${response.statusText}`;
+                const headers = getAuthHeaders();
+                const response = await fetch(API_URL + `/sistemas/${sourceId}/campos/transferir`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        fieldIds: fieldIds,
+                        targetSystemId: parseInt(targetId)
+                    })
+                });
+
+                block.classList.remove('ring-2', 'ring-primary', 'scale-[1.02]');
+
+                if (response.ok) {
+                    successCount++;
+                    block.classList.add('border-green-500', 'border-2');
+                    block.insertAdjacentHTML('beforeend', '<div class="absolute top-4 right-14 text-green-500"><span class="material-symbols-outlined">check_circle</span></div>');
+                } else {
+                    errorCount++;
+                    block.classList.add('border-red-500', 'border-2');
+                    block.insertAdjacentHTML('beforeend', '<div class="absolute top-4 right-14 text-red-500"><span class="material-symbols-outlined">error</span></div>');
+                }
+            } catch (error) {
+                console.error('Error exporting block:', error);
+                errorCount++;
+                block.classList.remove('ring-2', 'ring-primary', 'scale-[1.02]');
+                block.classList.add('border-red-500', 'border-2');
             }
 
-            setTimeout(() => {
-                exportAnimation.remove();
-                showNotification(errorMessage, 'error');
-            }, 2000);
+            // Update chart after each block
+            updateChart(totalBlocks - (successCount + errorCount), successCount, errorCount);
+
+            // Small delay for visual effect
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
-    } catch (error) {
-        exportAnimation.remove();
-        console.error('Error exporting fields:', error);
-        showNotification('Error al exportar campos: ' + (error.message || 'Error de conexión'), 'error');
-    }
-}
-
-async function loadSystemsForFileExport() {
-    try {
-        const headers = getAuthHeaders();
-        if (!headers.Authorization) {
-            showNotification('Error: No hay token de autenticación', 'error');
-            return;
-        }
-
-        const response = await fetch(API_URL + '/sistemas', {
-            method: 'GET',
-            headers: headers
-        });
-
-        if (response.ok) {
-            const systems = await response.json();
-            const select = document.getElementById('exportFileSystem');
-            select.innerHTML = '<option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema...</option>';
-            
-            systems.forEach(system => {
-                const option = document.createElement('option');
-                option.value = system.id;
-                option.textContent = system.name;
-                option.className = 'bg-white dark:bg-slate-800';
-                select.appendChild(option);
-            });
-        } else {
-            showNotification('Error al cargar sistemas', 'error');
-        }
-    } catch (error) {
-        console.error('Error loading systems:', error);
-        showNotification('Error al cargar sistemas: ' + (error.message || 'Error de conexión'), 'error');
-    }
-}
-
-async function exportToFile() {
-    const systemId = document.getElementById('exportFileSystem').value;
-    const format = document.getElementById('exportFileFormat').value;
-
-    if (!systemId) {
-        showNotification('Por favor selecciona un sistema', 'error');
-        return;
     }
 
-    showLoadingScreen();
+    document.getElementById('visualFlow').classList.add('hidden');
 
-    try {
-        const headers = getAuthHeaders();
-        if (!headers.Authorization) {
-            hideLoadingScreen();
-            showNotification('Error: No hay token de autenticación', 'error');
-            return;
-        }
-
-        const recordsResponse = await fetch(API_URL + '/sistemas/' + systemId + '/registros', {
-            headers: headers
-        });
-
-        if (!recordsResponse.ok) {
-            hideLoadingScreen();
-            showNotification('Error al cargar registros', 'error');
-            return;
-        }
-
-        const records = await recordsResponse.json();
-
-        const fieldsResponse = await fetch(API_URL + '/sistemas/' + systemId + '/campos', {
-            headers: headers
-        });
-
-        if (!fieldsResponse.ok) {
-            hideLoadingScreen();
-            showNotification('Error al cargar campos', 'error');
-            return;
-        }
-
-        const fields = await fieldsResponse.json();
-        hideLoadingScreen();
-
-        if (records.length === 0) {
-            showNotification('No hay registros para exportar', 'error');
-            return;
-        }
-
-        const system = allSystems.find(s => s.id === parseInt(systemId));
-        const systemName = system ? system.name.replace(/[^a-z0-9]/gi, '_') : 'sistema';
-
-        if (format === 'xlsx') {
-            exportToExcel(records, fields, systemName);
-        } else if (format === 'csv') {
-            exportToCSV(records, fields, systemName);
-        } else if (format === 'json') {
-            exportToJSON(records, fields, systemName);
-        }
-
-        showNotification('Archivo exportado exitosamente', 'success');
-    } catch (error) {
-        hideLoadingScreen();
-        console.error('Error exporting to file:', error);
-        showNotification('Error al exportar: ' + (error.message || 'Error de conexión'), 'error');
+    if (errorCount === 0) {
+        showNotification(`¡Éxito! Se exportaron datos de ${successCount} sistemas.`, 'success');
+        setTimeout(() => {
+            window.location.href = `../Systems/system-data.html?id=${targetId}`;
+        }, 2000);
+    } else {
+        showNotification(`Proceso completado con ${errorCount} errores.`, 'warning');
+        btnExport.disabled = false;
+        btnExport.innerHTML = originalText;
     }
 }
-
-function exportToExcel(records, fields, systemName) {
-    const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    
-    const worksheetData = [];
-    const headers = ['ID', ...sortedFields.map(f => f.name), 'Fecha de Creación', 'Fecha de Actualización'];
-    worksheetData.push(headers);
-
-    records.forEach(record => {
-        const row = [record.id];
-        sortedFields.forEach(field => {
-            const value = record.fieldValues && record.fieldValues[field.name] ? record.fieldValues[field.name] : '';
-            row.push(value);
-        });
-        row.push(record.createdAt ? new Date(record.createdAt).toLocaleString('es-ES') : '');
-        row.push(record.updatedAt ? new Date(record.updatedAt).toLocaleString('es-ES') : '');
-        worksheetData.push(row);
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Datos');
-    XLSX.writeFile(wb, `${systemName}_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-function exportToCSV(records, fields, systemName) {
-    const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    
-    const headers = ['ID', ...sortedFields.map(f => f.name), 'Fecha de Creación', 'Fecha de Actualización'];
-    const csvRows = [headers.join(',')];
-
-    records.forEach(record => {
-        const row = [record.id];
-        sortedFields.forEach(field => {
-            const value = record.fieldValues && record.fieldValues[field.name] ? record.fieldValues[field.name] : '';
-            const escapedValue = value.toString().replace(/"/g, '""');
-            row.push(`"${escapedValue}"`);
-        });
-        row.push(record.createdAt ? new Date(record.createdAt).toLocaleString('es-ES') : '');
-        row.push(record.updatedAt ? new Date(record.updatedAt).toLocaleString('es-ES') : '');
-        csvRows.push(row.join(','));
-    });
-
-    const csvContent = csvRows.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${systemName}_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-}
-
-function exportToJSON(records, fields, systemName) {
-    const sortedFields = [...fields].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    
-    const jsonData = {
-        sistema: systemName,
-        fechaExportacion: new Date().toISOString(),
-        campos: sortedFields.map(f => ({
-            id: f.id,
-            nombre: f.name,
-            tipo: f.type,
-            requerido: f.required
-        })),
-        registros: records.map(record => {
-            const recordData = {
-                id: record.id,
-                fechaCreacion: record.createdAt,
-                fechaActualizacion: record.updatedAt
-            };
-            sortedFields.forEach(field => {
-                recordData[field.name] = record.fieldValues && record.fieldValues[field.name] ? record.fieldValues[field.name] : null;
-            });
-            return recordData;
-        })
-    };
-
-    const jsonContent = JSON.stringify(jsonData, null, 2);
-    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${systemName}_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    loadSystemsForFileExport();
-    loadAllSystems();
-});
-
-

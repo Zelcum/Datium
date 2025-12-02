@@ -1,5 +1,6 @@
 const API_URL = 'http://localhost:8080/api';
 let currentSystemId = null;
+let currentTableId = null; // NEW: Support for table-specific operations
 let fields = [];
 let records = [];
 let editingFieldId = null;
@@ -40,7 +41,12 @@ function getAuthHeaders() {
 }
 
 function goBack() {
-    window.location.href = './system.html';
+    // If we have a tableId, go back to table manager
+    if (currentTableId && currentSystemId) {
+        window.location.href = `table-manager.html?systemId=${currentSystemId}`;
+    } else {
+        window.location.href = './system.html';
+    }
 }
 
 function handleLogout() {
@@ -50,7 +56,10 @@ function handleLogout() {
 
 document.addEventListener('DOMContentLoaded', function () {
     const urlParams = new URLSearchParams(window.location.search);
-    currentSystemId = urlParams.get('id');
+
+    // Read both systemId and tableId from URL
+    currentSystemId = urlParams.get('systemId') || urlParams.get('id');
+    currentTableId = urlParams.get('tableId');
 
     if (!currentSystemId) {
         showNotification('ID de sistema no proporcionado', 'error');
@@ -261,9 +270,15 @@ async function loadFields() {
     }
 
     try {
-        const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/campos', {
-            headers: headers
-        });
+        // Use table-specific endpoint if tableId is available
+        let url;
+        if (currentTableId) {
+            url = `${API_URL}/sistemas/${currentSystemId}/tablas/${currentTableId}/campos`;
+        } else {
+            url = `${API_URL}/sistemas/${currentSystemId}/campos`;
+        }
+
+        const response = await fetch(url, { headers: headers });
 
         if (response.ok) {
             const data = await response.json();
@@ -573,9 +588,15 @@ async function loadRecords() {
     }
 
     try {
-        const response = await fetch(API_URL + '/sistemas/' + currentSystemId + '/registros', {
-            headers: headers
-        });
+        // Use table-specific endpoint if tableId is available
+        let url;
+        if (currentTableId) {
+            url = `${API_URL}/sistemas/${currentSystemId}/tablas/${currentTableId}/registros`;
+        } else {
+            url = `${API_URL}/sistemas/${currentSystemId}/registros`;
+        }
+
+        const response = await fetch(url, { headers: headers });
 
         if (response.ok) {
             const data = await response.json();
@@ -973,14 +994,14 @@ async function editRecord(recordId) {
                     input = `
                         <div class="flex flex-wrap gap-3">
                             ${options.map((opt, idx) => {
-                                const escapedOpt = String(opt).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                                return `
+                        const escapedOpt = String(opt).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                        return `
                                 <label class="flex items-center gap-2 cursor-pointer px-3 py-2 glass-card rounded-lg hover:bg-primary/10 transition-colors">
                                     <input type="radio" name="record_field_${field.id}" value="${escapedOpt}" class="w-4 h-4 text-primary focus:ring-primary" ${String(opt) === currentValue ? 'checked' : ''} ${field.required && idx === 0 ? 'required' : ''}>
                                     <span class="text-[#111418] dark:text-white text-sm">${opt}</span>
                                 </label>
                             `;
-                            }).join('')}
+                    }).join('')}
                         </div>
                     `;
                 } else {
@@ -993,9 +1014,9 @@ async function editRecord(recordId) {
                         <select id="record_field_${field.id}" class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50" ${field.required ? 'required' : ''}>
                             <option value="" class="bg-white dark:bg-slate-800">Selecciona ${field.name.toLowerCase()}...</option>
                             ${options.map(opt => {
-                                const escapedOpt = String(opt).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                                return `<option value="${escapedOpt}" ${String(opt) === currentValue ? 'selected' : ''} class="bg-white dark:bg-slate-800">${opt}</option>`;
-                            }).join('')}
+                        const escapedOpt = String(opt).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                        return `<option value="${escapedOpt}" ${String(opt) === currentValue ? 'selected' : ''} class="bg-white dark:bg-slate-800">${opt}</option>`;
+                    }).join('')}
                         </select>
                     `;
                 } else {
@@ -1075,7 +1096,7 @@ async function deleteRecord(recordId) {
 
 async function confirmDeleteRecord(recordId, userEmail) {
     const inputEmail = document.getElementById('deleteConfirmEmail').value.trim();
-    
+
     if (!inputEmail) {
         showNotification('Por favor ingresa tu correo electrónico', 'error');
         return;
@@ -1598,7 +1619,7 @@ async function importSelectedFields() {
         if (response.ok) {
             const responseData = await response.json();
             const transferredRecords = responseData.transferredRecords || 0;
-            
+
             importAnimation.innerHTML = `
                 <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
                     <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
@@ -1608,7 +1629,7 @@ async function importSelectedFields() {
                     ${transferredRecords > 0 ? `<p class="text-[#111418] dark:text-white text-sm mt-2">Se importaron ${transferredRecords} registros con datos</p>` : ''}
                 </div>
             `;
-            
+
             setTimeout(() => {
                 importAnimation.remove();
                 closeImportFieldsModal();
@@ -1764,7 +1785,7 @@ async function exportSelectedFields() {
         if (response.ok) {
             const responseData = await response.json();
             const transferredRecords = responseData.transferredRecords || 0;
-            
+
             exportAnimation.innerHTML = `
                 <div class="glass-card p-8 rounded-xl shadow-2xl text-center">
                     <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
@@ -1774,7 +1795,7 @@ async function exportSelectedFields() {
                     ${transferredRecords > 0 ? `<p class="text-[#111418] dark:text-white text-sm mt-2">Se importaron ${transferredRecords} registros con datos</p>` : ''}
                 </div>
             `;
-            
+
             setTimeout(() => {
                 exportAnimation.remove();
                 closeExportFieldsModal();

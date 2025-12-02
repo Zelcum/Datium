@@ -1,18 +1,115 @@
 <!DOCTYPE html>
 <html class="dark" lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datium</title>
+    <title>Datium - Conexiones</title>
     <link rel="icon" type="image/jpeg" href="../../img/Isotipo modo oscuro.jpeg" id="favicon">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
     <link rel="stylesheet" href="../../css/styles.css">
     <link rel="stylesheet" href="../../css/loading.css">
-    <link rel="stylesheet" href="../Systems/system-styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="../Systems/notification.js"></script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dark .glass-card {
+            background: rgba(17, 25, 40, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.125);
+        }
+
+        .hover-lift {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.2);
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+        }
+
+        .checkbox-wrapper:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .slide-up {
+            animation: slideUp 0.5s ease-out forwards;
+        }
+
+        .delay-100 {
+            animation-delay: 100ms;
+        }
+
+        .delay-200 {
+            animation-delay: 200ms;
+        }
+
+        .delay-300 {
+            animation-delay: 300ms;
+        }
+
+        /* Flow Animation */
+        .flow-line {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #137fec, transparent);
+            background-size: 200% 100%;
+            animation: flow 2s linear infinite;
+            width: 100%;
+        }
+
+        @keyframes flow {
+            0% {
+                background-position: 100% 0;
+            }
+
+            100% {
+                background-position: -100% 0;
+            }
+        }
+    </style>
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -31,184 +128,151 @@
         }
     </script>
 </head>
-<body class="font-display bg-background-light dark:bg-background-dark text-[#111418] dark:text-gray-200 min-h-screen">
+
+<body
+    class="font-display bg-background-light dark:bg-background-dark text-[#111418] dark:text-gray-200 min-h-screen overflow-x-hidden">
+    <!-- Loading Screen -->
+    <div id="loadingScreen"
+        class="fixed inset-0 bg-background-light dark:bg-background-dark flex items-center justify-center z-50">
+        <div class="loading-content">
+            <img src="../../img/Datium logo modo claro.jpeg" alt="Datium" class="loading-logo block dark:hidden" />
+            <img src="../../img/Datium logo modo oscuro.jpeg" alt="Datium" class="loading-logo hidden dark:block" />
+            <div id="loading-spinner-container">
+                <div class="loading-spinner" id="loading-spinner"></div>
+                <div class="checkmark" id="checkmark"></div>
+            </div>
+            <p class="loading-text" id="loading-text">Cargando...</p>
+        </div>
+    </div>
+
     <div class="relative w-full flex flex-col items-center min-h-screen">
-        <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-white dark:from-blue-900/30 dark:via-purple-900/30 dark:to-background-dark -z-10 continuous-background"></div>
+        <div
+            class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-white dark:from-blue-900/30 dark:via-purple-900/30 dark:to-background-dark -z-10 continuous-background">
+        </div>
+
         <div class="container mx-auto p-4 md:p-8 w-full max-w-7xl">
-            <div class="mb-8 fade-in-up">
-                <div class="flex items-center justify-between mb-6">
-                    <h1 class="text-4xl font-black text-[#111418] dark:text-white">Conexiones</h1>
-                    <div class="flex gap-3">
-                        <button onclick="goBack()"
-                            class="glass-card p-4 rounded-xl shadow-lg hover-lift transition-all flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-primary text-2xl">arrow_back</span>
-                            <span class="font-semibold text-[#111418] dark:text-white text-sm">Volver</span>
+            <div class="mb-8 flex items-center justify-between slide-up">
+                <div>
+                    <h1 class="text-4xl font-black text-[#111418] dark:text-white mb-2">Conexiones</h1>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Exporta múltiples columnas entre sistemas</p>
+                </div>
+                <button onclick="window.location.href='dashboard.html'"
+                    class="glass-card p-3 rounded-xl hover:bg-white/10 transition-colors text-white hover:scale-110 duration-200">
+                    <span class="material-symbols-outlined text-2xl">arrow_back</span>
+                </button>
+            </div>
+
+            <!-- Top Section: Visualization & Stats -->
+            <div class="mb-8 slide-up delay-100">
+                <div class="glass-card p-6 rounded-2xl shadow-xl">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-purple-500">monitoring</span>
+                        Estado del Proceso
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                        <div class="relative h-48 w-full">
+                            <canvas id="processChart"></canvas>
+                        </div>
+
+                        <div class="col-span-2">
+                            <div id="visualFlow" class="hidden mb-6">
+                                <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
+                                    <span>Origen</span>
+                                    <span class="animate-pulse text-primary">Transfiriendo...</span>
+                                    <span>Destino</span>
+                                </div>
+                                <div class="relative h-2 bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="flow-line absolute inset-0"></div>
+                                </div>
+                            </div>
+
+                            <div id="processStats" class="grid grid-cols-2 gap-4 text-center hidden">
+                                <div class="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                                    <div class="text-3xl font-bold text-green-500" id="successCount">0</div>
+                                    <div class="text-sm text-gray-400">Exitosos</div>
+                                </div>
+                                <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                                    <div class="text-3xl font-bold text-red-500" id="errorCount">0</div>
+                                    <div class="text-sm text-gray-400">Errores</div>
+                                </div>
+                            </div>
+
+                            <div id="initialStats" class="text-center text-gray-400 py-8">
+                                <span class="material-symbols-outlined text-4xl mb-2 opacity-50">hub</span>
+                                <p>Configura los sistemas para comenzar la exportación</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Section: Systems Configuration -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Left Column: Source Systems -->
+                <div class="space-y-6 slide-up delay-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-green-500">database</span>
+                            Sistemas de Origen
+                        </h2>
+                        <button onclick="addSourceBlock()" id="btnAddSource" disabled
+                            class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">add</span>
+                            Agregar
                         </button>
-                        <button onclick="handleLogout()"
-                            class="glass-card p-4 rounded-xl shadow-lg hover-lift transition-all flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-primary text-2xl">logout</span>
-                            <span class="font-semibold text-[#111418] dark:text-white text-sm">Cerrar Sesión</span>
-                        </button>
+                    </div>
+
+                    <div id="sourcesContainer" class="space-y-6 min-h-[200px]">
+                        <!-- Source blocks will be added here dynamically -->
+                        <div id="emptySources"
+                            class="glass-card p-8 rounded-2xl border-2 border-dashed border-gray-700 flex flex-col items-center justify-center text-gray-500">
+                            <span class="material-symbols-outlined text-4xl mb-2">playlist_add</span>
+                            <p>Agrega sistemas de origen aquí</p>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div class="glass-card p-6 rounded-xl shadow-lg hover-lift">
-                        <h2 class="text-2xl font-black text-[#111418] dark:text-white mb-4 flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary">download</span>
-                            Importar entre Sistemas
-                        </h2>
-                        <p class="text-gray-600 dark:text-gray-400 mb-4">Importa campos y datos de un sistema a otro</p>
-                        <button onclick="showImportModal()"
-                            class="btn-primary-hover w-full flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-green-600 text-white text-base font-bold shadow-lg hover:bg-green-700 transition-colors">
-                            <span class="material-symbols-outlined">download</span>
-                            <span>Importar</span>
-                        </button>
-                    </div>
-
-                    <div class="glass-card p-6 rounded-xl shadow-lg hover-lift">
-                        <h2 class="text-2xl font-black text-[#111418] dark:text-white mb-4 flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary">upload</span>
-                            Exportar entre Sistemas
-                        </h2>
-                        <p class="text-gray-600 dark:text-gray-400 mb-4">Exporta campos y datos de un sistema a otro</p>
-                        <button onclick="showExportModal()"
-                            class="btn-primary-hover w-full flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-blue-600 text-white text-base font-bold shadow-lg hover:bg-blue-700 transition-colors">
-                            <span class="material-symbols-outlined">upload</span>
-                            <span>Exportar</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="glass-card p-6 rounded-xl shadow-lg hover-lift">
-                    <h2 class="text-2xl font-black text-[#111418] dark:text-white mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary">file_download</span>
-                        Exportar a Archivos
+                <!-- Right Column: Target System -->
+                <div class="space-y-6 slide-up delay-300">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2 mb-4">
+                        <span class="material-symbols-outlined text-primary">login</span>
+                        Sistema de Destino
                     </h2>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">Exporta datos de sistemas a Excel, CSV, JSON u otros formatos</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Sistema *</label>
-                            <select id="exportFileSystem"
-                                class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
-                                <option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Formato *</label>
-                            <select id="exportFileFormat"
-                                class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
-                                <option value="xlsx" class="bg-white dark:bg-slate-800">Excel (XLSX)</option>
-                                <option value="csv" class="bg-white dark:bg-slate-800">CSV</option>
-                                <option value="json" class="bg-white dark:bg-slate-800">JSON</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <button onclick="exportToFile()"
-                            class="btn-primary-hover w-full flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
-                            <span class="material-symbols-outlined">file_download</span>
-                            <span>Exportar a Archivo</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div id="importModal"
-        class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-card p-8 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl modal-enter">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black text-[#111418] dark:text-white">Importar entre Sistemas</h2>
-                <button onclick="closeImportModal()"
-                    class="hover-smooth px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all">✕
-                    Cerrar</button>
-            </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Sistema Destino *</label>
-                    <select id="importTargetSystem"
-                        class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema destino...</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Sistema Origen *</label>
-                    <select id="importSourceSystem"
-                        class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema origen...</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Campos a Importar *</label>
-                    <div id="importFieldsList" class="space-y-2 max-h-96 overflow-y-auto p-4 glass-card rounded-lg">
-                        <p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema origen primero</p>
+                    <div class="glass-card p-6 rounded-2xl shadow-xl border-l-4 border-primary sticky top-8">
+                        <div class="relative">
+                            <select id="targetSystem" onchange="handleTargetChange()"
+                                class="w-full pl-4 pr-10 py-4 bg-white/5 dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none appearance-none cursor-pointer text-lg text-white">
+                                <option value="" class="bg-slate-800">Selecciona el sistema de destino...</option>
+                            </select>
+                            <span
+                                class="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-500 pointer-events-none">expand_more</span>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-400">
+                            Este será el sistema donde se crearán las nuevas columnas y se importarán los datos
+                            seleccionados.
+                        </p>
                     </div>
                 </div>
-                <div class="flex gap-2 justify-end">
-                    <button onclick="executeImport()"
-                        class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-green-600 text-white text-base font-bold shadow-lg hover:bg-green-700 transition-colors">
-                        <span class="material-symbols-outlined">download</span>
-                        <span>Importar</span>
-                    </button>
-                    <button onclick="closeImportModal()"
-                        class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                        <span class="material-symbols-outlined">close</span>
-                        <span>Cancelar</span>
-                    </button>
-                </div>
             </div>
-        </div>
-    </div>
 
-    <div id="exportModal"
-        class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-card p-8 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl modal-enter">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black text-[#111418] dark:text-white">Exportar entre Sistemas</h2>
-                <button onclick="closeExportModal()"
-                    class="hover-smooth px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all">✕
-                    Cerrar</button>
+            <!-- Bottom Section: Actions -->
+            <div
+                class="fixed bottom-0 left-0 w-full p-4 bg-background-dark/80 backdrop-blur-lg border-t border-white/10 flex justify-center z-40 slide-up delay-300">
+                <button onclick="executeExport()" id="btnExportAll" disabled
+                    class="w-full max-w-2xl py-4 bg-primary text-white rounded-xl font-bold text-xl shadow-lg hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-3">
+                    <span class="material-symbols-outlined text-2xl">swap_horiz</span>
+                    <span>Iniciar Exportación Masiva</span>
+                </button>
             </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Sistema Origen *</label>
-                    <select id="exportSourceSystem"
-                        class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema origen...</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Sistema Destino *</label>
-                    <select id="exportTargetSystem"
-                        class="w-full px-4 py-3 glass-card rounded-lg text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
-                        <option value="" class="bg-white dark:bg-slate-800">Selecciona un sistema destino...</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block mb-2 font-semibold text-[#111418] dark:text-white">Campos a Exportar *</label>
-                    <div id="exportFieldsList" class="space-y-2 max-h-96 overflow-y-auto p-4 glass-card rounded-lg">
-                        <p class="text-center text-gray-500 dark:text-gray-400">Selecciona un sistema origen primero</p>
-                    </div>
-                </div>
-                <div class="flex gap-2 justify-end">
-                    <button onclick="executeExport()"
-                        class="btn-primary-hover flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-blue-600 text-white text-base font-bold shadow-lg hover:bg-blue-700 transition-colors">
-                        <span class="material-symbols-outlined">upload</span>
-                        <span>Exportar</span>
-                    </button>
-                    <button onclick="closeExportModal()"
-                        class="hover-smooth flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-background-light dark:bg-gray-800 text-[#111418] dark:text-white text-base font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                        <span class="material-symbols-outlined">close</span>
-                        <span>Cancelar</span>
-                    </button>
-                </div>
-            </div>
+
+            <!-- Spacer for fixed footer -->
+            <div class="h-24"></div>
         </div>
     </div>
 
     <script src="connections.js"></script>
 </body>
-</html>
 
+</html>

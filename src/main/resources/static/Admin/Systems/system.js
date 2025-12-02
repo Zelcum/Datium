@@ -729,7 +729,7 @@ function renderSystems(systemsToRender) {
 
         const imageUrl = system.imageUrl ? (system.imageUrl.startsWith('http') ? system.imageUrl : `http://localhost:8080${system.imageUrl}`) : null;
         const userCount = Math.max(1, system.userCount || 1);
-        
+
         console.log(`Sistema ${system.id} (${system.name}): isInvited = ${system.isInvited}, ownerId = ${system.ownerId}`);
 
         const securityModeText = system.securityMode === 'none' ? 'Sin seguridad' :
@@ -1097,10 +1097,6 @@ async function handleFormSubmit(e) {
         console.error('❌ Error saving system:', error);
         showNotification('Error de conexión. Verifica que el servidor esté corriendo en http://localhost:8080', 'error');
     }
-}
-
-async function viewSystem(id) {
-    window.location.href = `system-data.html?id=${id}`;
 }
 
 async function createSystemFields(systemId, fields) {
@@ -1844,3 +1840,7 @@ async function exportSelectedFieldsFromForm() {
     }
 }
 
+// Navigate to table manager
+function viewSystem(systemId) {
+    window.location.href = `table-manager.html?systemId=${systemId}`;
+}

@@ -4,8 +4,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "system_records")
-public class SystemRecord {
+@Table(name = "system_tables")
+public class SystemTable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -13,29 +13,21 @@ public class SystemRecord {
     @Column(name = "system_id", nullable = false)
     private Integer systemId;
 
-    @Column(name = "table_id")
-    private Integer tableId;
+    @Column(length = 100, nullable = false)
+    private String name;
 
-    @Column(name = "created_by")
-    private Integer createdBy;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
+    // Getters and Setters
     public Integer getId() {
         return id;
     }
@@ -52,20 +44,20 @@ public class SystemRecord {
         this.systemId = systemId;
     }
 
-    public Integer getTableId() {
-        return tableId;
+    public String getName() {
+        return name;
     }
 
-    public void setTableId(Integer tableId) {
-        this.tableId = tableId;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public Integer getCreatedBy() {
-        return createdBy;
+    public String getDescription() {
+        return description;
     }
 
-    public void setCreatedBy(Integer createdBy) {
-        this.createdBy = createdBy;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -74,13 +66,5 @@ public class SystemRecord {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

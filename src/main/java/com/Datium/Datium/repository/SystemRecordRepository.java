@@ -11,12 +11,14 @@ import java.util.List;
 @Repository
 public interface SystemRecordRepository extends JpaRepository<SystemRecord, Integer> {
     List<SystemRecord> findBySystemId(Integer systemId);
-    
+
+    List<SystemRecord> findByTableId(Integer tableId);
+
     @Query("SELECT COUNT(r) FROM SystemRecord r WHERE r.systemId = :systemId")
     Long countBySystemId(Integer systemId);
-    
+
+    Long countByTableId(Integer tableId);
+
     @Query("SELECT COUNT(r) FROM SystemRecord r WHERE r.systemId = :systemId AND DATE(r.createdAt) = CURRENT_DATE")
     Long countTodayBySystemId(Integer systemId);
 }
-
-

@@ -14,6 +14,9 @@ public class SystemField {
     @Column(name = "system_id", nullable = false)
     private Integer systemId;
 
+    @Column(name = "table_id")
+    private Integer tableId;
+
     @Column(length = 100, nullable = false)
     private String name;
 
@@ -51,6 +54,14 @@ public class SystemField {
 
     public void setSystemId(Integer systemId) {
         this.systemId = systemId;
+    }
+
+    public Integer getTableId() {
+        return tableId;
+    }
+
+    public void setTableId(Integer tableId) {
+        this.tableId = tableId;
     }
 
     public String getName() {
@@ -101,5 +112,3 @@ public class SystemField {
         this.options = options;
     }
 }
-
-

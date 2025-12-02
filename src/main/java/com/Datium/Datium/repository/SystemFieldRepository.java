@@ -10,9 +10,11 @@ import java.util.List;
 @Repository
 public interface SystemFieldRepository extends JpaRepository<SystemField, Integer> {
     List<SystemField> findBySystemIdOrderByOrderIndexAsc(Integer systemId);
-    
+
+    List<SystemField> findByTableIdOrderByOrderIndexAsc(Integer tableId);
+
     @Query("SELECT COUNT(f) FROM SystemField f WHERE f.systemId = :systemId AND f.required = true")
     Long countRequiredFieldsBySystemId(Integer systemId);
+
+    Long countByTableId(Integer tableId);
 }
-
-
