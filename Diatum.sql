@@ -1,6 +1,7 @@
 CREATE DATABASE IF NOT EXISTS Datium;
 USE Datium;
 
+
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100),
@@ -119,3 +120,59 @@ ALTER TABLE system_fields
 ALTER TABLE system_records
     ADD CONSTRAINT fk_system_records_system
     FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE;
+
+CREATE TABLE system_table_columns (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    table_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    data_type VARCHAR(50) NOT NULL,
+    length INT,
+    is_primary_key BOOLEAN DEFAULT FALSE,
+    is_foreign_key BOOLEAN DEFAULT FALSE,
+    is_unique BOOLEAN DEFAULT FALSE,
+    is_nullable BOOLEAN DEFAULT TRUE,
+    default_value TEXT,
+    foreign_table_id INT,
+    foreign_column_id INT,
+    order_index INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (table_id) REFERENCES system_tables(id) ON DELETE CASCADE,
+    FOREIGN KEY (foreign_table_id) REFERENCES system_tables(id) ON DELETE SET NULL,
+    FOREIGN KEY (foreign_column_id) REFERENCES system_table_columns(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_column_name (table_id, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE system_modules (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    system_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_module_name (system_id, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE system_module_tables (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    module_id INT NOT NULL,
+    table_id INT NOT NULL,
+    order_index INT DEFAULT 0,
+    FOREIGN KEY (module_id) REFERENCES system_modules(id) ON DELETE CASCADE,
+    FOREIGN KEY (table_id) REFERENCES system_tables(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_module_table (module_id, table_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE system_module_columns (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    module_id INT NOT NULL,
+    table_id INT NOT NULL,
+    column_id INT NOT NULL,
+    display_name VARCHAR(100),
+    order_index INT DEFAULT 0,
+    is_required BOOLEAN DEFAULT FALSE,
+    is_visible BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (module_id) REFERENCES system_modules(id) ON DELETE CASCADE,
+    FOREIGN KEY (table_id) REFERENCES system_tables(id) ON DELETE CASCADE,
+    FOREIGN KEY (column_id) REFERENCES system_table_columns(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_module_column (module_id, column_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

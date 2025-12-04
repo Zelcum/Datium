@@ -144,6 +144,14 @@ function openInvitationsForSystem(systemId) {
     window.location.href = `../Dashboard/invitations.html?systemId=${systemId}`;
 }
 
+function openTableBuilder(systemId) {
+    window.location.href = `table-builder.html?systemId=${systemId}`;
+}
+
+function openModuleBuilder(systemId) {
+    window.location.href = `module-builder.html?systemId=${systemId}`;
+}
+
 async function loadInvitationsBadge() {
     try {
         const response = await fetch(API_URL + '/invitaciones/resumen', {
@@ -764,7 +772,7 @@ function renderSystems(systemsToRender) {
             <td class="px-4 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300 text-sm hidden lg:table-cell">${formatDate(system.createdAt)}</td>
             <td class="px-4 py-4 whitespace-nowrap">
                 <div class="flex items-center justify-center gap-1.5">
-                    <button onclick="viewSystem(${system.id})" class="action-btn action-btn-view p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Ver">
+                    <button class="action-btn action-btn-view p-2 rounded-lg transition-all duration-200 opacity-50 cursor-not-allowed" title="Ver" disabled>
                         <span class="material-symbols-outlined text-lg">visibility</span>
                     </button>
                     ${system.isInvited ? '' : `
@@ -772,17 +780,6 @@ function renderSystems(systemsToRender) {
                             <span class="material-symbols-outlined text-lg">edit</span>
                         </button>
                     `}
-                    ${system.isInvited ? '' : `
-                        <button onclick="openInvitationsForSystem(${system.id})" class="action-btn action-btn-access p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Invitar Usuarios">
-                            <span class="material-symbols-outlined text-lg">mail</span>
-                        </button>
-                    `}
-                    <button onclick="showAccessModal(${system.id})" class="action-btn action-btn-access p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Accesos">
-                        <span class="material-symbols-outlined text-lg">people</span>
-                    </button>
-                    <button onclick="showAuditModal(${system.id})" class="action-btn action-btn-audit p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Auditoría">
-                        <span class="material-symbols-outlined text-lg">history</span>
-                    </button>
                     ${system.isInvited ? '' : `
                         <button onclick="showDeleteModal(${system.id})" class="action-btn action-btn-delete p-2 rounded-lg transition-all duration-200 hover:scale-110" title="Eliminar">
                             <span class="material-symbols-outlined text-lg">delete</span>
@@ -1840,7 +1837,7 @@ async function exportSelectedFieldsFromForm() {
     }
 }
 
-// Navigate to table manager
+// Navigate to system data view
 function viewSystem(systemId) {
-    window.location.href = `table-manager.html?systemId=${systemId}`;
+    window.location.href = `system-data.html?systemId=${systemId}`;
 }
