@@ -3,7 +3,9 @@ package com.Datium.Datium.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "system_relationships")
+@Table(name = "system_relationships", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"from_table_id", "from_field_id", "to_table_id", "to_field_id"})
+})
 public class SystemRelationship {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,15 +26,14 @@ public class SystemRelationship {
     @Column(name = "to_field_id", nullable = false)
     private Integer toFieldId;
 
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    @Column(name = "relation_type")
-    private RelationType relationType = RelationType.many_to_many;
+    private RelationshipType type;
 
-    public enum RelationType {
-        one_to_one, one_to_many, many_to_many
+    public enum RelationshipType {
+        ONE_TO_ONE, ONE_TO_MANY, MANY_TO_MANY
     }
 
-    // Getters and Setters
     public Integer getId() {
         return id;
     }
@@ -81,11 +82,11 @@ public class SystemRelationship {
         this.toFieldId = toFieldId;
     }
 
-    public RelationType getRelationType() {
-        return relationType;
+    public RelationshipType getType() {
+        return type;
     }
 
-    public void setRelationType(RelationType relationType) {
-        this.relationType = relationType;
+    public void setType(RelationshipType type) {
+        this.type = type;
     }
 }

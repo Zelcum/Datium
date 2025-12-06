@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/sistemas")
+@RequestMapping("/api/systems")
 @CrossOrigin(origins = "*")
 public class SystemController {
 

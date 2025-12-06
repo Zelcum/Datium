@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema - Datium</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/simple.css">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">DATIUM</a>
+            <div class="d-flex">
+                <a href="dashboard.html" class="btn btn-outline-light me-2">Volver</a>
+                <button onclick="logout()" class="btn btn-danger">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="display-5 text-dark">Detalles del Sistema</h1>
+            </div>
+        </div>
+
+        <div class="card mb-5">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Crear Nueva Tabla</h4>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre de la Tabla</label>
+                        <input type="text" id="newTableName" class="form-control" placeholder="Ej. Clientes">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Descripción</label>
+                        <input type="text" id="newTableDesc" class="form-control" placeholder="Descripción breve">
+                    </div>
+                </div>
+
+                <h5 class="mt-4">Campos Iniciales</h5>
+                <div id="newFieldsContainer" class="mb-3"></div>
+
+                <div class="d-flex gap-2">
+                    <button onclick="addNewFieldRow()" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-plus"></i> Agregar Campo
+                    </button>
+                    <button onclick="createTable()" class="btn btn-primary">
+                        Crear Tabla
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Tables List -->
+            <div class="col-12">
+                <h2 class="mb-3 text-secondary"><i class="bi bi-table"></i> Tablas</h2>
+                <div id="tablesList" class="row g-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"></script>
+    <script src="js/app.js"></script>
+    <script>
+        checkAuth();
+        const urlParams = new URLSearchParams(window.location.search);
+        const systemId = urlParams.get('id');
+        let systemTables = [];
+
+        async function init() {
+            await loadTables();
+        }
+
+        async function loadTables() {
+            const res = await apiFetch(`/systems/${systemId}/tables`);
+            if (res.ok) {
+                systemTables = await res.json();
+                const container = document.getElementById('tablesList');
+                container.innerHTML = systemTables.map(table => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary"><i class="bi bi-table"></i> ${table.name}</h5>
+                                <p class="card-text text-muted small">${table.description || 'Sin descripción'}</p>
+                                <div class="d-flex justify-content-between">
+                                    <a href="table.html?id=${table.id}" class="btn btn-outline-primary btn-sm stretched-link" style="position: relative; z-index: 1;">
+                                        Ver Datos
+                                    </a>
+                                    <button onclick="deleteTable(${table.id}); event.stopPropagation();" class="btn btn-link text-danger btn-sm" style="position: relative; z-index: 2;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function deleteTable(id) {
+            if (!confirm('¿Eliminar tabla? Se perderán todos los datos.')) return;
+            // Endpoint matches Controller: /api/systems/{systemId}/tables/{tableId}
+            const res = await apiFetch(`/systems/${systemId}/tables/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                loadTables();
+            } else {
+                alert('Error eliminando tabla');
+            }
+        }
+
+        function addNewFieldRow() {
+            const container = document.getElementById('newFieldsContainer');
+            const div = document.createElement('div');
+            div.className = 'card mb-2 p-2 bg-light border';
+            div.innerHTML = `
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control form-control-sm new-field-name" placeholder="Nombre Campo" required>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm new-field-type">
+                            <option value="text">Texto</option>
+                            <option value="number">Número</option>
+                            <option value="date">Fecha</option>
+                            <option value="boolean">Si/No</option>
+                            <option value="select">Lista (Select)</option>
+                            <option value="relation">Relación</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                         <!-- Options Input -->
+                        <div class="field-options-container" style="display:none;">
+                            <input type="text" class="form-control form-control-sm new-field-options" placeholder="Opciones: A, B, C">
+                        </div>
+                        <!-- Relation Inputs -->
+                        <div class="field-relation-container row g-1" style="display:none;">
+                            <div class="col-6">
+                                <select class="form-select form-select-sm new-field-rel-table">
+                                    <option value="">Tabla Destino...</option>
+                                    ${systemTables.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select form-select-sm new-field-rel-display" disabled>
+                                    <option value="">Campo Display...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <button onclick="this.closest('.card').remove()" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Logic to toggle inputs
+            const select = div.querySelector('.new-field-type');
+            const optionsDiv = div.querySelector('.field-options-container');
+            const relationDiv = div.querySelector('.field-relation-container');
+            const relTableSelect = div.querySelector('.new-field-rel-table');
+            const relDisplaySelect = div.querySelector('.new-field-rel-display');
+
+            select.addEventListener('change', (e) => {
+                optionsDiv.style.display = 'none';
+                relationDiv.style.display = 'none';
+                if (e.target.value === 'select') optionsDiv.style.display = 'block';
+                if (e.target.value === 'relation') relationDiv.style.display = 'flex';
+            });
+
+            // Logic to load fields when table selected
+            relTableSelect.addEventListener('change', async (e) => {
+                const tableId = e.target.value;
+                relDisplaySelect.innerHTML = '<option value="">Cargando...</option>';
+                relDisplaySelect.disabled = true;
+                if (!tableId) return;
+
+                const res = await apiFetch(`/tables/${tableId}/fields`);
+                if (res.ok) {
+                    const fields = await res.json();
+                    relDisplaySelect.innerHTML = fields.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+                    relDisplaySelect.disabled = false;
+                }
+            });
+
+            container.appendChild(div);
+        }
+
+        async function createTable() {
+            const name = document.getElementById('newTableName').value;
+            const description = document.getElementById('newTableDesc').value;
+            if (!name) return alert('El nombre es requerido');
+
+            // Gather fields
+            const fieldRows = document.querySelectorAll('#newFieldsContainer .card');
+            let validationError = null;
+
+            const fields = Array.from(fieldRows).map(row => {
+                const type = row.querySelector('.new-field-type').value;
+                let options = [];
+                let relatedTableId = null;
+                let relatedDisplayFieldId = null;
+
+                if (type === 'select') {
+                    const optsStr = row.querySelector('.new-field-options').value;
+                    if (optsStr) options = optsStr.split(',').map(s => s.trim()).filter(s => s);
+                } else if (type === 'relation') {
+                    const tId = row.querySelector('.new-field-rel-table').value;
+                    const fId = row.querySelector('.new-field-rel-display').value;
+
+                    if (!tId) {
+                        validationError = 'Debe seleccionar una Tabla Destino para los campos de tipo Relación.';
+                    } else if (!fId) {
+                        // Maybe optional? Let's make it strict for now.
+                        validationError = 'Debe seleccionar un Campo a Mostrar para la relación.';
+                    }
+
+                    if (tId) relatedTableId = parseInt(tId);
+                    if (fId) relatedDisplayFieldId = parseInt(fId);
+                }
+
+                return {
+                    name: row.querySelector('.new-field-name').value,
+                    type: type,
+                    required: false,
+                    orderIndex: 0,
+                    options: options,
+                    relatedTableId: relatedTableId,
+                    relatedDisplayFieldId: relatedDisplayFieldId
+                };
+            }).filter(f => f.name);
+
+            if (validationError) return alert(validationError);
+
+            const res = await apiFetch(`/systems/${systemId}/tables`, {
+                method: 'POST',
+                body: JSON.stringify({ name, description, fields })
+            });
+
+            if (res.ok) {
+                document.getElementById('newTableName').value = '';
+                document.getElementById('newTableDesc').value = '';
+                document.getElementById('newFieldsContainer').innerHTML = '';
+                loadTables();
+            } else {
+                alert('Error creando tabla');
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

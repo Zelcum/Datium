@@ -76,4 +76,22 @@ public class SystemFieldResponse {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+    private Integer relatedTableId;
+    private String relatedFieldName;
+
+    public Integer getRelatedTableId() {
+        return relatedTableId;
+    }
+
+    public void setRelatedTableId(Integer relatedTableId) {
+        this.relatedTableId = relatedTableId;
+    }
+
+    public String getRelatedFieldName() {
+        return relatedFieldName;
+    }
+
+    public void setRelatedFieldName(String relatedFieldName) {
+        this.relatedFieldName = relatedFieldName;
+    }
 }

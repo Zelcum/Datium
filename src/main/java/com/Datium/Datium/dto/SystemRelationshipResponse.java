@@ -93,11 +93,11 @@ public class SystemRelationshipResponse {
         this.toFieldName = toFieldName;
     }
 
-    public String getRelationType() {
+    public String getType() {
         return relationType;
     }
 
-    public void setRelationType(String relationType) {
+    public void setType(String relationType) {
         this.relationType = relationType;
     }
 }

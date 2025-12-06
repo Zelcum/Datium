@@ -39,11 +39,11 @@ public class SystemRelationshipRequest {
         this.toFieldId = toFieldId;
     }
 
-    public String getRelationType() {
+    public String getType() {
         return relationType;
     }
 
-    public void setRelationType(String relationType) {
+    public void setType(String relationType) {
         this.relationType = relationType;
     }
 }

@@ -26,6 +26,8 @@ public interface SystemRecordValueRepository extends JpaRepository<SystemRecordV
     List<Integer> findDistinctRecordIdsByFieldId(@Param("fieldId") Integer fieldId);
     
     List<SystemRecordValue> findByFieldId(Integer fieldId);
+    
+    List<SystemRecordValue> findByFieldIdAndValue(Integer fieldId, String value);
 }
 
 

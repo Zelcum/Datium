@@ -7,8 +7,9 @@ public class SystemFieldRequest {
     private String type;
     private Boolean required;
     private Integer orderIndex;
-    private Integer tableId;
     private List<String> options;
+    private Integer relatedTableId;
+    private Integer relatedDisplayFieldId;
 
     public String getName() {
         return name;
@@ -42,13 +43,7 @@ public class SystemFieldRequest {
         this.orderIndex = orderIndex;
     }
 
-    public Integer getTableId() {
-        return tableId;
-    }
 
-    public void setTableId(Integer tableId) {
-        this.tableId = tableId;
-    }
 
     public List<String> getOptions() {
         return options;
@@ -56,5 +51,21 @@ public class SystemFieldRequest {
 
     public void setOptions(List<String> options) {
         this.options = options;
+    }
+
+    public Integer getRelatedTableId() {
+        return relatedTableId;
+    }
+
+    public void setRelatedTableId(Integer relatedTableId) {
+        this.relatedTableId = relatedTableId;
+    }
+
+    public Integer getRelatedDisplayFieldId() {
+        return relatedDisplayFieldId;
+    }
+
+    public void setRelatedDisplayFieldId(Integer relatedDisplayFieldId) {
+        this.relatedDisplayFieldId = relatedDisplayFieldId;
     }
 }
