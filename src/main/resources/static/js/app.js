@@ -10,12 +10,12 @@ function setToken(token) {
 
 function logout() {
     localStorage.removeItem('token');
-    window.location.href = '/login.html';
+    window.location.href = 'login.html';
 }
 
 function checkAuth() {
     if (!getToken()) {
-        window.location.href = '/login.html';
+        window.location.href = 'login.html';
     }
 }
 
