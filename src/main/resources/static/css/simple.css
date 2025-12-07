@@ -52,3 +52,39 @@ body {
 .btn {
     font-weight: 500;
 }
+
+/* Profile Avatar */
+.profile-avatar {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.position-relative:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.profile-avatar:hover {
+    filter: brightness(0.9);
+}
