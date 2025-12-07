@@ -43,15 +43,9 @@ public class SystemTableController {
 
     @DeleteMapping("/systems/{systemId}/tables/{tableId}")
     public ResponseEntity<Void> deleteTable(@PathVariable Integer systemId, @PathVariable Integer tableId, @RequestHeader("Authorization") String token) {
-        try {
-            Integer userId = validateToken(token);
-            tableService.deleteTable(tableId, userId);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).build();
-        } catch (Exception e) {
-             return ResponseEntity.status(500).build();
-        }
+        Integer userId = validateToken(token);
+        tableService.deleteTable(tableId, userId);
+        return ResponseEntity.noContent().build();
     }
 
     private Integer validateToken(String token) {

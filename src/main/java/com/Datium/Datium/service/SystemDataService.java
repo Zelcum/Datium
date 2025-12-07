@@ -564,15 +564,48 @@ public class SystemDataService {
     }
 
 
+    private void validateRequiredFields(Integer systemId, Map<Integer, Object> values, List<SystemField> fields) {
+        for (SystemField field : fields) {
+            if (field.getRequired()) {
+                Object val = values.get(field.getId());
+                if (val == null || val.toString().trim().isEmpty()) {
+                    throw new RuntimeException("El campo '" + field.getName() + "' es obligatorio.");
+                }
+            }
+        }
+    }
+
     @Transactional
     public SystemRecordResponse updateRecord(Integer recordId, SystemRecordRequest request, Integer userId) {
         SystemRecord record = systemRecordRepository.findById(recordId)
                 .orElseThrow(() -> new RuntimeException("Registro no encontrado"));
         
         Integer tableId = record.getTableId();
-        
+        List<SystemField> fields = systemFieldRepository.findByTableIdOrderByOrderIndexAsc(tableId);
+
         // Validate values
         if (request.getValues() != null) {
+            // Validate Required Fields
+             // Merge existing values with new values for validation? 
+             // Or just validate input? Usually inputs to update are partial. 
+             // But if specific field is required and we send empty, it should fail.
+             // If we don't send it, it keeps underlying value.
+             // Let's check: if key exists in map (even if null/empty), checking.
+             // If key not in map, we assume old value persists.
+             
+             // However, for strictness, let's fetch current values to check full state?
+             // That's heavier. 
+             // Let's just check if the incoming change violates requiredness.
+             
+            for (SystemField field : fields) {
+                if (field.getRequired() && request.getValues().containsKey(field.getId())) {
+                    Object val = request.getValues().get(field.getId());
+                    if (val == null || val.toString().trim().isEmpty()) {
+                        throw new RuntimeException("El campo '" + field.getName() + "' es obligatorio.");
+                    }
+                }
+            }
+
             List<SystemRelationship> relationships = systemRelationshipRepository.findByFromTableId(tableId);
             Map<Integer, SystemRelationship> fieldRelMap = new HashMap<>();
             for (SystemRelationship rel : relationships) {
@@ -589,7 +622,6 @@ public class SystemDataService {
                         if(!valStr.isEmpty()) {
                             Integer targetId = Integer.parseInt(valStr);
                             SystemRelationship rel = fieldRelMap.get(fieldId);
-                            // Verify target record exists and is in target table
                             SystemRecord targetRecord = systemRecordRepository.findById(targetId)
                                 .orElseThrow(() -> new RuntimeException("Registro relacionado ID " + targetId + " no encontrado."));
                             
@@ -606,18 +638,11 @@ public class SystemDataService {
 
         // Update values
         if (request.getValues() != null) {
-            // We need to update existing values or insert new ones.
-            // Simplest strategy: Delete old values for affected fields and insert new ones? 
-            // Or find and update. 
-            // Better: find and update/insert.
-            
-            // Actually, simplest is to loop through entries.
             for (Map.Entry<Integer, Object> entry : request.getValues().entrySet()) {
                 Integer fieldId = entry.getKey();
                 Object valueObj = entry.getValue();
                 String value = valueObj != null ? valueObj.toString() : null;
 
-                // Check if exists
                 SystemRecordValue recordValue = systemRecordValueRepository.findByRecordIdAndFieldId(recordId, fieldId).orElse(null);
                 if (recordValue == null) {
                      if (value != null) {
@@ -639,10 +664,8 @@ public class SystemDataService {
         }
         
         record.setUpdatedAt(java.time.LocalDateTime.now());
-        // Actually SystemRecord handles it? Let's check Entity. 
-        // We'll leave it to JPA/DB triggers if any, or set it if needed.
         return convertToRecordResponse(record);
     }
-
+}
 }
 
