@@ -1,6 +1,6 @@
-DROP DATABASE IF EXISTS Diatum;
-CREATE DATABASE Diatum;
-USE Diatum;
+DROP DATABASE IF EXISTS Datium;
+CREATE DATABASE Datium;
+USE Datium;
 
 -- =========================================
 -- USERS & PLANS

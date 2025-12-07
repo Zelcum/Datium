@@ -667,5 +667,4 @@ public class SystemDataService {
         return convertToRecordResponse(record);
     }
 }
-}
 
