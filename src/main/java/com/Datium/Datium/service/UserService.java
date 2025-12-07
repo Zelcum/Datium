@@ -18,15 +18,10 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
+    private com.Datium.Datium.repository.PlanRepository planRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
-
-    private static final Map<Integer, String> PLAN_NAMES = new HashMap<>();
-
-    static {
-        PLAN_NAMES.put(1, "Básico");
-        PLAN_NAMES.put(2, "Pro");
-        PLAN_NAMES.put(3, "Enterprise");
-    }
 
     public UserProfileResponse getUserProfile(Integer userId) {
         Optional<User> userOpt = userRepository.findById(userId);
@@ -36,7 +31,12 @@ public class UserService {
         }
 
         User user = userOpt.get();
-        String planName = PLAN_NAMES.getOrDefault(user.getPlanId(), "Desconocido");
+        String planName = "Desconocido";
+        if (user.getPlanId() != null) {
+            planName = planRepository.findById(user.getPlanId())
+                    .map(com.Datium.Datium.entity.Plan::getName)
+                    .orElse("Desconocido");
+        }
 
         return new UserProfileResponse(
                 user.getId(),
@@ -72,7 +72,12 @@ public class UserService {
 
         user = userRepository.save(user);
 
-        String planName = PLAN_NAMES.getOrDefault(user.getPlanId(), "Desconocido");
+        String planName = "Desconocido";
+        if (user.getPlanId() != null) {
+            planName = planRepository.findById(user.getPlanId())
+                    .map(com.Datium.Datium.entity.Plan::getName)
+                    .orElse("Desconocido");
+        }
 
         return new UserProfileResponse(
                 user.getId(),
@@ -122,14 +127,17 @@ public class UserService {
         User user = userOpt.get();
 
         // Validate plan ID
-        if (request.getNewPlanId() == null || request.getNewPlanId() < 1 || request.getNewPlanId() > 3) {
-            throw new RuntimeException("Plan inválido. Debe ser 1 (Básico), 2 (Pro) o 3 (Enterprise)");
+        if (request.getNewPlanId() == null) {
+            throw new RuntimeException("ID de plan inválido");
         }
+        
+        com.Datium.Datium.entity.Plan newPlan = planRepository.findById(request.getNewPlanId())
+                .orElseThrow(() -> new RuntimeException("Plan no encontrado"));
 
         user.setPlanId(request.getNewPlanId());
         user = userRepository.save(user);
 
-        String planName = PLAN_NAMES.getOrDefault(user.getPlanId(), "Desconocido");
+        String planName = newPlan.getName();
 
         return new UserProfileResponse(
                 user.getId(),
@@ -157,7 +165,12 @@ public class UserService {
 
         user = userRepository.save(user);
 
-        String planName = PLAN_NAMES.getOrDefault(user.getPlanId(), "Desconocido");
+        String planName = "Desconocido";
+        if (user.getPlanId() != null) {
+            planName = planRepository.findById(user.getPlanId())
+                    .map(com.Datium.Datium.entity.Plan::getName)
+                    .orElse("Desconocido");
+        }
 
         return new UserProfileResponse(
                 user.getId(),

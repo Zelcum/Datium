@@ -179,7 +179,7 @@ public class SystemDataController {
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            systemDataService.deleteRecord(systemId, recordId, userId);
+            systemDataService.deleteRecord(recordId, userId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -188,83 +188,7 @@ public class SystemDataController {
         }
     }
 
-    @PostMapping("/campos/transferir")
-    public ResponseEntity<?> transferFields(
-            @PathVariable Integer systemId,
-            @RequestBody Map<String, Object> request,
-            @RequestHeader(value = "Authorization", required = false) String token) {
-        try {
-            Integer userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-            
-            @SuppressWarnings("unchecked")
-            List<Integer> fieldIds = (List<Integer>) request.get("fieldIds");
-            Integer targetSystemId = (Integer) request.get("targetSystemId");
-            
-            if (fieldIds == null || fieldIds.isEmpty() || targetSystemId == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("{\"error\":\"fieldIds y targetSystemId son requeridos\"}");
-            }
-            
-            int transferredRecords = systemDataService.transferFields(systemId, fieldIds, targetSystemId, userId);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Campos transferidos exitosamente");
-            response.put("transferredRecords", transferredRecords);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("{\"error\":\"" + e.getMessage() + "\"}");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"error\":\"" + e.getMessage() + "\"}");
-        }
-    }
 
-    @GetMapping("/campos/disponibles-importar")
-    public ResponseEntity<?> getAvailableFieldsToImport(
-            @PathVariable Integer systemId,
-            @RequestHeader(value = "Authorization", required = false) String token) {
-        try {
-            Integer userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-            List<Map<String, Object>> availableFields = systemDataService.getAvailableFieldsToImport(systemId, userId);
-            return ResponseEntity.ok(availableFields);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"error\":\"" + e.getMessage() + "\"}");
-        }
-    }
-
-    @PostMapping("/campos/importar")
-    public ResponseEntity<?> importFields(
-            @PathVariable Integer systemId,
-            @RequestBody Map<String, Object> request,
-            @RequestHeader(value = "Authorization", required = false) String token) {
-        try {
-            Integer userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-            
-            @SuppressWarnings("unchecked")
-            List<Integer> fieldIds = (List<Integer>) request.get("fieldIds");
-            Integer sourceSystemId = (Integer) request.get("sourceSystemId");
-            
-            if (fieldIds == null || fieldIds.isEmpty() || sourceSystemId == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("{\"error\":\"fieldIds y sourceSystemId son requeridos\"}");
-            }
-            
-            int transferredRecords = systemDataService.importFields(systemId, sourceSystemId, fieldIds, userId);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Campos importados exitosamente");
-            response.put("transferredRecords", transferredRecords);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("{\"error\":\"" + e.getMessage() + "\"}");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"error\":\"" + e.getMessage() + "\"}");
-        }
-    }
 }
 
 
