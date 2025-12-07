@@ -1,6 +1,10 @@
-CREATE DATABASE IF NOT EXISTS Datium;
-USE Datium;
+DROP DATABASE IF EXISTS Diatum;
+CREATE DATABASE Diatum;
+USE Diatum;
 
+-- =========================================
+-- USERS & PLANS
+-- =========================================
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -27,6 +31,10 @@ VALUES
 ('Pro', 10, 15),
 ('Empresarial', 99999999, 99999999);
 
+-- =========================================
+-- SYSTEM (BASE DE DATOS ARTIFICIAL)
+-- =========================================
+
 CREATE TABLE systems (
     id INT AUTO_INCREMENT PRIMARY KEY,
     owner_id INT NOT NULL,
@@ -37,6 +45,10 @@ CREATE TABLE systems (
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- =========================================
+-- SYSTEM TABLES (TABLAS DENTRO DEL SISTEMA)
+-- =========================================
+
 CREATE TABLE system_tables (
     id INT AUTO_INCREMENT PRIMARY KEY,
     system_id INT NOT NULL,
@@ -46,6 +58,10 @@ CREATE TABLE system_tables (
     UNIQUE KEY unique_table_name (system_id, name),
     FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================================
+-- FIELDS (CAMPOS POR TABLA)
+-- =========================================
 
 CREATE TABLE system_fields (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -65,6 +81,10 @@ CREATE TABLE system_field_options (
     FOREIGN KEY (field_id) REFERENCES system_fields(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- =========================================
+-- RECORDS (REGISTROS POR TABLA)
+-- =========================================
+
 CREATE TABLE system_records (
     id INT AUTO_INCREMENT PRIMARY KEY,
     table_id INT NOT NULL,
@@ -76,6 +96,10 @@ CREATE TABLE system_records (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_record_table ON system_records(table_id);
+
+-- =========================================
+-- RECORD VALUES (VALORES DE CAMPOS)
+-- =========================================
 
 CREATE TABLE system_record_values (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -89,6 +113,10 @@ CREATE TABLE system_record_values (
 
 CREATE INDEX idx_value_field ON system_record_values(field_id);
 CREATE INDEX idx_value_record ON system_record_values(record_id);
+
+-- =========================================
+-- RELATIONSHIPS (RELACIONES ENTRE TABLAS)
+-- =========================================
 
 CREATE TABLE system_relationships (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -105,74 +133,30 @@ CREATE TABLE system_relationships (
     FOREIGN KEY (to_field_id) REFERENCES system_fields(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-ALTER TABLE system_fields
-    ADD COLUMN system_id INT NOT NULL AFTER id,
-    MODIFY COLUMN table_id INT NULL;
+-- =========================================
+-- LOGS (OPCIONAL PERO ÚTIL)
+-- =========================================
 
-ALTER TABLE system_records
-    ADD COLUMN system_id INT NOT NULL AFTER id,
-    MODIFY COLUMN table_id INT NULL;
-
-ALTER TABLE system_fields
-    ADD CONSTRAINT fk_system_fields_system
-    FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE;
-
-ALTER TABLE system_records
-    ADD CONSTRAINT fk_system_records_system
-    FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE;
-
-CREATE TABLE system_table_columns (
+CREATE TABLE audit_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    table_id INT NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    data_type VARCHAR(50) NOT NULL,
-    length INT,
-    is_primary_key BOOLEAN DEFAULT FALSE,
-    is_foreign_key BOOLEAN DEFAULT FALSE,
-    is_unique BOOLEAN DEFAULT FALSE,
-    is_nullable BOOLEAN DEFAULT TRUE,
-    default_value TEXT,
-    foreign_table_id INT,
-    foreign_column_id INT,
-    order_index INT DEFAULT 0,
+    user_id INT,
+    system_id INT,
+    action VARCHAR(200),
+    details TEXT,
+    ip VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (table_id) REFERENCES system_tables(id) ON DELETE CASCADE,
-    FOREIGN KEY (foreign_table_id) REFERENCES system_tables(id) ON DELETE SET NULL,
-    FOREIGN KEY (foreign_column_id) REFERENCES system_table_columns(id) ON DELETE SET NULL,
-    UNIQUE KEY unique_column_name (table_id, name)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE system_modules (
+CREATE TABLE security_audit (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    system_id INT NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
+    user_id INT,
+    system_id INT,
+    severity ENUM('low','medium','high') NOT NULL,
+    event VARCHAR(255) NOT NULL,
+    details TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_module_name (system_id, name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE system_module_tables (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    module_id INT NOT NULL,
-    table_id INT NOT NULL,
-    order_index INT DEFAULT 0,
-    FOREIGN KEY (module_id) REFERENCES system_modules(id) ON DELETE CASCADE,
-    FOREIGN KEY (table_id) REFERENCES system_tables(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_module_table (module_id, table_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE system_module_columns (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    module_id INT NOT NULL,
-    table_id INT NOT NULL,
-    column_id INT NOT NULL,
-    display_name VARCHAR(100),
-    order_index INT DEFAULT 0,
-    is_required BOOLEAN DEFAULT FALSE,
-    is_visible BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (module_id) REFERENCES system_modules(id) ON DELETE CASCADE,
-    FOREIGN KEY (table_id) REFERENCES system_tables(id) ON DELETE CASCADE,
-    FOREIGN KEY (column_id) REFERENCES system_table_columns(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_module_column (module_id, column_id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
