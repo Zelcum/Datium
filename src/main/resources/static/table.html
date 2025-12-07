@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabla - Datium</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/simple.css">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">DATIUM</a>
+            <div class="d-flex">
+                <button onclick="goBack()" class="btn btn-outline-light me-2">Volver</button>
+                <button onclick="logout()" class="btn btn-danger">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">Vista de Tabla</h1>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Add Field -->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-dark">
+                        <h5 class="mb-0"><i class="bi bi-plus-square"></i> Agregar Campo</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Campo</label>
+                            <input type="text" id="fieldName" class="form-control" placeholder="Ej. Edad">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo</label>
+                            <select id="fieldType" class="form-select">
+                                <option value="text">Texto</option>
+                                <option value="number">Número</option>
+                                <option value="date">Fecha</option>
+                                <option value="boolean">Si/No</option>
+                                <option value="select">Lista (Select)</option>
+                                <option value="relation">Relación</option>
+                            </select>
+                        </div>
+
+                        <!-- Select Options -->
+                        <div id="fieldOptionsDiv" class="mb-3" style="display: none;">
+                            <label class="form-label">Opciones</label>
+                            <input type="text" id="fieldOptions" class="form-control"
+                                placeholder="Separadas por coma (A,B,C)">
+                        </div>
+
+                        <!-- Relation Config -->
+                        <div id="fieldRelationDiv" class="mb-3" style="display: none;">
+                            <label class="form-label">Configuración de Relación</label>
+                            <select id="relTableSelect" class="form-select mb-2">
+                                <option value="">Tabla Destino...</option>
+                            </select>
+                            <select id="relDisplaySelect" class="form-select" disabled>
+                                <option value="">Campo a mostrar...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="fieldRequired">
+                            <label class="form-check-label" for="fieldRequired">¿Obligatorio?</label>
+                        </div>
+
+                        <button onclick="addField()" class="btn btn-info w-100">Agregar Columna</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Record -->
+            <div class="col-md-8">
+                <div class="card h-100" id="recordFormCard">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0" id="formTitle"><i class="bi bi-file-earmark-plus"></i> Agregar Registro</h5>
+                        <button onclick="cancelEdit()" id="btnCancel" class="btn btn-sm btn-light"
+                            style="display: none;">Cancelar</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="recordForm" class="row g-3">
+                            <div class="col-12 text-center text-muted">Cargando campos...</div>
+                        </div>
+                        <hr>
+                        <button onclick="saveRecord()" id="btnSave" class="btn btn-success float-end">
+                            <i class="bi bi-save"></i> Guardar Registro
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-database"></i> Datos</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0 data-table" id="dataTable">
+                        <thead id="tableHead" class="table-light"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"></script>
+    <script src="js/app.js"></script>
+    <script src="js/table.js"></script>
+</body>
+</body>
+
+</html>

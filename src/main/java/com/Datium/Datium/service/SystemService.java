@@ -54,6 +54,9 @@ public class SystemService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private PlanValidationService planValidationService;
+
     public List<SystemResponse> getAllSystems(Integer userId) {
         java.lang.System.out.println("SystemService.getAllSystems - userId: " + userId);
         try {
@@ -117,6 +120,9 @@ public class SystemService {
 
     @Transactional
     public SystemResponse createSystem(SystemRequest request, Integer userId) {
+        // Validate Plan Limit
+        planValidationService.validateSystemLimit(userId);
+        
         System system = new System();
         system.setOwnerId(userId);
         system.setName(request.getName());

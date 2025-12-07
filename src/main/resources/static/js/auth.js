@@ -40,11 +40,11 @@ function redirigirALogin() {
 }
 
 function redirigirADashboard() {
-    window.location.href = 'Admin/Dashboard/dashboard.html';
+    window.location.href = 'dashboard.html';
 }
 
 function redirigirAIndex() {
-    window.location.href = 'Admin/Dashboard/dashboard.html';
+    window.location.href = 'dashboard.html';
 }
 
 function inicializarTema() {
@@ -273,13 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarTema();
 
     if (path.includes('login.html') || path.includes('register.html')) {
-        validarSesion(false).then(isValid => {
-            if (isValid) {
-                setTimeout(() => {
-                    redirigirAIndex();
-                }, 100);
-            }
-        });
+        // Auto-redirect removed per user request
+        // validarSesion(false).then(isValid => { ... }); 
     }
 });
 

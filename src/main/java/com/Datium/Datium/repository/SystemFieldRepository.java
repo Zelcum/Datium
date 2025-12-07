@@ -16,5 +16,8 @@ public interface SystemFieldRepository extends JpaRepository<SystemField, Intege
     @Query("SELECT COUNT(f) FROM SystemField f WHERE f.systemId = :systemId AND f.required = true")
     Long countRequiredFieldsBySystemId(Integer systemId);
 
-    Long countByTableId(Integer tableId);
+    @Query("SELECT MAX(f.orderIndex) FROM SystemField f WHERE f.tableId = :tableId")
+    Integer findMaxOrderIndexByTableId(Integer tableId);
+    
+    Long countBySystemId(Integer systemId);
 }
