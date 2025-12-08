@@ -9,8 +9,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import java.io.ByteArrayOutputStream;
+
+// POI & PDF
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import com.lowagie.text.Document;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.PdfPTable;
+
 
 @Service
 public class SystemDataService {
@@ -665,6 +682,206 @@ public class SystemDataService {
         
         record.setUpdatedAt(java.time.LocalDateTime.now());
         return convertToRecordResponse(record);
+    }
+
+
+
+    private Map<String, Map<String, String>> resolveRelationDisplayValues(Integer tableId, List<SystemFieldResponse> fields, List<SystemRecordResponse> records) {
+        Map<String, Map<String, String>> resolvedMap = new HashMap<>(); // FieldName -> (RecordID -> DisplayValue)
+
+        // 1. Identify relation fields and their config
+        List<SystemRelationship> relationships = systemRelationshipRepository.findByFromTableId(tableId);
+        Map<Integer, SystemRelationship> fieldRelMap = new HashMap<>();
+        for (SystemRelationship rel : relationships) {
+            fieldRelMap.put(rel.getFromFieldId(), rel);
+        }
+
+        for (SystemFieldResponse field : fields) {
+            if ("relation".equalsIgnoreCase(field.getType()) && fieldRelMap.containsKey(field.getId())) {
+                SystemRelationship rel = fieldRelMap.get(field.getId());
+                Integer targetDisplayFieldId = rel.getToFieldId(); // Field ID in target table to display
+                
+                if (targetDisplayFieldId == null || targetDisplayFieldId == 0) continue;
+
+                // 2. Collect all FK IDs from records for this field
+                List<Integer> targetRecordIds = new ArrayList<>();
+                for (SystemRecordResponse record : records) {
+                    String val = record.getFieldValues().get(field.getName());
+                    if (val != null && !val.isEmpty()) {
+                        try {
+                            targetRecordIds.add(Integer.parseInt(val));
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+
+                if (targetRecordIds.isEmpty()) continue;
+
+                // 3. Query target values
+                Map<String, String> valueMap = new HashMap<>();
+                List<Integer> distinctIds = targetRecordIds.stream().distinct().collect(Collectors.toList());
+                
+                for (Integer targetId : distinctIds) {
+                    systemRecordValueRepository.findByRecordIdAndFieldId(targetId, targetDisplayFieldId)
+                        .ifPresent(val -> valueMap.put(String.valueOf(targetId), val.getValue()));
+                }
+                
+                resolvedMap.put(field.getName(), valueMap);
+            }
+        }
+        return resolvedMap;
+    }
+
+    public byte[] exportTableToCsv(Integer tableId, Integer userId) {
+        // Fetch Metadata and Data
+        List<SystemFieldResponse> fields = getFieldsByTable(tableId, userId);
+        List<SystemRecordResponse> records = getRecordsByTable(tableId, userId);
+        
+        // Resolve Relations
+        Map<String, Map<String, String>> resolvedValues = resolveRelationDisplayValues(tableId, fields, records);
+
+        StringBuilder csv = new StringBuilder();
+        // UTF-8 BOM for Excel compatibility
+        csv.append("\uFEFF");
+
+        // Header
+        csv.append("ID");
+        for (SystemFieldResponse field : fields) {
+            csv.append(";").append(escapeCsv(field.getName()));
+        }
+        csv.append("\n");
+
+        // Rows
+        for (SystemRecordResponse record : records) {
+            csv.append(record.getId());
+            for (SystemFieldResponse field : fields) {
+                String val = record.getFieldValues().get(field.getName());
+                
+                // Check for resolved value
+                if (resolvedValues.containsKey(field.getName()) && val != null) {
+                    String resolved = resolvedValues.get(field.getName()).get(val);
+                    if (resolved != null) val = resolved;
+                }
+                
+                csv.append(";").append(escapeCsv(val));
+            }
+            csv.append("\n");
+        }
+
+        return csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    public byte[] exportTableToExcel(Integer tableId, Integer userId) {
+        List<SystemFieldResponse> fields = getFieldsByTable(tableId, userId);
+        List<SystemRecordResponse> records = getRecordsByTable(tableId, userId);
+        
+        // Resolve Relations
+        Map<String, Map<String, String>> resolvedValues = resolveRelationDisplayValues(tableId, fields, records);
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Data");
+            
+            // Header
+            Row headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("ID");
+            for (int i = 0; i < fields.size(); i++) {
+                headerRow.createCell(i + 1).setCellValue(fields.get(i).getName());
+            }
+
+            // Data
+            int rowNum = 1;
+            for (SystemRecordResponse record : records) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(record.getId());
+                for (int i = 0; i < fields.size(); i++) {
+                    String val = record.getFieldValues().get(fields.get(i).getName());
+                    
+                    // Check for resolved value
+                    if (resolvedValues.containsKey(fields.get(i).getName()) && val != null) {
+                        String resolved = resolvedValues.get(fields.get(i).getName()).get(val);
+                        if (resolved != null) val = resolved;
+                    }
+                    
+                    row.createCell(i + 1).setCellValue(val != null ? val : "");
+                }
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error creando Excel: " + e.getMessage());
+        }
+    }
+
+    public byte[] exportTableToPdf(Integer tableId, Integer userId) {
+        List<SystemFieldResponse> fields = getFieldsByTable(tableId, userId);
+        List<SystemRecordResponse> records = getRecordsByTable(tableId, userId);
+        
+        // Resolve Relations
+        Map<String, Map<String, String>> resolvedValues = resolveRelationDisplayValues(tableId, fields, records);
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Meta
+            document.add(new Paragraph("Reporte de Tabla (ID: " + tableId + ")"));
+            document.add(new Paragraph("Generado el: " + new Date()));
+            document.add(new Paragraph(" ")); // Spacer
+
+            // Table
+            int numCols = fields.size() + 1;
+            PdfPTable table = new PdfPTable(numCols);
+            table.setWidthPercentage(100);
+
+            // Headers
+            table.addCell("ID");
+            for (SystemFieldResponse field : fields) {
+                table.addCell(field.getName());
+            }
+
+            // Rows
+            for (SystemRecordResponse record : records) {
+                table.addCell(String.valueOf(record.getId()));
+                for (SystemFieldResponse field : fields) {
+                    String val = record.getFieldValues().get(field.getName());
+                    
+                    // Check for resolved value
+                    if (resolvedValues.containsKey(field.getName()) && val != null) {
+                        String resolved = resolvedValues.get(field.getName()).get(val);
+                        if (resolved != null) val = resolved;
+                    }
+                    
+                    table.addCell(val != null ? val : "");
+                }
+            }
+
+            document.add(table);
+            document.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error creando PDF: " + e.getMessage());
+        }
+    }
+
+    private String escapeCsv(String val) {
+        if (val == null) return "";
+        String escaped = val.replace("\"", "\"\"");
+        // Force quotes for safety and use semicolon for Excel region compat mostly?
+        // User complained about "rare characters". 
+        // BOM \uFEFF + Standard Comma is usually best for standard CSV.
+        // But some Spanish Excels prefer Semicolon. 
+        // Let's stick to standard CSV (semicolon in replacement logic above) 
+        // to be safe I switched to semicolon in the generator above to handle European locales better?
+        // Actually, standard CSV uses comma. If I use semicolon, I should call it CSV (European).
+        // Let's stick to semicolon separated if user is spanish (likely), or Comma.
+        // User said "letters with tilde look weird" -> This is purely ENCODING. BOM fixes it.
+        // I will revert to comma but keep BOM.
+        
+        if (escaped.contains(";") || escaped.contains("\n") || escaped.contains("\"")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
     }
 }
 

@@ -16,12 +16,25 @@ async function loadProfile() {
         document.getElementById('profileEmailDisplay').innerText = user.email;
 
         // Populate Avatar
-        const avatar = user.avatarUrl || 'https://via.placeholder.com/150';
-        document.getElementById('profileAvatar').src = avatar;
+        // Populate Avatar
+        const avatarImg = document.getElementById('pageUserAvatar');
+        const initialEl = document.getElementById('pageUserInitial');
+
+        if (user.avatarUrl) {
+            avatarImg.src = user.avatarUrl;
+            avatarImg.classList.remove('hidden');
+            if (initialEl) initialEl.classList.add('hidden');
+        } else {
+            if (initialEl) {
+                initialEl.innerText = (user.name || 'U').charAt(0).toUpperCase();
+                initialEl.classList.remove('hidden');
+            }
+            avatarImg.classList.add('hidden');
+        }
 
         // Current Plan
         const plans = { 1: 'Free', 2: 'Pro', 3: 'Corporate' }; // Hardcoded for display logic simplicity or fetch from backend if available
-        document.getElementById('currentPlanName').innerText = plans[user.planId] || 'Desconocido';
+        document.getElementById('currentPlanName').innerText = user.planName || 'Gratuito';
 
         // Update Plan Buttons State
         updatePlanButtons(user.planId);
@@ -70,7 +83,12 @@ async function handleAvatarChange(input) {
                 await updateAvatarUrl(newAvatarUrl);
 
                 // Update UI
-                document.getElementById('profileAvatar').src = newAvatarUrl;
+                const avatarImg = document.getElementById('pageUserAvatar');
+                const initialEl = document.getElementById('pageUserInitial');
+
+                avatarImg.src = newAvatarUrl;
+                avatarImg.classList.remove('hidden');
+                if (initialEl) initialEl.classList.add('hidden');
             } else {
                 alert('Error subiendo imagen');
             }
@@ -130,7 +148,7 @@ async function changePlan(planId) {
 
     const res = await apiFetch('/user/plan', {
         method: 'PUT',
-        body: JSON.stringify({ planId })
+        body: JSON.stringify({ newPlanId: planId })
     });
 
     if (res.ok) {

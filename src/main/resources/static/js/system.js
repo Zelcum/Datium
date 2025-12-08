@@ -4,7 +4,19 @@ const systemId = urlParams.get('id');
 let systemTables = [];
 
 async function init() {
+    await loadSystemDetails();
     await loadTables();
+    loadSidebarInfo();
+}
+
+async function loadSystemDetails() {
+    const res = await apiFetch(`/systems/${systemId}`);
+    if (res.ok) {
+        const system = await res.json();
+        document.getElementById('systemName').innerText = system.name;
+        document.getElementById('systemDesc').innerText = system.description || 'Sin descripción';
+        document.title = `${system.name} - Datium`;
+    }
 }
 
 async function loadTables() {
@@ -12,30 +24,58 @@ async function loadTables() {
     if (res.ok) {
         systemTables = await res.json();
         const container = document.getElementById('tablesList');
+        if (systemTables.length === 0) {
+            container.className = 'col-span-1 md:col-span-2 lg:col-span-3 text-center py-12';
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center text-gray-400">
+                    <span class="material-symbols-outlined text-6xl mb-2 opacity-20">table_off</span>
+                    <p class="text-sm">No hay tablas en este sistema</p>
+                </div>
+             `;
+            return;
+        }
+
+        container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
         container.innerHTML = systemTables.map(table => `
-            <div class="col-md-4 mb-3">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary"><i class="bi bi-table"></i> ${table.name}</h5>
-                        <p class="card-text text-muted small">${table.description || 'Sin descripción'}</p>
-                        <div class="d-flex justify-content-between">
-                            <a href="table.html?id=${table.id}" class="btn btn-outline-primary btn-sm stretched-link" style="position: relative; z-index: 1;">
-                                Ver Datos
-                            </a>
-                            <button onclick="deleteTable(${table.id}); event.stopPropagation();" class="btn btn-link text-danger btn-sm" style="position: relative; z-index: 2;">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
+            <div class="bg-white dark:bg-[#151f2b] rounded-2xl p-5 border border-gray-200 dark:border-gray-800 shadow-md hover:shadow-lg transition-shadow group relative">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="p-2.5 bg-blue-500/10 rounded-xl text-blue-500">
+                        <span class="material-symbols-outlined text-2xl">table_rows</span>
                     </div>
+                    <div class="flex gap-1">
+                        <a href="table_form.html?systemId=${systemId}&tableId=${table.id}" 
+                            class="text-gray-400 hover:text-blue-500 transition-colors p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" title="Editar Tabla">
+                            <span class="material-symbols-outlined text-lg">edit</span>
+                        </a>
+                         <button onclick="deleteTable(${table.id}); event.stopPropagation();" 
+                            class="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Eliminar Tabla">
+                            <span class="material-symbols-outlined text-lg">delete</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <h3 class="font-bold text-[#111418] dark:text-white text-lg mb-1 truncate" title="${table.name}">${table.name}</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 min-h-[2.5em] mb-4">${table.description || 'Sin descripción'}</p>
+                
+                <div class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">TABLA</span>
+                    <a href="table.html?id=${table.id}" 
+                        class="text-sm font-bold text-primary hover:text-blue-600 flex items-center gap-1 transition-colors">
+                        Ver Datos
+                        <span class="material-symbols-outlined text-base">arrow_forward</span>
+                    </a>
                 </div>
             </div>
         `).join('');
     }
 }
 
+function goToCreateTable() {
+    window.location.href = `table_form.html?systemId=${systemId}`;
+}
+
 async function deleteTable(id) {
     if (!confirm('¿Eliminar tabla? Se perderán todos los datos.')) return;
-    // Endpoint matches Controller: /api/systems/{systemId}/tables/{tableId}
     const res = await apiFetch(`/systems/${systemId}/tables/${id}`, { method: 'DELETE' });
     if (res.ok) {
         loadTables();
@@ -44,156 +84,32 @@ async function deleteTable(id) {
     }
 }
 
-function addNewFieldRow() {
-    const container = document.getElementById('newFieldsContainer');
-    const div = document.createElement('div');
-    div.className = 'card mb-2 p-2 bg-light border';
-    div.innerHTML = `
-        <div class="row g-2 align-items-center">
-            <div class="col-md-3">
-                <input type="text" class="form-control form-control-sm new-field-name" placeholder="Nombre Campo" required>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select form-select-sm new-field-type">
-                    <option value="text">Texto</option>
-                    <option value="number">Número</option>
-                    <option value="date">Fecha</option>
-                    <option value="boolean">Si/No</option>
-                    <option value="select">Lista (Select)</option>
-                    <option value="relation">Relación</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                 <!-- Options Input -->
-                <div class="field-options-container" style="display:none;">
-                    <input type="text" class="form-control form-control-sm new-field-options" placeholder="Opciones: A, B, C">
-                </div>
-                <!-- Relation Inputs -->
-                <div class="field-relation-container row g-1" style="display:none;">
-                    <div class="col-6">
-                        <select class="form-select form-select-sm new-field-rel-table">
-                            <option value="">Tabla Destino...</option>
-                            ${systemTables.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="col-6">
-                        <select class="form-select form-select-sm new-field-rel-display" disabled>
-                            <option value="">Campo Display...</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-1 text-center">
-                 <div class="form-check form-switch d-flex justify-content-center align-items-center">
-                    <input class="form-check-input new-field-required" type="checkbox" id="req_${Date.now()}_${Math.random()}" title="¿Obligatorio?">
-                    <label class="form-check-label ms-1 small" for="">Requerido</label>
-                </div>
-            </div>
-            <div class="col-md-1 text-end">
-                <button onclick="this.closest('.card').remove()" class="btn btn-outline-danger btn-sm">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        </div>
-    `;
+async function loadSidebarInfo() {
+    const res = await apiFetch('/user/profile');
+    if (res && res.ok) {
+        const userProfile = await res.json();
+        const nameEl = document.getElementById('sidebarUserName');
+        const emailEl = document.getElementById('sidebarUserEmail');
+        const initialEl = document.getElementById('sidebarUserInitial');
+        const avatarImg = document.getElementById('sidebarUserAvatar');
 
-    // Logic to toggle inputs
-    const select = div.querySelector('.new-field-type');
-    const optionsDiv = div.querySelector('.field-options-container');
-    const relationDiv = div.querySelector('.field-relation-container');
-    const relTableSelect = div.querySelector('.new-field-rel-table');
-    const relDisplaySelect = div.querySelector('.new-field-rel-display');
+        if (nameEl) nameEl.innerText = userProfile.name || 'Usuario';
+        if (emailEl) emailEl.innerText = userProfile.email || '...';
 
-    select.addEventListener('change', (e) => {
-        optionsDiv.style.display = 'none';
-        relationDiv.style.display = 'none';
-        if (e.target.value === 'select') optionsDiv.style.display = 'block';
-        if (e.target.value === 'relation') relationDiv.style.display = 'flex';
-    });
-
-    // Logic to load fields when table selected
-    relTableSelect.addEventListener('change', async (e) => {
-        const tableId = e.target.value;
-        relDisplaySelect.innerHTML = '<option value="">Cargando...</option>';
-        relDisplaySelect.disabled = true;
-        if (!tableId) return;
-
-        const res = await apiFetch(`/tables/${tableId}/fields`);
-        if (res.ok) {
-            const fields = await res.json();
-            relDisplaySelect.innerHTML = fields.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
-            relDisplaySelect.disabled = false;
-        }
-    });
-
-    container.appendChild(div);
-}
-
-async function createTable() {
-    const name = document.getElementById('newTableName').value;
-    const description = document.getElementById('newTableDesc').value;
-    if (!name) return alert('El nombre es requerido');
-
-    // Gather fields
-    const fieldRows = document.querySelectorAll('#newFieldsContainer .card');
-    let validationError = null;
-
-    const fields = Array.from(fieldRows).map(row => {
-        const type = row.querySelector('.new-field-type').value;
-        let options = [];
-        let relatedTableId = null;
-        let relatedDisplayFieldId = null;
-
-        if (type === 'select') {
-            const optsStr = row.querySelector('.new-field-options').value;
-            if (optsStr) options = optsStr.split(',').map(s => s.trim()).filter(s => s);
-        } else if (type === 'relation') {
-            const tId = row.querySelector('.new-field-rel-table').value;
-            const fId = row.querySelector('.new-field-rel-display').value;
-
-            if (!tId) {
-                validationError = 'Debe seleccionar una Tabla Destino para los campos de tipo Relación.';
-            } else if (!fId) {
-                // Maybe optional? Let's make it strict for now.
-                validationError = 'Debe seleccionar un Campo a Mostrar para la relación.';
+        if (userProfile.avatarUrl) {
+            if (avatarImg) {
+                avatarImg.src = userProfile.avatarUrl;
+                avatarImg.classList.remove('hidden');
             }
-
-            if (tId) relatedTableId = parseInt(tId);
-            if (fId) relatedDisplayFieldId = parseInt(fId);
-        }
-
-        return {
-            name: row.querySelector('.new-field-name').value,
-            type: type,
-            required: row.querySelector('.new-field-required').checked,
-            orderIndex: 0,
-            options: options,
-            relatedTableId: relatedTableId,
-            relatedDisplayFieldId: relatedDisplayFieldId
-        };
-    }).filter(f => f.name);
-
-    if (validationError) return alert(validationError);
-
-    const res = await apiFetch(`/systems/${systemId}/tables`, {
-        method: 'POST',
-        body: JSON.stringify({ name, description, fields })
-    });
-
-    if (res.ok) {
-        document.getElementById('newTableName').value = '';
-        document.getElementById('newTableDesc').value = '';
-        document.getElementById('newFieldsContainer').innerHTML = '';
-        loadTables();
-    } else {
-        try {
-            const errorData = await res.json();
-            alert(errorData.message || 'Error creando tabla');
-        } catch (e) {
-            alert('Error creando tabla');
+            if (initialEl) initialEl.classList.add('hidden');
+        } else {
+            if (initialEl) {
+                initialEl.innerText = (userProfile.name || 'U').charAt(0).toUpperCase();
+                initialEl.classList.remove('hidden');
+            }
+            if (avatarImg) avatarImg.classList.add('hidden');
         }
     }
 }
 
 init();
-

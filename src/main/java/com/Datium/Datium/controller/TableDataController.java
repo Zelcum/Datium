@@ -20,7 +20,32 @@ public class TableDataController {
     private SystemDataService systemDataService;
 
     @Autowired
+    private com.Datium.Datium.service.SystemTableService systemTableService;
+
+    @Autowired
     private JwtUtil jwtUtil;
+
+    @GetMapping("")
+    public ResponseEntity<?> getTable(@PathVariable Integer tableId, @RequestHeader("Authorization") String token) {
+        try {
+            Integer userId = validateToken(token);
+            com.Datium.Datium.entity.SystemTable table = systemTableService.getTable(tableId);
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("id", table.getId());
+            response.put("systemId", table.getSystemId());
+            response.put("name", table.getName());
+            response.put("description", table.getDescription());
+            response.put("createdAt", table.getCreatedAt());
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+             return ResponseEntity.status(404).body("{\"error\": \"" + e.getMessage() + "\"}");
+        } catch (Exception e) {
+             e.printStackTrace(); // Log to console
+             return ResponseEntity.status(500).body("{\"error\": \"" + e.getMessage() + "\"}");
+        }
+    }
 
     @GetMapping("/fields")
     public ResponseEntity<List<SystemFieldResponse>> getFields(@PathVariable Integer tableId, @RequestHeader("Authorization") String token) {
@@ -63,6 +88,39 @@ public class TableDataController {
         } catch (Exception e) {
              return ResponseEntity.status(500).build();
         }
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportTable(@PathVariable Integer tableId, @RequestParam(defaultValue = "csv") String format, @RequestHeader("Authorization") String token) {
+        Integer userId = validateToken(token);
+        
+        byte[] data;
+        String contentType;
+        String filename;
+
+        switch (format.toLowerCase()) {
+            case "xlsx":
+                data = systemDataService.exportTableToExcel(tableId, userId);
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                filename = "table_" + tableId + ".xlsx";
+                break;
+            case "pdf":
+                data = systemDataService.exportTableToPdf(tableId, userId);
+                contentType = "application/pdf";
+                filename = "table_" + tableId + ".pdf";
+                break;
+            case "csv":
+            default:
+                data = systemDataService.exportTableToCsv(tableId, userId);
+                contentType = "text/csv; charset=UTF-8";
+                filename = "table_" + tableId + ".csv";
+                break;
+        }
+        
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                .body(data);
     }
 
     private Integer validateToken(String token) {

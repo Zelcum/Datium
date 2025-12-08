@@ -16,6 +16,11 @@ public class SystemTableService {
         return tableRepository.findBySystemId(systemId);
     }
 
+    public SystemTable getTable(Integer tableId) {
+        return tableRepository.findById(tableId)
+                .orElseThrow(() -> new RuntimeException("Tabla no encontrada"));
+    }
+
     @Autowired
     private SystemDataService systemDataService;
 
@@ -78,6 +83,36 @@ public class SystemTableService {
         
         table.setName(request.getName());
         table.setDescription(request.getDescription());
-        return tableRepository.save(table);
+        table = tableRepository.save(table);
+
+        if (request.getFields() != null) {
+            // Get existing fields
+            List<com.Datium.Datium.dto.SystemFieldResponse> existingFields = systemDataService.getFieldsByTable(tableId, userId);
+            java.util.Set<Integer> existingFieldIds = existingFields.stream()
+                    .map(com.Datium.Datium.dto.SystemFieldResponse::getId)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            java.util.Set<Integer> processedFieldIds = new java.util.HashSet<>();
+
+            for (com.Datium.Datium.dto.SystemFieldRequest fieldReq : request.getFields()) {
+                if (fieldReq.getId() != null && existingFieldIds.contains(fieldReq.getId())) {
+                    // Update
+                    systemDataService.updateField(table.getSystemId(), fieldReq.getId(), fieldReq, userId);
+                    processedFieldIds.add(fieldReq.getId());
+                } else {
+                    // Create
+                    systemDataService.createFieldForTable(table.getId(), fieldReq, userId);
+                }
+            }
+
+            // Delete removed fields
+            for (Integer existingId : existingFieldIds) {
+                if (!processedFieldIds.contains(existingId)) {
+                    systemDataService.deleteField(table.getSystemId(), existingId, userId);
+                }
+            }
+        }
+
+        return table;
     }
 }

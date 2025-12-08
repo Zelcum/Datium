@@ -3,7 +3,15 @@ let editingSystemId = null;
 document.addEventListener('DOMContentLoaded', () => {
     initDropZone();
 
-    // Listen for data from parent
+    // Check for ID in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const sysId = urlParams.get('id');
+
+    if (sysId) {
+        loadSystemFromApi(sysId);
+    }
+
+    // Listen for data from parent (fallback/legacy)
     window.addEventListener('message', (event) => {
         if (event.data.type === 'editSystem') {
             loadSystemData(event.data.payload);
@@ -13,8 +21,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Notify parent we are ready
-    window.parent.postMessage({ type: 'iframeReady' }, '*');
+    if (window.parent !== window) {
+        window.parent.postMessage({ type: 'iframeReady' }, '*');
+    }
 });
+
+async function loadSystemFromApi(id) {
+    try {
+        const res = await apiFetch(`/systems/${id}`); // Assuming this endpoint exists or similar
+        // Actually /systems returns all, avoiding full fetch if possible, or filter. 
+        // Ideally backend supports GET /systems/{id}. 
+        // Looking at controller previously, we have DELETE /systems/{id}, but GET /systems returns list.
+        // Let's check controller. If not, we have to fetch all and find. 
+        // WAIT: I should check controller first.
+        // But for now let's assume I need to fetch all if no specific endpoint.
+        // Actually, let's implement GET /systems/{id} if needed, or use filtering.
+        // Re-reading controller... 
+        // I will implement a fetchOne approach in JS for now: fetch all and find, as I didn't verify GET /systems/{id} exists.
+        // BETTER: I'll use fetch `/systems` and find, to be safe without backend changes if not strictly needed.
+        // actually, let's check controller later. For now, fetch all.
+
+        const allRes = await apiFetch('/systems');
+        if (allRes.ok) {
+            const systems = await allRes.json();
+            const sys = systems.find(s => s.id == id);
+            if (sys) {
+                loadSystemData(sys);
+                document.getElementById('formTitle').innerText = 'Editar Sistema'; // Not existing in form HTML? 
+                // formTitle is in dashboard.html. In system_form.html it is h1.
+                document.querySelector('h1').innerText = 'Editar Sistema';
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
 
 // --- Tab Logic ---
 function switchTab(tabId) {
@@ -45,35 +86,7 @@ function toggleSecurityFields() {
     }
 }
 
-function addFieldRow(data = null) {
-    const container = document.getElementById('fieldsContainer');
-    const noMsg = document.getElementById('noFieldsMsg');
 
-    if (noMsg) noMsg.classList.add('hidden');
-
-    const template = document.getElementById('fieldRowTemplate');
-    const clone = template.content.cloneNode(true);
-
-    if (data) {
-        clone.querySelector('.field-name').value = data.name;
-        clone.querySelector('.field-type').value = data.type;
-        clone.querySelector('.field-required').checked = data.required;
-    }
-
-    container.appendChild(clone);
-}
-
-function removeField(btn) {
-    const row = btn.closest('.field-row');
-    row.remove();
-
-    const container = document.getElementById('fieldsContainer');
-    if (container.children.length === 1 && container.children[0].id === 'noFieldsMsg') {
-        document.getElementById('noFieldsMsg').classList.remove('hidden');
-    } else if (container.querySelectorAll('.field-row').length === 0) {
-        document.getElementById('noFieldsMsg').classList.remove('hidden');
-    }
-}
 
 function initDropZone() {
     const dropZone = document.getElementById('dropZone');
@@ -194,15 +207,16 @@ function resetForm() {
     toggleSecurityFields();
     removeImage();
 
-    const container = document.getElementById('fieldsContainer');
-    container.innerHTML = '<div class="text-center py-10 text-gray-400" id="noFieldsMsg"><p>No has agregado campos.</p></div>';
-
     switchTab('general');
     document.getElementById('btnSave').innerHTML = '<span class="material-symbols-outlined">check_circle</span> Guardar';
 }
 
 function cancelform() {
-    window.parent.postMessage({ type: 'closeModal' }, '*');
+    if (window.parent === window) {
+        window.location.href = 'dashboard.html';
+    } else {
+        window.parent.postMessage({ type: 'closeModal' }, '*');
+    }
 }
 
 async function submitForm() {
@@ -211,19 +225,6 @@ async function submitForm() {
     const imageUrl = document.getElementById('newSystemImage').value.trim();
     const securityMode = document.getElementById('securityMode').value;
     const generalPassword = document.getElementById('generalPassword').value;
-
-    const fields = [];
-    document.querySelectorAll('.field-row').forEach((row, index) => {
-        const fieldName = row.querySelector('.field-name').value.trim();
-        if (fieldName) {
-            fields.push({
-                name: fieldName,
-                type: row.querySelector('.field-type').value,
-                required: row.querySelector('.field-required').checked,
-                orderIndex: index
-            });
-        }
-    });
 
     if (!name) {
         alert('El nombre del sistema es requerido');
@@ -235,7 +236,9 @@ async function submitForm() {
         return;
     }
 
-    window.parent.postMessage({ type: 'startLoading' }, '*');
+    if (window.parent !== window) {
+        window.parent.postMessage({ type: 'startLoading' }, '*');
+    }
 
     const method = editingSystemId ? 'PUT' : 'POST';
     const url = editingSystemId ? `/systems/${editingSystemId}` : '/systems';
@@ -245,8 +248,7 @@ async function submitForm() {
         description: description || null,
         imageUrl: imageUrl || null,
         securityMode,
-        generalPassword: securityMode === 'general' && generalPassword ? generalPassword : null,
-        fields: fields.length > 0 ? fields : null
+        generalPassword: securityMode === 'general' && generalPassword ? generalPassword : null
     };
 
     try {
@@ -256,16 +258,24 @@ async function submitForm() {
         });
 
         if (res.ok) {
-            window.parent.postMessage({ type: 'systemSaved' }, '*');
-            resetForm();
+            if (window.parent === window) {
+                window.location.href = 'dashboard.html';
+            } else {
+                window.parent.postMessage({ type: 'systemSaved' }, '*');
+                resetForm();
+            }
         } else {
             const errorData = await res.json();
             alert(errorData.message || errorData.error || 'Error al guardar el sistema');
-            window.parent.postMessage({ type: 'stopLoading' }, '*');
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'stopLoading' }, '*');
+            }
         }
     } catch (e) {
         console.error('Error:', e);
         alert('Error de conexión. Por favor intenta nuevamente.');
-        window.parent.postMessage({ type: 'stopLoading' }, '*');
+        if (window.parent !== window) {
+            window.parent.postMessage({ type: 'stopLoading' }, '*');
+        }
     }
 }

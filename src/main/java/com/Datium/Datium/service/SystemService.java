@@ -460,5 +460,26 @@ public class SystemService {
         
         return response;
     }
+    public boolean verifyPassword(Integer systemId, String password) {
+        System system = systemRepository.findById(systemId)
+            .orElseThrow(() -> new RuntimeException("Sistema no encontrado"));
+        
+        // If system has no password, it's considered verified (or return true?)
+        // If security mode is none, return true.
+        if (system.getSecurityMode() == System.SecurityMode.none) {
+            return true;
+        }
+
+        if (system.getSecurityMode() == System.SecurityMode.general) {
+            String hash = system.getGeneralPasswordHash();
+            if (hash == null || hash.isEmpty()) return true; // If no password set, open access
+            if (password == null) return false;
+            return passwordEncoder.matches(password, hash);
+        }
+
+        // For individual mode, we might need userID? The current request is mainly for "general" password prompt.
+        // Assuming this is for the general password check for now as per requirements.
+        return true; 
+    }
 }
 

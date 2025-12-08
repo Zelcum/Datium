@@ -133,4 +133,23 @@ public class SystemController {
         Map<String, Object> response = systemService.getCreateLimit(userId);
         return ResponseEntity.ok(response);
     }
+    @PostMapping("/{id}/verify-password")
+    public ResponseEntity<?> verifyPassword(
+            @PathVariable Integer id,
+            @RequestBody Map<String, String> body,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        Integer userId = getUserIdFromToken(token);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"error\":\"Token inválido o ausente\"}");
+        }
+        
+        String password = body.get("password");
+        boolean isValid = systemService.verifyPassword(id, password);
+        
+        if (isValid) {
+            return ResponseEntity.ok().body("{\"valid\": true}");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"valid\": false, \"error\": \"Contraseña incorrecta\"}");
+        }
+    }
 }

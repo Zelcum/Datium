@@ -8,8 +8,17 @@ public class SystemFieldRequest {
     private Boolean required;
     private Integer orderIndex;
     private List<String> options;
+    private Integer id;
     private Integer relatedTableId;
     private Integer relatedDisplayFieldId;
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
     public String getName() {
         return name;

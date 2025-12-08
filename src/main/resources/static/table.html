@@ -1,126 +1,269 @@
 <!DOCTYPE html>
-<html lang="es">
+<html class="dark" lang="es">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Tabla - Datium</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
-        crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="css/simple.css">
+    <link rel="icon" type="image/jpeg" href="img/Isotipo modo oscuro.jpeg" id="favicon">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #374151;
+        }
+    </style>
 </head>
 
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="#">DATIUM</a>
-            <div class="d-flex">
-                <button onclick="goBack()" class="btn btn-outline-light me-2">Volver</button>
-                <button onclick="logout()" class="btn btn-danger">Logout</button>
-            </div>
-        </div>
-    </nav>
+<body
+    class="font-display bg-background-light dark:bg-background-dark text-[#111418] dark:text-gray-200 overflow-hidden">
 
-    <div class="container-fluid px-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h2">Vista de Tabla</h1>
-        </div>
+    <div class="flex h-screen w-full">
 
-        <div class="row g-4 mb-4">
-            <!-- Add Field -->
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-header bg-info text-dark">
-                        <h5 class="mb-0"><i class="bi bi-plus-square"></i> Agregar Campo</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Nombre del Campo</label>
-                            <input type="text" id="fieldName" class="form-control" placeholder="Ej. Edad">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Tipo</label>
-                            <select id="fieldType" class="form-select">
-                                <option value="text">Texto</option>
-                                <option value="number">Número</option>
-                                <option value="date">Fecha</option>
-                                <option value="boolean">Si/No</option>
-                                <option value="select">Lista (Select)</option>
-                                <option value="relation">Relación</option>
-                            </select>
-                        </div>
-
-                        <!-- Select Options -->
-                        <div id="fieldOptionsDiv" class="mb-3" style="display: none;">
-                            <label class="form-label">Opciones</label>
-                            <input type="text" id="fieldOptions" class="form-control"
-                                placeholder="Separadas por coma (A,B,C)">
-                        </div>
-
-                        <!-- Relation Config -->
-                        <div id="fieldRelationDiv" class="mb-3" style="display: none;">
-                            <label class="form-label">Configuración de Relación</label>
-                            <select id="relTableSelect" class="form-select mb-2">
-                                <option value="">Tabla Destino...</option>
-                            </select>
-                            <select id="relDisplaySelect" class="form-select" disabled>
-                                <option value="">Campo a mostrar...</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="fieldRequired">
-                            <label class="form-check-label" for="fieldRequired">¿Obligatorio?</label>
-                        </div>
-
-                        <button onclick="addField()" class="btn btn-info w-100">Agregar Columna</button>
-                    </div>
+        <!-- Sidebar -->
+        <aside
+            class="w-64 h-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between flex-shrink-0 z-50 transition-all duration-300">
+            <div>
+                <div class="p-4 flex justify-center items-center h-40">
+                    <img src="img/Datium logo modo claro.jpeg"
+                        class="h-full w-auto object-contain block dark:hidden hover:scale-105 transition-transform duration-300 p-2"
+                        alt="Datium">
+                    <img src="img/Datium logo modo oscuro.jpeg"
+                        class="h-full w-auto object-contain hidden dark:block hover:scale-105 transition-transform duration-300 p-2"
+                        alt="Datium">
                 </div>
+
+                <div class="px-6 mb-6">
+                    <button onclick="toggleTema()"
+                        class="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium text-gray-600 dark:text-gray-400">
+                        <span class="material-symbols-outlined text-xl">dark_mode</span>
+                        <span>Modo Oscuro</span>
+                    </button>
+                </div>
+
+                <nav class="px-4 flex flex-col gap-2">
+                    <a href="dashboard.html"
+                        class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
+                        <span class="material-symbols-outlined">dns</span>
+                        dashboard
+                    </a>
+                    <a href="dashboard.html"
+                        class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-xl text-sm font-bold shadow-sm shadow-primary/10">
+                        <span class="material-symbols-outlined">grid_view</span>
+                        Sistemas
+                    </a>
+                    <a href="#"
+                        class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
+                        <span class="material-symbols-outlined">cable</span>
+                        Conexiones
+                    </a>
+                    <a href="#"
+                        class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
+                        <span class="material-symbols-outlined">history</span>
+                        Auditoría
+                    </a>
+                </nav>
             </div>
 
-            <!-- Add Record -->
-            <div class="col-md-8">
-                <div class="card h-100" id="recordFormCard">
-                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0" id="formTitle"><i class="bi bi-file-earmark-plus"></i> Agregar Registro</h5>
-                        <button onclick="cancelEdit()" id="btnCancel" class="btn btn-sm btn-light"
-                            style="display: none;">Cancelar</button>
+            <div
+                class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 backdrop-blur-md">
+                <a href="profile.html"
+                    class="flex items-center gap-3 mb-4 px-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors p-2 cursor-pointer group">
+                    <div id="sidebarUserAvatarContainer"
+                        class="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md ring-2 ring-white dark:ring-gray-800 overflow-hidden group-hover:ring-primary transition-all">
+                        <span id="sidebarUserInitial">U</span>
+                        <img id="sidebarUserAvatar" src="" class="h-full w-full object-cover hidden" alt="Avatar">
                     </div>
-                    <div class="card-body">
-                        <div id="recordForm" class="row g-3">
-                            <div class="col-12 text-center text-muted">Cargando campos...</div>
+                    <div class="flex-1 min-w-0">
+                        <p id="sidebarUserName"
+                            class="text-sm font-bold truncate text-[#111418] dark:text-white group-hover:text-primary transition-colors">
+                            Cargando...
+                        </p>
+                        <p id="sidebarUserEmail" class="text-xs text-gray-500 truncate">...</p>
+                    </div>
+                </a>
+
+                <button onclick="logout()"
+                    class="flex items-center gap-2 w-full justify-center px-4 py-2.5 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl text-sm font-bold transition-all shadow-sm">
+                    <span class="material-symbols-outlined text-lg">logout</span>
+                    Cerrar Sesión
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main
+            class="flex-1 h-full overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark relative scroll-smooth p-6">
+            <div class="max-w-7xl mx-auto space-y-6">
+
+                <!-- Export Button in Header -->
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-[#111418] dark:text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary">table_chart</span>
+                            Vista de Tabla
+                        </h1>
+                        <p id="tableName" class="text-gray-500 dark:text-gray-400 mt-1 ml-9">Cargando...</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="relative group">
+                            <button
+                                class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-bold text-sm">
+                                <span class="material-symbols-outlined text-lg">download</span>
+                                Exportar
+                                <span class="material-symbols-outlined text-sm">expand_more</span>
+                            </button>
+                            <div
+                                class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 hidden group-hover:block z-50 overflow-hidden">
+                                <button onclick="exportTable('csv')"
+                                    class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors">
+                                    <span class="material-symbols-outlined text-green-500">csv</span> CSV
+                                </button>
+                                <button onclick="exportTable('xlsx')"
+                                    class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors">
+                                    <span class="material-symbols-outlined text-blue-500">table_view</span> Excel
+                                    (.xlsx)
+                                </button>
+                                <button onclick="exportTable('pdf')"
+                                    class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors">
+                                    <span class="material-symbols-outlined text-red-500">picture_as_pdf</span> PDF
+                                </button>
+                            </div>
                         </div>
-                        <hr>
-                        <button onclick="saveRecord()" id="btnSave" class="btn btn-success float-end">
-                            <i class="bi bi-save"></i> Guardar Registro
+                        <button onclick="goBack()"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium text-sm">
+                            <span class="material-symbols-outlined text-lg">arrow_back</span>
+                            Volver
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Data Table -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-database"></i> Datos</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped mb-0 data-table" id="dataTable">
-                        <thead id="tableHead" class="table-light"></thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- Full Width Data Section -->
+                    <div class="lg:col-span-3 space-y-6">
+
+                        <!-- Add Record -->
+                        <div id="recordFormCard"
+                            class="bg-white dark:bg-[#151f2b] rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                            <div
+                                class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-green-500">
+                            </div>
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-emerald-500">post_add</span>
+                                    <span id="formTitle">Agregar Registro</span>
+                                </h2>
+                                <button onclick="cancelEdit()" id="btnCancel"
+                                    class="hidden text-sm text-red-500 hover:text-red-600 font-medium transition-colors">Cancelar</button>
+                            </div>
+
+                            <div id="recordForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Dynamic Fields -->
+                                <div class="col-span-2 text-center text-gray-400 text-sm py-4">Cargando campos...</div>
+                            </div>
+
+                            <div class="mt-6 flex justify-end">
+                                <button onclick="saveRecord()" id="btnSave"
+                                    class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
+                                    <span class="material-symbols-outlined">save</span>
+                                    Guardar Registro
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div
+                            class="bg-white dark:bg-[#151f2b] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                            <div
+                                class="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+                                <h2
+                                    class="font-bold text-[#111418] dark:text-white flex items-center gap-2 text-sm uppercase tracking-widest">
+                                    <span class="material-symbols-outlined text-gray-400">dataset</span>
+                                    Datos Registrados
+                                </h2>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead
+                                        class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-800">
+                                        <tr id="tableHead">
+                                            <!-- Dynamic Header -->
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableBody"
+                                        class="divide-y divide-gray-100 dark:divide-gray-800 text-gray-600 dark:text-gray-300">
+                                        <!-- Dynamic Body -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
             </div>
-        </div>
+        </main>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        crossorigin="anonymous"></script>
+    <!-- Scripts -->
+    <script src="js/auth.js"></script>
     <script src="js/app.js"></script>
     <script src="js/table.js"></script>
-</body>
+
+    <script>
+        // Init theme
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        function toggleTema() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            }
+        }
+    </script>
 </body>
 
 </html>

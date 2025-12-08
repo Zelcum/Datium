@@ -280,10 +280,31 @@ public class AuditController {
         }
     }
 
+    public static class AuditExportRequest {
+        private String type;
+        private List<Map<String, Object>> data;
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public List<Map<String, Object>> getData() {
+            return data;
+        }
+
+        public void setData(List<Map<String, Object>> data) {
+            this.data = data;
+        }
+    }
+
     @PostMapping("/exportar")
     public ResponseEntity<?> exportAuditData(
             @PathVariable Integer systemId,
-            @RequestBody Map<String, Object> request,
+            @RequestBody AuditExportRequest request,
             @RequestParam String format,
             @RequestHeader(value = "Authorization", required = false) String token) {
         try {
@@ -292,8 +313,8 @@ public class AuditController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
 
-            String type = (String) request.get("type");
-            List<Map<String, Object>> data = (List<Map<String, Object>>) request.get("data");
+            String type = request.getType();
+            List<Map<String, Object>> data = request.getData();
 
             if (data == null || data.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "No hay datos para exportar"));
@@ -302,7 +323,7 @@ public class AuditController {
             StringBuilder content = new StringBuilder();
 
             if ("csv".equalsIgnoreCase(format)) {
-                if (type.equals("logs")) {
+                if ("logs".equals(type)) {
                     content.append("Fecha,Usuario,Acción,Detalles,IP\n");
                     for (Map<String, Object> item : data) {
                         content.append(String.format("%s,%s,%s,%s,%s\n",

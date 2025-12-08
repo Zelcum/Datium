@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Sistema - Datium</title>
+    <title>Nueva Tabla - Datium</title>
     <link rel="icon" type="image/jpeg" href="img/Isotipo modo oscuro.jpeg" id="favicon">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com" rel="preconnect" />
@@ -56,7 +56,7 @@
 
     <div class="flex h-screen w-full">
 
-        <!-- Sidebar (Copied from Dashboard) -->
+        <!-- Sidebar (Standard) -->
         <aside
             class="w-64 h-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between flex-shrink-0 z-50 transition-all duration-300">
             <div>
@@ -130,72 +130,80 @@
         <!-- Main Content -->
         <main
             class="flex-1 h-full overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark relative scroll-smooth p-6">
-            <div class="max-w-7xl mx-auto space-y-6">
+            <div class="max-w-4xl mx-auto space-y-6">
 
                 <!-- Header -->
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex justify-between items-center">
                     <div>
                         <h1 class="text-2xl font-bold text-[#111418] dark:text-white flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary">grid_view</span>
-                            Detalles del Sistema
+                            <span class="material-symbols-outlined text-primary">add_circle</span>
+                            Crear Nueva Tabla
                         </h1>
-                        <div class="mt-2 pl-9 border-l-2 border-gray-200 dark:border-gray-700">
-                            <h2 id="systemName" class="text-lg font-bold text-[#111418] dark:text-white leading-tight">
-                                Cargando...</h2>
-                            <p id="systemDesc" class="text-sm text-gray-500 dark:text-gray-400">...</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Define la estructura para tus datos</p>
+                    </div>
+                    <button onclick="goBack()"
+                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium text-sm">
+                        <span class="material-symbols-outlined text-lg">arrow_back</span>
+                        Cancelar
+                    </button>
+                </div>
+
+                <!-- Create Table Form -->
+                <div
+                    class="bg-white dark:bg-[#151f2b] rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-lg">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre de
+                                la Tabla</label>
+                            <input type="text" id="newTableName" placeholder="Ej. Clientes"
+                                class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 font-medium focus:ring-2 focus:ring-primary/50 transition-all dark:text-white">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Descripción</label>
+                            <input type="text" id="newTableDesc" placeholder="Descripción breve"
+                                class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 font-medium focus:ring-2 focus:ring-primary/50 transition-all dark:text-white">
                         </div>
                     </div>
-                    <div class="flex gap-3">
-                        <a href="dashboard.html"
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium text-sm">
-                            <span class="material-symbols-outlined text-lg">arrow_back</span>
-                            Volver
-                        </a>
-                        <button onclick="goToCreateTable()"
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold transition-colors shadow-lg shadow-primary/30 text-sm">
-                            <span class="material-symbols-outlined text-lg">add</span>
-                            Crear Tabla
-                        </button>
-                    </div>
-                </div>
 
-                <!-- Tables Grid -->
-                <div>
-                    <h2 class="text-xl font-bold text-[#111418] dark:text-white mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-400">table_chart</span>
-                        Tablas
-                    </h2>
-                    <div id="tablesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Loaded via JS -->
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-sm font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base">list</span>
+                                Columnas / Campos
+                            </h4>
+                            <button onclick="addNewFieldRow()"
+                                class="px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-bold text-xs transition-colors flex items-center gap-1">
+                                <span class="material-symbols-outlined text-base">add</span>
+                                Agregar Campo
+                            </button>
+                        </div>
 
-    <!-- Scripts -->
-    <script src="js/auth.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/system.js"></script>
+                        <div id="newFieldsContainer" class="space-y-3"></div>
+                        <!-- Scripts -->
+                        <script src="js/auth.js"></script>
+                        <script src="js/app.js"></script>
+                        <script src="js/table_form.js"></script>
 
-    <script>
-        // Init theme
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+                        <script>
+                            // Init theme
+                            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                                document.documentElement.classList.add('dark');
+                            } else {
+                                document.documentElement.classList.remove('dark');
+                            }
 
-        function toggleTema() {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.theme = 'light';
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.theme = 'dark';
-            }
-        }
-    </script>
+                            function toggleTema() {
+                                if (document.documentElement.classList.contains('dark')) {
+                                    document.documentElement.classList.remove('dark');
+                                    localStorage.theme = 'light';
+                                } else {
+                                    document.documentElement.classList.add('dark');
+                                    localStorage.theme = 'dark';
+                                }
+                            }
+                        </script>
 </body>
 
 </html>

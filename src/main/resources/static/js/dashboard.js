@@ -1,5 +1,5 @@
-const checkAuth = window.checkAuth || window.validarSesion;
-if (checkAuth) checkAuth();
+const ensureAuth = window.checkAuth || window.validarSesion;
+if (ensureAuth) ensureAuth();
 
 let editingSystemId = null;
 let currentSystems = [];
@@ -7,6 +7,7 @@ let userProfile = null;
 let activityChart = null;
 let planChart = null;
 let securityChart = null;
+let promptCallback = null;
 
 async function init() {
     await Promise.all([loadUserProfile(), loadSystems(), loadStatistics()]);
@@ -28,10 +29,16 @@ async function init() {
 }
 
 async function loadUserProfile() {
-    const res = await apiFetch('/user/profile');
-    if (res && res.ok) {
-        userProfile = await res.json();
-        updateUserUI();
+    try {
+        const res = await apiFetch('/user/profile');
+        if (res && res.ok) {
+            userProfile = await res.json();
+            updateUserUI();
+        } else {
+            console.error('Error loading profile:', res ? res.status : 'No response');
+        }
+    } catch (error) {
+        console.error('Exception loading profile:', error);
     }
 }
 
@@ -73,32 +80,32 @@ async function loadSystems() {
 function renderSystemsTable() {
     const container = document.getElementById('systemsList');
     const emptyState = document.getElementById('emptyState');
-    
+
     if (!container) return;
-    
+
     if (currentSystems.length === 0) {
         container.innerHTML = '';
         if (emptyState) emptyState.classList.remove('hidden');
         return;
     }
-    
+
     if (emptyState) emptyState.classList.add('hidden');
-    
+
     container.innerHTML = currentSystems.map(system => {
         const createdDate = system.createdAt ? new Date(system.createdAt).toLocaleDateString('es-ES', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
         }) : 'N/A';
-        
+
         const imageUrl = system.imageUrl || 'img/Isotipo modo claro.jpeg';
-        const securityIcon = system.securityMode === 'none' ? 'lock_open' : 
-                           system.securityMode === 'general' ? 'lock' : 'admin_panel_settings';
-        const securityColor = system.securityMode === 'none' ? 'text-gray-400' : 
-                             system.securityMode === 'general' ? 'text-yellow-400' : 'text-green-400';
-        
+        const securityIcon = system.securityMode === 'none' ? 'lock_open' :
+            system.securityMode === 'general' ? 'lock' : 'admin_panel_settings';
+        const securityColor = system.securityMode === 'none' ? 'text-gray-400' :
+            system.securityMode === 'general' ? 'text-yellow-400' : 'text-green-400';
+
         return `
-            <tr class="hover:bg-[#1a2634] transition-colors cursor-pointer" onclick="window.location.href='system.html?id=${system.id}'">
+            <tr class="hover:bg-gray-50 dark:hover:bg-[#1a2634] transition-colors cursor-pointer" onclick="enterSystem(${system.id})">
                 <td class="py-4 px-5">
                     <div class="flex items-center justify-center">
                         <img src="${imageUrl}" alt="${system.name}" 
@@ -108,7 +115,7 @@ function renderSystemsTable() {
                 </td>
                 <td class="py-4 px-5">
                     <div class="flex flex-col">
-                        <span class="text-white font-bold text-sm">${system.name || 'Sin nombre'}</span>
+                        <span class="text-[#111418] dark:text-white font-bold text-sm">${system.name || 'Sin nombre'}</span>
                         <span class="text-gray-400 text-xs truncate max-w-xs">${system.description || 'Sin descripción'}</span>
                     </div>
                 </td>
@@ -126,12 +133,12 @@ function renderSystemsTable() {
                 </td>
                 <td class="py-4 px-5 text-right">
                     <div class="flex items-center justify-end gap-2">
-                        <button onclick="event.stopPropagation(); editSystem(${system.id})" 
+                        <button onclick="editSystem(event, ${system.id})" 
                                 class="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors"
                                 title="Editar">
                             <span class="material-symbols-outlined text-sm">edit</span>
                         </button>
-                        <button onclick="event.stopPropagation(); deleteSystem(${system.id})" 
+                        <button onclick="deleteSystem(event, ${system.id})" 
                                 class="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
                                 title="Eliminar">
                             <span class="material-symbols-outlined text-sm">delete</span>
@@ -146,18 +153,18 @@ function renderSystemsTable() {
 function renderSystemsSlider() {
     const sliderContainer = document.getElementById('systemsSlider');
     if (!sliderContainer || currentSystems.length === 0) return;
-    
+
     sliderContainer.innerHTML = currentSystems.map((system, index) => {
         const imageUrl = system.imageUrl || 'img/Isotipo modo claro.jpeg';
         return `
-            <div class="system-slide min-w-[280px] bg-[#1a2634] rounded-xl p-4 border border-gray-800 hover:border-primary/50 transition-all cursor-pointer"
-                 onclick="window.location.href='system.html?id=${system.id}'">
+            <div class="system-slide min-w-[280px] bg-white dark:bg-[#1a2634] rounded-xl p-4 border border-gray-200 dark:border-gray-800 hover:border-primary/50 transition-all cursor-pointer"
+                 onclick="enterSystem(${system.id})">
                 <div class="flex items-center gap-3 mb-3">
                     <img src="${imageUrl}" alt="${system.name}" 
                          class="w-12 h-12 rounded-lg object-cover border border-gray-700"
                          onerror="this.src='img/Isotipo modo claro.jpeg'">
                     <div class="flex-1 min-w-0">
-                        <h4 class="text-white font-bold text-sm truncate">${system.name || 'Sin nombre'}</h4>
+                        <h4 class="text-[#111418] dark:text-white font-bold text-sm truncate">${system.name || 'Sin nombre'}</h4>
                         <p class="text-gray-400 text-xs truncate">${system.description || 'Sin descripción'}</p>
                     </div>
                 </div>
@@ -170,35 +177,115 @@ function renderSystemsSlider() {
     }).join('');
 }
 
-async function editSystem(id) {
-    const system = currentSystems.find(s => s.id === id);
-    if (!system) return;
-    
-    const iframe = document.getElementById('systemFormFrame');
-    if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ 
-            type: 'editSystem', 
-            payload: system 
-        }, '*');
-    }
-    
-    document.getElementById('formTitle').textContent = 'Editar Sistema';
-    toggleCreateForm();
+// --- System Actions & Security ---
+
+async function enterSystem(id) {
+    checkSystemAccess(id, () => {
+        window.location.href = `system.html?id=${id}`;
+    });
 }
 
-async function deleteSystem(id) {
-    if (!confirm('¿Estás seguro de eliminar este sistema? Esta acción no se puede deshacer.')) {
+async function checkSystemAccess(systemId, actionCallback) {
+    const system = currentSystems.find(s => s.id === systemId);
+    if (!system) return;
+
+    // Check if system has password (general)
+    // Enforce prompt even for owners if mode is general
+    if (system.securityMode === 'general') {
+        openPasswordPrompt(systemId, actionCallback);
         return;
     }
-    
-    const res = await apiFetch(`/systems/${id}`, { method: 'DELETE' });
-    if (res && res.ok) {
-        loadSystems();
-        loadStatistics();
-    } else {
-        const errorData = await res.json();
-        alert(errorData.message || 'Error al eliminar sistema');
+
+    // Owner always has access (for other modes or if they pass security check)
+    if (userProfile && system.ownerId === userProfile.id) {
+        actionCallback();
+        return;
     }
+
+    // Individual or None
+    actionCallback();
+}
+
+function openPasswordPrompt(systemId, callback) {
+    promptCallback = (password) => verifyAnd(systemId, password, callback);
+    document.getElementById('promptPasswordInput').value = '';
+    document.getElementById('passwordErrorMsg').classList.add('hidden');
+    document.getElementById('passwordPromptModal').classList.remove('hidden');
+}
+
+function closePasswordPrompt() {
+    document.getElementById('passwordPromptModal').classList.add('hidden');
+    promptCallback = null;
+}
+
+async function verifyAnd(systemId, password, callback) {
+    if (!password) {
+        showPasswordError('La contraseña es requerida');
+        return;
+    }
+
+    try {
+        const res = await apiFetch(`/systems/${systemId}/verify-password`, {
+            method: 'POST',
+            body: JSON.stringify({ password: password })
+        });
+
+        if (res.ok) {
+            closePasswordPrompt();
+            callback();
+        } else {
+            showPasswordError('Contraseña incorrecta');
+        }
+    } catch (e) {
+        console.error(e);
+        showPasswordError('Error de verificación');
+    }
+}
+
+
+
+function confirmPassword() {
+    if (promptCallback) {
+        const pwd = document.getElementById('promptPasswordInput').value;
+        promptCallback(pwd);
+    }
+}
+
+function showPasswordError(msg) {
+    const el = document.getElementById('passwordErrorMsg');
+    el.innerText = msg;
+    el.classList.remove('hidden');
+}
+
+async function editSystem(event, id) {
+    if (event) event.stopPropagation();
+    checkSystemAccess(id, () => {
+        window.location.href = `system_form.html?id=${id}`;
+        return;
+
+
+
+
+
+    });
+}
+
+async function deleteSystem(event, id) {
+    if (event) event.stopPropagation();
+    checkSystemAccess(id, async () => {
+        if (!confirm('¿Estás seguro de eliminar este sistema? Esta acción no se puede deshacer.')) {
+            return;
+        }
+
+        const res = await apiFetch(`/systems/${id}`, { method: 'DELETE' });
+        if (res && res.ok) {
+            loadSystems();
+            loadStatistics();
+        } else {
+            const errorData = await res.json();
+            alert(errorData.message || 'Error al eliminar sistema');
+        }
+    });
 }
 
 async function loadStatistics() {
