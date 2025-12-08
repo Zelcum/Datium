@@ -19,4 +19,7 @@ public interface SystemRecordRepository extends JpaRepository<SystemRecord, Inte
 
     @Query("SELECT COUNT(r) FROM SystemRecord r WHERE r.systemId = :systemId AND DATE(r.createdAt) = CURRENT_DATE")
     Long countTodayBySystemId(Integer systemId);
+
+    @Query("SELECT CAST(r.createdAt AS date), COUNT(r) FROM SystemRecord r WHERE r.systemId IN :systemIds AND r.createdAt >= :startDate GROUP BY CAST(r.createdAt AS date)")
+    List<Object[]> countBySystemIdsGroupedByDate(List<Integer> systemIds, LocalDateTime startDate);
 }

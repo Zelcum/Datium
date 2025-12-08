@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8080/api';
+// API_URL is handled by auth.js
 
 function getToken() {
     return localStorage.getItem('token');

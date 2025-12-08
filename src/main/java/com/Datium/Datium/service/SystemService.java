@@ -410,15 +410,40 @@ public class SystemService {
         planUsage.setPlanName("Básico");
         stats.setPlanUsage(planUsage);
         
-        List<String> labels = new ArrayList<>();
-        List<Long> data = new ArrayList<>();
-        for (int i = 6; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            labels.add(date.toString());
-            data.add(0L);
+        if (!ownedSystems.isEmpty()) {
+            List<Integer> systemIds = ownedSystems.stream().map(System::getId).collect(Collectors.toList());
+            LocalDateTime startDate = LocalDate.now().minusDays(6).atStartOfDay();
+            List<Object[]> results = systemRecordRepository.countBySystemIdsGroupedByDate(systemIds, startDate);
+
+            Map<String, Long> activityMap = new HashMap<>();
+            for (Object[] row : results) {
+                // Handle different date types that JPA might return (java.sql.Date or java.util.Date)
+                String dateStr = row[0].toString(); 
+                Long count = (Long) row[1];
+                activityMap.put(dateStr, count);
+            }
+
+            List<String> labels = new ArrayList<>();
+            List<Long> data = new ArrayList<>();
+            for (int i = 6; i >= 0; i--) {
+                LocalDate date = LocalDate.now().minusDays(i);
+                String dateStr = date.toString();
+                labels.add(dateStr);
+                data.add(activityMap.getOrDefault(dateStr, 0L));
+            }
+            stats.setActivityLabels(labels);
+            stats.setActivityData(data);
+        } else {
+             List<String> labels = new ArrayList<>();
+             List<Long> data = new ArrayList<>();
+             for (int i = 6; i >= 0; i--) {
+                 LocalDate date = LocalDate.now().minusDays(i);
+                 labels.add(date.toString());
+                 data.add(0L);
+             }
+             stats.setActivityLabels(labels);
+             stats.setActivityData(data);
         }
-        stats.setActivityLabels(labels);
-        stats.setActivityData(data);
         
         return stats;
     }

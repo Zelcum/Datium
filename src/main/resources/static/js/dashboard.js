@@ -1,108 +1,425 @@
-checkAuth();
+const checkAuth = window.checkAuth || window.validarSesion;
+if (checkAuth) checkAuth();
+
 let editingSystemId = null;
 let currentSystems = [];
+let userProfile = null;
+let activityChart = null;
+let planChart = null;
+let securityChart = null;
+
+async function init() {
+    await Promise.all([loadUserProfile(), loadSystems(), loadStatistics()]);
+
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'startLoading') {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        } else if (event.data.type === 'stopLoading') {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        } else if (event.data.type === 'systemSaved') {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            toggleCreateForm();
+            loadSystems();
+            loadStatistics();
+        } else if (event.data.type === 'closeModal') {
+            toggleCreateForm();
+        }
+    });
+}
+
+async function loadUserProfile() {
+    const res = await apiFetch('/user/profile');
+    if (res && res.ok) {
+        userProfile = await res.json();
+        updateUserUI();
+    }
+}
+
+function updateUserUI() {
+    if (!userProfile) return;
+
+    // Sidebar
+    const nameEl = document.getElementById('userName');
+    const emailEl = document.getElementById('userEmail');
+    const initialEl = document.getElementById('userInitial');
+
+    if (nameEl) nameEl.innerText = userProfile.name || 'Usuario';
+    if (emailEl) emailEl.innerText = userProfile.email || '...';
+    if (initialEl) initialEl.innerText = (userProfile.name || 'U').charAt(0).toUpperCase();
+
+    // Header element removed
+    // const headerEmailEl = document.getElementById('headerUserEmail');
+    // if (headerEmailEl) headerEmailEl.innerText = userProfile.email || userProfile.name || 'Usuario';
+
+    if (userProfile.avatarUrl) {
+        const avatarImg = document.getElementById('userAvatar');
+        if (avatarImg) {
+            avatarImg.src = userProfile.avatarUrl;
+            avatarImg.classList.remove('hidden');
+            if (initialEl) initialEl.classList.add('hidden');
+        }
+    }
+}
 
 async function loadSystems() {
     const res = await apiFetch('/systems');
-    if (res.ok) {
+    if (res && res.ok) {
         currentSystems = await res.json();
-        const container = document.getElementById('systemsList');
+        renderSystemsTable();
+        renderSystemsSlider();
+    }
+}
 
-        if (currentSystems.length === 0) {
-            container.innerHTML = `
-                <div class="col-12 text-center text-muted py-5">
-                    <i class="bi bi-box-seam display-1"></i>
-                    <p class="mt-3">No tienes sistemas creados aún.</p>
-                </div>
-            `;
-            return;
-        }
+function renderSystemsTable() {
+    const container = document.getElementById('systemsList');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (!container) return;
+    
+    if (currentSystems.length === 0) {
+        container.innerHTML = '';
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+    }
+    
+    if (emptyState) emptyState.classList.add('hidden');
+    
+    container.innerHTML = currentSystems.map(system => {
+        const createdDate = system.createdAt ? new Date(system.createdAt).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }) : 'N/A';
+        
+        const imageUrl = system.imageUrl || 'img/Isotipo modo claro.jpeg';
+        const securityIcon = system.securityMode === 'none' ? 'lock_open' : 
+                           system.securityMode === 'general' ? 'lock' : 'admin_panel_settings';
+        const securityColor = system.securityMode === 'none' ? 'text-gray-400' : 
+                             system.securityMode === 'general' ? 'text-yellow-400' : 'text-green-400';
+        
+        return `
+            <tr class="hover:bg-[#1a2634] transition-colors cursor-pointer" onclick="window.location.href='system.html?id=${system.id}'">
+                <td class="py-4 px-5">
+                    <div class="flex items-center justify-center">
+                        <img src="${imageUrl}" alt="${system.name}" 
+                             class="w-10 h-10 rounded-lg object-cover border border-gray-700"
+                             onerror="this.src='img/Isotipo modo claro.jpeg'">
+                    </div>
+                </td>
+                <td class="py-4 px-5">
+                    <div class="flex flex-col">
+                        <span class="text-white font-bold text-sm">${system.name || 'Sin nombre'}</span>
+                        <span class="text-gray-400 text-xs truncate max-w-xs">${system.description || 'Sin descripción'}</span>
+                    </div>
+                </td>
+                <td class="py-4 px-5 text-center">
+                    <div class="flex items-center justify-center gap-1">
+                        <span class="material-symbols-outlined text-gray-400 text-sm">group</span>
+                        <span class="text-white font-medium text-sm">${system.userCount || 1}</span>
+                    </div>
+                </td>
+                <td class="py-4 px-5">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined ${securityColor} text-sm">${securityIcon}</span>
+                        <span class="text-gray-400 text-xs">${createdDate}</span>
+                    </div>
+                </td>
+                <td class="py-4 px-5 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                        <button onclick="event.stopPropagation(); editSystem(${system.id})" 
+                                class="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                title="Editar">
+                            <span class="material-symbols-outlined text-sm">edit</span>
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteSystem(${system.id})" 
+                                class="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                                title="Eliminar">
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
 
-        container.innerHTML = currentSystems.map(sys => `
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body d-flex flex-column">
-                        <h3 class="card-title text-primary h4">${sys.name}</h3>
-                        <p class="card-text text-muted flex-grow-1">${sys.description || 'Sin descripción'}</p>
-                        <hr>
-                        <div class="d-flex gap-2">
-                            <a href="system.html?id=${sys.id}" class="btn btn-outline-primary flex-grow-1">
-                                <i class="bi bi-eye"></i> Ver
-                            </a>
-                            <button onclick="editSystem(${sys.id})" class="btn btn-outline-secondary" title="Editar">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button onclick="deleteSystem(${sys.id})" class="btn btn-outline-danger" title="Eliminar">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
+function renderSystemsSlider() {
+    const sliderContainer = document.getElementById('systemsSlider');
+    if (!sliderContainer || currentSystems.length === 0) return;
+    
+    sliderContainer.innerHTML = currentSystems.map((system, index) => {
+        const imageUrl = system.imageUrl || 'img/Isotipo modo claro.jpeg';
+        return `
+            <div class="system-slide min-w-[280px] bg-[#1a2634] rounded-xl p-4 border border-gray-800 hover:border-primary/50 transition-all cursor-pointer"
+                 onclick="window.location.href='system.html?id=${system.id}'">
+                <div class="flex items-center gap-3 mb-3">
+                    <img src="${imageUrl}" alt="${system.name}" 
+                         class="w-12 h-12 rounded-lg object-cover border border-gray-700"
+                         onerror="this.src='img/Isotipo modo claro.jpeg'">
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-white font-bold text-sm truncate">${system.name || 'Sin nombre'}</h4>
+                        <p class="text-gray-400 text-xs truncate">${system.description || 'Sin descripción'}</p>
                     </div>
                 </div>
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-gray-400">${system.userCount || 1} usuarios</span>
+                    <span class="text-primary font-medium">Ver detalles →</span>
+                </div>
             </div>
-        `).join('');
+        `;
+    }).join('');
+}
+
+async function editSystem(id) {
+    const system = currentSystems.find(s => s.id === id);
+    if (!system) return;
+    
+    const iframe = document.getElementById('systemFormFrame');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ 
+            type: 'editSystem', 
+            payload: system 
+        }, '*');
     }
-}
-
-function editSystem(id) {
-    const sys = currentSystems.find(s => s.id === id);
-    if (!sys) return;
-
-    editingSystemId = id;
-    document.getElementById('newSystemName').value = sys.name;
-    document.getElementById('newSystemDesc').value = sys.description || '';
-
-    document.getElementById('formTitle').innerHTML = '<i class="bi bi-pencil-square"></i> Editar Sistema';
-    document.getElementById('btnSave').innerHTML = '<i class="bi bi-check-lg"></i> Actualizar';
-    document.getElementById('btnCancel').style.display = 'inline-block';
-
-    document.getElementById('newSystemName').focus();
-}
-
-function cancelEdit() {
-    editingSystemId = null;
-    document.getElementById('newSystemName').value = '';
-    document.getElementById('newSystemDesc').value = '';
-
-    document.getElementById('formTitle').innerHTML = '<i class="bi bi-plus-circle-dotted"></i> Crear Nuevo Sistema';
-    document.getElementById('btnSave').innerHTML = '<i class="bi bi-check-lg"></i> Crear';
-    document.getElementById('btnCancel').style.display = 'none';
-}
-
-async function saveSystem() {
-    const name = document.getElementById('newSystemName').value;
-    const description = document.getElementById('newSystemDesc').value;
-    if (!name) return alert('El nombre es requerido');
-
-    const method = editingSystemId ? 'PUT' : 'POST';
-    const url = editingSystemId ? `/systems/${editingSystemId}` : '/systems';
-
-    const res = await apiFetch(url, {
-        method: method,
-        body: JSON.stringify({ name, description, securityMode: 'none' })
-    });
-
-    if (res.ok) {
-        cancelEdit();
-        loadSystems();
-    } else {
-        try {
-            const errorData = await res.json();
-            alert(errorData.message || errorData.error || 'Error al guardar sistema');
-        } catch (e) {
-            alert('Error al guardar sistema');
-        }
-    }
+    
+    document.getElementById('formTitle').textContent = 'Editar Sistema';
+    toggleCreateForm();
 }
 
 async function deleteSystem(id) {
-    if (!confirm('¿Estás seguro de eliminar este sistema? Se borrarán todas sus tablas y datos.')) return;
-
+    if (!confirm('¿Estás seguro de eliminar este sistema? Esta acción no se puede deshacer.')) {
+        return;
+    }
+    
     const res = await apiFetch(`/systems/${id}`, { method: 'DELETE' });
-    if (res.ok) {
+    if (res && res.ok) {
         loadSystems();
+        loadStatistics();
     } else {
-        alert('Error al eliminar sistema');
+        const errorData = await res.json();
+        alert(errorData.message || 'Error al eliminar sistema');
     }
 }
 
-loadSystems();
+async function loadStatistics() {
+    const res = await apiFetch('/systems/estadisticas');
+    if (res && res.ok) {
+        const stats = await res.json();
+
+        animateValue('statTotalSystems', 0, stats.totalSystems || 0, 1000);
+        animateValue('statTotalUsers', 0, stats.totalUsers || 0, 1000);
+        animateValue('statTotalRecords', 0, stats.totalRecords || 0, 1000);
+
+        // Calculate Secure Systems (General + Individual)
+        const totalSecure = (stats.securityGeneral || 0) + (stats.securityIndividual || 0);
+        animateValue('statSecureSystems', 0, totalSecure, 1000);
+
+        if (stats.planUsage) {
+            const usage = stats.planUsage;
+            const planNameEl = document.getElementById('statPlanName');
+            const planUsageEl = document.getElementById('statPlanUsage');
+
+            if (planNameEl) planNameEl.innerText = usage.planName || 'Básico';
+            if (planUsageEl) {
+                planUsageEl.innerText = usage.max === -1
+                    ? `${usage.current} / ∞ Usados`
+                    : `${usage.current} / ${usage.max} Usados`;
+            }
+
+            renderPlanChart(usage);
+        }
+
+        renderActivityChart(stats.activityLabels, stats.activityData);
+        renderSecurityChart(stats);
+    }
+}
+
+function renderSecurityChart(stats) {
+    const ctx = document.getElementById('securityChart');
+    if (!ctx) return;
+
+    if (securityChart) {
+        securityChart.destroy();
+    }
+
+    const secure = (stats.securityGeneral || 0) + (stats.securityIndividual || 0);
+    const notSecure = stats.securityNone || 0;
+
+    // If no data, show empty gray ring
+    if (secure === 0 && notSecure === 0) {
+        // Placeholder
+    }
+
+    securityChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Segura', 'Ninguna'],
+            datasets: [{
+                data: [secure, notSecure],
+                backgroundColor: ['#22c55e', '#ef4444'], // Green, Red
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: true }
+            }
+        }
+    });
+}
+
+function renderPlanChart(usage) {
+    const ctx = document.getElementById('planChart');
+    if (!ctx) return;
+
+    if (planChart) {
+        planChart.destroy();
+    }
+
+    const max = usage.max === -1 ? 100 : usage.max;
+    const current = usage.current;
+
+    // Green solid style
+    const data = usage.max === -1
+        ? [100, 0]
+        : [current, Math.max(0, max - current)];
+
+    planChart = new Chart(ctx, {
+        type: 'pie', // Changed to Pie or Doughnut with small cutout
+        data: {
+            labels: ['Usado', 'Disponible'],
+            datasets: [{
+                data: data,
+                backgroundColor: [
+                    '#22c55e', // Bright Green
+                    'rgba(255, 255, 255, 0.1)' // Faint
+                ],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            }
+        }
+    });
+}
+
+function renderActivityChart(labels, data) {
+    const ctx = document.getElementById('activityChart');
+    if (!ctx) return;
+
+    if (activityChart) {
+        activityChart.destroy();
+    }
+
+    const color = '#3b82f6';
+    const gridColor = 'rgba(255, 255, 255, 0.05)';
+
+    activityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels || ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'],
+            datasets: [{
+                label: 'Interacciones',
+                data: data || [0, 0, 0, 0, 0, 0, 0],
+                borderColor: color,
+                backgroundColor: (context) => {
+                    const bg = context.chart.ctx.createLinearGradient(0, 0, 0, 300);
+                    bg.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+                    bg.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                    return bg;
+                },
+                borderWidth: 2,
+                tension: 0.1, // Sharper lines as per image
+                pointRadius: 3,
+                pointBackgroundColor: '#151f2b',
+                pointBorderColor: color,
+                pointBorderWidth: 2,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: '#1e293b',
+                    titleColor: '#fff',
+                    bodyColor: '#94a3b8',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    padding: 10,
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor, drawBorder: false },
+                    ticks: { color: '#64748b', font: { size: 10 } }
+                },
+                x: {
+                    grid: { color: gridColor, drawBorder: false },
+                    ticks: { color: '#64748b', font: { size: 10 }, maxRotation: 0 }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'nearest',
+            },
+        }
+    });
+}
+
+function animateValue(id, start, end, duration) {
+    const obj = document.getElementById(id);
+    if (!obj) return;
+
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        obj.innerHTML = Math.floor(progress * (end - start) + start);
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
+function toggleCreateForm() {
+    const container = document.getElementById('createSystemContainer');
+    const isHidden = container.classList.contains('hidden');
+    const iframe = document.getElementById('systemFormFrame');
+
+    // Smooth fade logic could be here, but using simple class switch for now
+    if (isHidden) {
+        container.classList.remove('hidden');
+        if (!editingSystemId) {
+            iframe.contentWindow.postMessage({ type: 'resetForm' }, '*');
+        }
+    } else {
+        container.classList.add('hidden');
+        editingSystemId = null;
+        iframe.contentWindow.postMessage({ type: 'resetForm' }, '*');
+    }
+}
+
+// Global functions for potential external use or onclicks
+window.toggleCreateForm = toggleCreateForm;
+
+init();
