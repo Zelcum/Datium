@@ -109,6 +109,8 @@
             </div>
 
 
+
+
             <div
                 class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 backdrop-blur-md">
 
@@ -131,172 +133,191 @@
                 <button onclick="logout()"
                     class="flex items-center gap-2 w-full justify-center px-4 py-2.5 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl text-sm font-bold transition-all shadow-sm">
                     <span class="material-symbols-outlined text-lg">logout</span>
-                    <div class="flex flex-col gap-6">
-                        <div
-                            class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl flex flex-col items-center text-center">
-                            <div class="relative group cursor-pointer mb-4"
-                                onclick="document.getElementById('avatarInput').click()">
-                                <div id="pageUserAvatarContainer"
-                                    class="h-32 w-32 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-4xl shadow-lg ring-4 ring-white dark:ring-gray-800 overflow-hidden">
-                                    <span id="pageUserInitial">U</span>
-                                    <img id="pageUserAvatar" src="" class="h-full w-full object-cover hidden"
-                                        alt="Avatar">
-                                </div>
-                                <div
-                                    class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <span class="material-symbols-outlined text-white text-3xl">photo_camera</span>
-                                </div>
+                    Cerrar Sesión
+                </button>
+            </div>
+        </aside>
+
+        <main
+            class="flex-1 h-full overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark relative scroll-smooth p-4 md:p-6 w-full">
+
+            <!-- Mobile Header -->
+            <div class="flex items-center justify-between mb-6 md:hidden">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()"
+                        class="p-2 rounded-xl bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm">
+                        <span class="material-symbols-outlined">menu</span>
+                    </button>
+                    <span class="font-bold text-lg text-[#111418] dark:text-white">Perfil</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <img src="img/Isotipo modo claro.jpeg" class="h-8 w-auto dark:hidden" alt="Logo">
+                    <img src="img/Isotipo modo oscuro.jpeg" class="h-8 w-auto hidden dark:block" alt="Logo">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="flex flex-col gap-6">
+                    <div
+                        class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl flex flex-col items-center text-center">
+
+                        <div class="relative group cursor-pointer mb-4"
+                            onclick="document.getElementById('avatarInput').click()">
+                            <div id="pageUserAvatarContainer"
+                                class="h-32 w-32 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-4xl shadow-lg ring-4 ring-white dark:ring-gray-800 overflow-hidden">
+                                <span id="pageUserInitial">U</span>
+                                <img id="pageUserAvatar" src="" class="h-full w-full object-cover hidden" alt="Avatar">
                             </div>
-                            <input type="file" id="avatarInput" accept="image/*" class="hidden"
-                                onchange="handleAvatarChange(this)">
+                            <div
+                                class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span class="material-symbols-outlined text-white text-3xl">photo_camera</span>
+                            </div>
+                        </div>
+                        <input type="file" id="avatarInput" accept="image/*" class="hidden"
+                            onchange="handleAvatarChange(this)">
 
-                            <h2 id="profileNameDisplay" class="text-xl font-bold text-[#111418] dark:text-white">
-                                Cargando...</h2>
-                            <p id="profileEmailDisplay" class="text-sm text-gray-500 dark:text-gray-400 mb-4">...</p>
+                        <h2 id="profileNameDisplay" class="text-xl font-bold text-[#111418] dark:text-white">
+                            Cargando...</h2>
+                        <p id="profileEmailDisplay" class="text-sm text-gray-500 dark:text-gray-400 mb-4">...</p>
 
-                            <button onclick="document.getElementById('avatarInput').click()"
-                                class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                                Cambiar Foto
-                            </button>
+                        <button onclick="document.getElementById('avatarInput').click()"
+                            class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            Cambiar Foto
+                        </button>
+                    </div>
+
+                    <div
+                        class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl">
+                        <div class="flex items-center gap-2 mb-4 text-red-500">
+                            <span class="material-symbols-outlined">lock</span>
+                            <h3 class="font-bold">Seguridad</h3>
                         </div>
 
-                        <div
-                            class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl">
-                            <div class="flex items-center gap-2 mb-4 text-red-500">
-                                <span class="material-symbols-outlined">lock</span>
-                                <h3 class="font-bold">Seguridad</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Contraseña
+                                    Actual</label>
+                                <input type="password" id="currentPassword"
+                                    class="w-full px-3 py-2 rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-sm focus:ring-2 focus:ring-red-500/50 transition-all dark:text-white">
                             </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nueva
+                                    Contraseña</label>
+                                <input type="password" id="newPassword"
+                                    class="w-full px-3 py-2 rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-sm focus:ring-2 focus:ring-red-500/50 transition-all dark:text-white">
+                            </div>
+                            <button onclick="changePassword()"
+                                class="w-full py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-colors shadow-lg shadow-red-500/20">
+                                Actualizar Contraseña
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="space-y-4">
-                                <div>
-                                    <label
-                                        class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Contraseña
-                                        Actual</label>
-                                    <input type="password" id="currentPassword"
-                                        class="w-full px-3 py-2 rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-sm focus:ring-2 focus:ring-red-500/50 transition-all dark:text-white">
-                                </div>
-                                <div>
-                                    <label
-                                        class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nueva
-                                        Contraseña</label>
-                                    <input type="password" id="newPassword"
-                                        class="w-full px-3 py-2 rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-sm focus:ring-2 focus:ring-red-500/50 transition-all dark:text-white">
-                                </div>
-                                <button onclick="changePassword()"
-                                    class="w-full py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-colors shadow-lg shadow-red-500/20">
-                                    Actualizar Contraseña
-                                </button>
+                <div class="flex flex-col gap-6">
+                    <div
+                        class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl">
+                        <div class="flex items-center gap-2 mb-6 text-primary">
+                            <span class="material-symbols-outlined">person</span>
+                            <h3 class="font-bold">Información Personal</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre
+                                    Completo</label>
+                                <input type="text" id="profileName"
+                                    class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 font-medium focus:ring-2 focus:ring-primary/50 transition-all dark:text-white">
                             </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Correo
+                                    Electrónico</label>
+                                <input type="email" id="profileEmail" disabled
+                                    class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed font-medium">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button onclick="updateProfile()"
+                                class="px-6 py-2.5 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold transition-colors shadow-lg shadow-primary/30 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-lg">save</span>
+                                Guardar Cambios
+                            </button>
                         </div>
                     </div>
 
-                    <div class="flex flex-col gap-6">
-                        <div
-                            class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl">
-                            <div class="flex items-center gap-2 mb-6 text-primary">
-                                <span class="material-symbols-outlined">person</span>
-                                <h3 class="font-bold">Información Personal</h3>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label
-                                        class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre
-                                        Completo</label>
-                                    <input type="text" id="profileName"
-                                        class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 font-medium focus:ring-2 focus:ring-primary/50 transition-all dark:text-white">
-                                </div>
-                                <div>
-                                    <label
-                                        class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Correo
-                                        Electrónico</label>
-                                    <input type="email" id="profileEmail" disabled
-                                        class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed font-medium">
-                                </div>
-                            </div>
-
-                            <div class="flex justify-end">
-                                <button onclick="updateProfile()"
-                                    class="px-6 py-2.5 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold transition-colors shadow-lg shadow-primary/30 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-lg">save</span>
-                                    Guardar Cambios
-                                </button>
-                            </div>
+                    <div
+                        class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl flex-1">
+                        <div class="flex items-center gap-2 mb-6 text-green-500">
+                            <span class="material-symbols-outlined">credit_card</span>
+                            <h3 class="font-bold">Mi Plan</h3>
                         </div>
 
                         <div
-                            class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl flex-1">
-                            <div class="flex items-center gap-2 mb-6 text-green-500">
-                                <span class="material-symbols-outlined">credit_card</span>
-                                <h3 class="font-bold">Mi Plan</h3>
+                            class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center gap-3 mb-6">
+                            <span class="material-symbols-outlined text-primary">info</span>
+                            <div class="text-sm">
+                                <span class="text-gray-600 dark:text-gray-300">Plan Actual:</span>
+                                <strong id="currentPlanName"
+                                    class="text-[#111418] dark:text-white ml-1">Cargando...</strong>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div
+                                class="p-4 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-primary transition-all group">
+                                <h4 class="font-bold text-gray-400 group-hover:text-primary transition-colors">Free
+                                </h4>
+                                <div class="text-2xl font-black text-[#111418] dark:text-white my-2">$0</div>
+                                <ul class="text-xs text-gray-500 dark:text-gray-400 space-y-1 mb-4">
+                                    <li>• 1 Sistema</li>
+                                    <li>• 3 Tablas por sistema</li>
+                                </ul>
+                                <button onclick="changePlan(1)"
+                                    class="w-full py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold text-sm transition-colors">
+                                    Seleccionar
+                                </button>
+                            </div>
+
+                            <div class="p-4 rounded-2xl border-2 border-primary bg-primary/5 relative overflow-hidden">
+                                <div
+                                    class="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
+                                    POPULAR</div>
+                                <h4 class="font-bold text-primary">Pro</h4>
+                                <div class="text-2xl font-black text-[#111418] dark:text-white my-2">$10<span
+                                        class="text-sm font-normal text-gray-500">/mes</span></div>
+                                <ul class="text-xs text-gray-500 dark:text-gray-400 space-y-1 mb-4">
+                                    <li>• 5 Sistemas</li>
+                                    <li>• 10 Tablas por sistema</li>
+                                </ul>
+                                <button onclick="changePlan(2)"
+                                    class="w-full py-2 rounded-lg bg-primary hover:bg-blue-600 text-white font-bold text-sm transition-colors shadow-lg shadow-primary/20">
+                                    Seleccionar
+                                </button>
                             </div>
 
                             <div
-                                class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center gap-3 mb-6">
-                                <span class="material-symbols-outlined text-primary">info</span>
-                                <div class="text-sm">
-                                    <span class="text-gray-600 dark:text-gray-300">Plan Actual:</span>
-                                    <strong id="currentPlanName"
-                                        class="text-[#111418] dark:text-white ml-1">Cargando...</strong>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div
-                                    class="p-4 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-primary transition-all group">
-                                    <h4 class="font-bold text-gray-400 group-hover:text-primary transition-colors">Free
-                                    </h4>
-                                    <div class="text-2xl font-black text-[#111418] dark:text-white my-2">$0</div>
-                                    <ul class="text-xs text-gray-500 dark:text-gray-400 space-y-1 mb-4">
-                                        <li>• 1 Sistema</li>
-                                        <li>• 3 Tablas por sistema</li>
-                                    </ul>
-                                    <button onclick="changePlan(1)"
-                                        class="w-full py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold text-sm transition-colors">
-                                        Seleccionar
-                                    </button>
-                                </div>
-
-                                <div
-                                    class="p-4 rounded-2xl border-2 border-primary bg-primary/5 relative overflow-hidden">
-                                    <div
-                                        class="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
-                                        POPULAR</div>
-                                    <h4 class="font-bold text-primary">Pro</h4>
-                                    <div class="text-2xl font-black text-[#111418] dark:text-white my-2">$10<span
-                                            class="text-sm font-normal text-gray-500">/mes</span></div>
-                                    <ul class="text-xs text-gray-500 dark:text-gray-400 space-y-1 mb-4">
-                                        <li>• 5 Sistemas</li>
-                                        <li>• 10 Tablas por sistema</li>
-                                    </ul>
-                                    <button onclick="changePlan(2)"
-                                        class="w-full py-2 rounded-lg bg-primary hover:bg-blue-600 text-white font-bold text-sm transition-colors shadow-lg shadow-primary/20">
-                                        Seleccionar
-                                    </button>
-                                </div>
-
-                                <div
-                                    class="p-4 rounded-2xl border border-gray-900 dark:border-gray-600 bg-gray-900 dark:bg-black/40 text-white">
-                                    <h4 class="font-bold text-gray-300">Corporate</h4>
-                                    <div class="text-2xl font-black text-white my-2">$50<span
-                                            class="text-sm font-normal text-gray-500">/mes</span></div>
-                                    <ul class="text-xs text-gray-400 space-y-1 mb-4">
-                                        <li>• Sistemas Ilimitados</li>
-                                        <li>• Tablas Ilimitadas</li>
-                                    </ul>
-                                    <button onclick="changePlan(3)"
-                                        class="w-full py-2 rounded-lg bg-white text-black hover:bg-gray-100 font-bold text-sm transition-colors">
-                                        Seleccionar
-                                    </button>
-                                </div>
+                                class="p-4 rounded-2xl border border-gray-900 dark:border-gray-600 bg-gray-900 dark:bg-black/40 text-white">
+                                <h4 class="font-bold text-gray-300">Corporate</h4>
+                                <div class="text-2xl font-black text-white my-2">$50<span
+                                        class="text-sm font-normal text-gray-500">/mes</span></div>
+                                <ul class="text-xs text-gray-400 space-y-1 mb-4">
+                                    <li>• Sistemas Ilimitados</li>
+                                    <li>• Tablas Ilimitadas</li>
+                                </ul>
+                                <button onclick="changePlan(3)"
+                                    class="w-full py-2 rounded-lg bg-white text-black hover:bg-gray-100 font-bold text-sm transition-colors">
+                                    Seleccionar
+                                </button>
                             </div>
                         </div>
                     </div>
+                </div>
             </div>
+        </main>
+    </div>
 
-    </div>
-    </main>
-    </div>
 
     <script src="js/auth.js"></script>
     <script src="js/app.js"></script>
