@@ -60,6 +60,9 @@ public class SystemDataService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private AuditService auditService;
+
     private boolean hasPermission(Integer systemId, Integer userId, String action) {
         com.Datium.Datium.entity.System system = systemRepository.findById(systemId)
             .orElseThrow(() -> new RuntimeException("Sistema no encontrado"));
@@ -277,19 +280,20 @@ public class SystemDataService {
         record.setCreatedBy(userId);
         record = systemRecordRepository.save(record);
         
-        if (request.getFieldValues() != null) {
-            for (Map.Entry<String, String> entry : request.getFieldValues().entrySet()) {
-                Integer fieldId = fieldNameToId.get(entry.getKey());
-                if (fieldId != null) {
-                    SystemRecordValue value = new SystemRecordValue();
-                    value.setRecordId(record.getId());
-                    value.setFieldId(fieldId);
-                    value.setValue(entry.getValue());
-                    systemRecordValueRepository.save(value);
-                }
+        if (request.getValues() != null) {
+            for (Map.Entry<Integer, Object> entry : request.getValues().entrySet()) {
+                Integer fieldId = entry.getKey();
+                Object valueObj = entry.getValue();
+                String value = valueObj != null ? valueObj.toString() : null;
+
+                SystemRecordValue recordValue = new SystemRecordValue();
+                recordValue.setRecordId(record.getId());
+                recordValue.setFieldId(fieldId);
+                recordValue.setValue(value);
+                systemRecordValueRepository.save(recordValue);
             }
         }
-        
+        auditService.log(systemId, userId, "Crear Registro", "Nuevo registro en ID " + record.getId(), null);
         return convertToRecordResponse(record, systemId);
     }
 
@@ -332,7 +336,7 @@ public class SystemDataService {
                 }
             }
         }
-        
+        auditService.log(systemId, userId, "Actualizar Registro", "Actualizado registro ID " + recordId, null);
         return convertToRecordResponse(record, systemId);
     }
 
@@ -557,6 +561,7 @@ public class SystemDataService {
         
         systemRecordValueRepository.deleteByRecordId(recordId);
         systemRecordRepository.delete(record);
+        auditService.log(systemId, userId, "Eliminar Registro", "Eliminado registro ID " + recordId + " de tabla " + record.getTableId(), null);
     }
 
     private SystemRecordResponse convertToRecordResponse(SystemRecord record) {

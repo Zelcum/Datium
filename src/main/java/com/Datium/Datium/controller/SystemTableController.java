@@ -48,8 +48,8 @@ public class SystemTableController {
     @PutMapping("/tables/{tableId}/move")
     public ResponseEntity<?> moveTable(@PathVariable Integer tableId, @RequestParam Integer targetSystemId, @RequestHeader("Authorization") String token) {
         Integer userId = validateToken(token);
-        tableService.moveTable(tableId, targetSystemId, userId);
-        return ResponseEntity.ok().body("{\"message\": \"Tabla movida exitosamente\"}");
+        tableService.copyTable(tableId, targetSystemId, userId);
+        return ResponseEntity.ok().body("{\"message\": \"Tabla copiada exitosamente\"}");
     }
 
     private Integer validateToken(String token) {

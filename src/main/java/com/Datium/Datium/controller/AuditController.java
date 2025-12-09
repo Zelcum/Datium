@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/auditoria/sistema/{systemId}")
+@RequestMapping("/api/auditoria")
 @CrossOrigin(origins = "*")
 public class AuditController {
 
@@ -36,6 +36,12 @@ public class AuditController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private com.Datium.Datium.repository.SystemRepository systemRepository;
+
+    @Autowired
+    private com.Datium.Datium.repository.SystemShareRepository systemShareRepository;
 
     private Integer getUserIdFromToken(String token) {
         if (token == null) return null;
@@ -54,8 +60,27 @@ public class AuditController {
         }
     }
 
+    private List<Integer> getUserSystemIds(Integer userId) {
+        List<Integer> ids = new ArrayList<>();
+        // Owned
+        List<com.Datium.Datium.entity.System> owned = systemRepository.findByOwnerId(userId);
+        for(com.Datium.Datium.entity.System s : owned) ids.add(s.getId());
+        
+        // Shared
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+             List<com.Datium.Datium.entity.SystemShare> shared = systemShareRepository.findByUserEmail(user.getEmail());
+             for(com.Datium.Datium.entity.SystemShare share : shared) {
+                 ids.add(share.getSystemId());
+             }
+        }
+        return ids;
+    }
+
     private List<Map<String, Object>> convertAuditLogsToResponse(List<AuditLog> logs) {
         List<Map<String, Object>> result = new ArrayList<>();
+        Map<Integer, String> systemNames = new HashMap<>(); // Cache system names if needed, or query
+
         for (AuditLog log : logs) {
             Map<String, Object> logMap = new HashMap<>();
             logMap.put("id", log.getId());
@@ -65,6 +90,12 @@ public class AuditController {
             logMap.put("details", log.getDetails());
             logMap.put("ip", log.getIp());
             logMap.put("createdAt", log.getCreatedAt());
+
+            // Add System Name
+            if (!systemNames.containsKey(log.getSystemId())) {
+                 systemRepository.findById(log.getSystemId()).ifPresent(s -> systemNames.put(s.getId(), s.getName()));
+            }
+            logMap.put("systemName", systemNames.getOrDefault(log.getSystemId(), "Sistema " + log.getSystemId()));
 
             if (log.getUserId() != null) {
                 Optional<User> userOpt = userRepository.findById(log.getUserId());
@@ -87,6 +118,8 @@ public class AuditController {
 
     private List<Map<String, Object>> convertSecurityAuditsToResponse(List<SecurityAudit> audits) {
         List<Map<String, Object>> result = new ArrayList<>();
+         Map<Integer, String> systemNames = new HashMap<>();
+
         for (SecurityAudit audit : audits) {
             Map<String, Object> auditMap = new HashMap<>();
             auditMap.put("id", audit.getId());
@@ -96,6 +129,11 @@ public class AuditController {
             auditMap.put("event", audit.getEvent());
             auditMap.put("details", audit.getDetails());
             auditMap.put("createdAt", audit.getCreatedAt());
+
+            if (!systemNames.containsKey(audit.getSystemId())) {
+                 systemRepository.findById(audit.getSystemId()).ifPresent(s -> systemNames.put(s.getId(), s.getName()));
+            }
+            auditMap.put("systemName", systemNames.getOrDefault(audit.getSystemId(), "Sistema " + audit.getSystemId()));
 
             if (audit.getUserId() != null) {
                 Optional<User> userOpt = userRepository.findById(audit.getUserId());
@@ -116,15 +154,15 @@ public class AuditController {
         return result;
     }
 
-    @GetMapping("/logs")
+    // --- Specific System Endpoints ---
+
+    @GetMapping("/sistema/{systemId}/logs")
     public ResponseEntity<?> getAuditLogs(
             @PathVariable Integer systemId,
             @RequestHeader(value = "Authorization", required = false) String token) {
         try {
             Integer userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
             List<AuditLog> auditLogs = auditLogRepository.findBySystemIdOrderByCreatedAtDesc(systemId);
             return ResponseEntity.ok(convertAuditLogsToResponse(auditLogs));
@@ -134,16 +172,14 @@ public class AuditController {
         }
     }
 
-    @GetMapping("/logs/buscar")
+    @GetMapping("/sistema/{systemId}/logs/buscar")
     public ResponseEntity<?> searchAuditLogs(
             @PathVariable Integer systemId,
             @RequestParam String search,
             @RequestHeader(value = "Authorization", required = false) String token) {
         try {
             Integer userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
             List<AuditLog> auditLogs = auditLogRepository.searchBySystemId(systemId, search);
             return ResponseEntity.ok(convertAuditLogsToResponse(auditLogs));
@@ -153,7 +189,7 @@ public class AuditController {
         }
     }
 
-    @GetMapping("/logs/filtrar")
+    @GetMapping("/sistema/{systemId}/logs/filtrar")
     public ResponseEntity<?> filterAuditLogs(
             @PathVariable Integer systemId,
             @RequestParam(required = false) String search,
@@ -163,17 +199,12 @@ public class AuditController {
             @RequestHeader(value = "Authorization", required = false) String token) {
         try {
             Integer requesterId = getUserIdFromToken(token);
-            if (requesterId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            if (requesterId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-            LocalDateTime from = dateFrom != null && !dateFrom.isEmpty() 
-                ? LocalDateTime.parse(dateFrom + "T00:00:00") : null;
-            LocalDateTime to = dateTo != null && !dateTo.isEmpty() 
-                ? LocalDateTime.parse(dateTo + "T23:59:59") : null;
+            LocalDateTime from = dateFrom != null && !dateFrom.isEmpty() ? LocalDateTime.parse(dateFrom + "T00:00:00") : null;
+            LocalDateTime to = dateTo != null && !dateTo.isEmpty() ? LocalDateTime.parse(dateTo + "T23:59:59") : null;
 
-            List<AuditLog> auditLogs = auditLogRepository.filterBySystemId(
-                systemId, search, from, to, userId);
+            List<AuditLog> auditLogs = auditLogRepository.filterBySystemId(systemId, search, from, to, userId);
             return ResponseEntity.ok(convertAuditLogsToResponse(auditLogs));
         } catch (Exception e) {
             e.printStackTrace();
@@ -181,15 +212,13 @@ public class AuditController {
         }
     }
 
-    @GetMapping("/seguridad")
+    @GetMapping("/sistema/{systemId}/seguridad")
     public ResponseEntity<?> getSecurityAudit(
             @PathVariable Integer systemId,
             @RequestHeader(value = "Authorization", required = false) String token) {
         try {
             Integer userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
             List<SecurityAudit> securityAudits = securityAuditRepository.findBySystemIdOrderByCreatedAtDesc(systemId);
             return ResponseEntity.ok(convertSecurityAuditsToResponse(securityAudits));
@@ -199,16 +228,14 @@ public class AuditController {
         }
     }
 
-    @GetMapping("/seguridad/buscar")
+    @GetMapping("/sistema/{systemId}/seguridad/buscar")
     public ResponseEntity<?> searchSecurityAudit(
             @PathVariable Integer systemId,
             @RequestParam String search,
             @RequestHeader(value = "Authorization", required = false) String token) {
         try {
             Integer userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
             List<SecurityAudit> securityAudits = securityAuditRepository.searchBySystemId(systemId, search);
             return ResponseEntity.ok(convertSecurityAuditsToResponse(securityAudits));
@@ -218,7 +245,7 @@ public class AuditController {
         }
     }
 
-    @GetMapping("/seguridad/filtrar")
+    @GetMapping("/sistema/{systemId}/seguridad/filtrar")
     public ResponseEntity<?> filterSecurityAudit(
             @PathVariable Integer systemId,
             @RequestParam(required = false) String search,
@@ -229,24 +256,18 @@ public class AuditController {
             @RequestHeader(value = "Authorization", required = false) String token) {
         try {
             Integer requesterId = getUserIdFromToken(token);
-            if (requesterId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            if (requesterId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-            LocalDateTime from = dateFrom != null && !dateFrom.isEmpty() 
-                ? LocalDateTime.parse(dateFrom + "T00:00:00") : null;
-            LocalDateTime to = dateTo != null && !dateTo.isEmpty() 
-                ? LocalDateTime.parse(dateTo + "T23:59:59") : null;
+            LocalDateTime from = dateFrom != null && !dateFrom.isEmpty() ? LocalDateTime.parse(dateFrom + "T00:00:00") : null;
+            LocalDateTime to = dateTo != null && !dateTo.isEmpty() ? LocalDateTime.parse(dateTo + "T23:59:59") : null;
             SecurityAudit.Severity severityEnum = null;
             if (severity != null && !severity.isEmpty()) {
                 try {
                     severityEnum = SecurityAudit.Severity.valueOf(severity.toLowerCase());
-                } catch (IllegalArgumentException e) {
-                }
+                } catch (IllegalArgumentException e) {}
             }
 
-            List<SecurityAudit> securityAudits = securityAuditRepository.filterBySystemId(
-                systemId, search, from, to, userId, severityEnum);
+            List<SecurityAudit> securityAudits = securityAuditRepository.filterBySystemId(systemId, search, from, to, userId, severityEnum);
             return ResponseEntity.ok(convertSecurityAuditsToResponse(securityAudits));
         } catch (Exception e) {
             e.printStackTrace();
@@ -254,7 +275,132 @@ public class AuditController {
         }
     }
 
-    @GetMapping("/estadisticas")
+    // --- Global Endpoints ---
+
+    @GetMapping("/logs")
+    public ResponseEntity<?> getAllAuditLogs(@RequestHeader(value = "Authorization", required = false) String token) {
+        try {
+            Integer userId = getUserIdFromToken(token);
+            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            List<Integer> systemIds = getUserSystemIds(userId);
+            if (systemIds.isEmpty()) return ResponseEntity.ok(new ArrayList<>());
+
+            List<AuditLog> auditLogs = auditLogRepository.findBySystemIdInOrderByCreatedAtDesc(systemIds);
+            return ResponseEntity.ok(convertAuditLogsToResponse(auditLogs));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/logs/buscar")
+    public ResponseEntity<?> searchAllAuditLogs(
+            @RequestParam String search,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        try {
+            Integer userId = getUserIdFromToken(token);
+            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            List<Integer> systemIds = getUserSystemIds(userId);
+            if (systemIds.isEmpty()) return ResponseEntity.ok(new ArrayList<>());
+
+            List<AuditLog> auditLogs = auditLogRepository.searchBySystemIdIn(systemIds, search);
+            return ResponseEntity.ok(convertAuditLogsToResponse(auditLogs));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/logs/filtrar")
+    public ResponseEntity<?> filterAllAuditLogs(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) Integer userId,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        try {
+            Integer requesterId = getUserIdFromToken(token);
+            if (requesterId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            List<Integer> systemIds = getUserSystemIds(requesterId);
+            if (systemIds.isEmpty()) return ResponseEntity.ok(new ArrayList<>());
+            
+            LocalDateTime from = dateFrom != null && !dateFrom.isEmpty() ? LocalDateTime.parse(dateFrom + "T00:00:00") : null;
+            LocalDateTime to = dateTo != null && !dateTo.isEmpty() ? LocalDateTime.parse(dateTo + "T23:59:59") : null;
+
+            List<AuditLog> auditLogs = auditLogRepository.filterBySystemIdIn(systemIds, search, from, to, userId);
+            return ResponseEntity.ok(convertAuditLogsToResponse(auditLogs));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/seguridad")
+    public ResponseEntity<?> getAllSecurityAudits(@RequestHeader(value = "Authorization", required = false) String token) {
+        try {
+            Integer userId = getUserIdFromToken(token);
+            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            List<Integer> systemIds = getUserSystemIds(userId);
+            if (systemIds.isEmpty()) return ResponseEntity.ok(new ArrayList<>());
+
+            List<SecurityAudit> securityAudits = securityAuditRepository.findBySystemIdInOrderByCreatedAtDesc(systemIds);
+            return ResponseEntity.ok(convertSecurityAuditsToResponse(securityAudits));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/seguridad/buscar")
+    public ResponseEntity<?> searchAllSecurityAudits(
+            @RequestParam String search,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        try {
+            Integer userId = getUserIdFromToken(token);
+            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            List<Integer> systemIds = getUserSystemIds(userId);
+             if (systemIds.isEmpty()) return ResponseEntity.ok(new ArrayList<>());
+
+            List<SecurityAudit> securityAudits = securityAuditRepository.searchBySystemIdIn(systemIds, search);
+            return ResponseEntity.ok(convertSecurityAuditsToResponse(securityAudits));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/seguridad/filtrar")
+    public ResponseEntity<?> filterAllSecurityAudits(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) Integer userId,
+            @RequestParam(required = false) String severity,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        try {
+            Integer requesterId = getUserIdFromToken(token);
+            if (requesterId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            List<Integer> systemIds = getUserSystemIds(requesterId);
+             if (systemIds.isEmpty()) return ResponseEntity.ok(new ArrayList<>());
+            
+            LocalDateTime from = dateFrom != null && !dateFrom.isEmpty() ? LocalDateTime.parse(dateFrom + "T00:00:00") : null;
+            LocalDateTime to = dateTo != null && !dateTo.isEmpty() ? LocalDateTime.parse(dateTo + "T23:59:59") : null;
+            SecurityAudit.Severity severityEnum = null;
+            if (severity != null && !severity.isEmpty()) {
+                try {
+                    severityEnum = SecurityAudit.Severity.valueOf(severity.toLowerCase());
+                } catch (IllegalArgumentException e) {}
+            }
+
+            List<SecurityAudit> securityAudits = securityAuditRepository.filterBySystemIdIn(systemIds, search, from, to, userId, severityEnum);
+            return ResponseEntity.ok(convertSecurityAuditsToResponse(securityAudits));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/sistema/{systemId}/estadisticas")
     public ResponseEntity<?> getStatistics(
             @PathVariable Integer systemId,
             @RequestHeader(value = "Authorization", required = false) String token) {
@@ -280,33 +426,14 @@ public class AuditController {
         }
     }
 
-    public static class AuditExportRequest {
-        private String type;
-        private List<Map<String, Object>> data;
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public List<Map<String, Object>> getData() {
-            return data;
-        }
-
-        public void setData(List<Map<String, Object>> data) {
-            this.data = data;
-        }
-    }
-
-    @PostMapping("/exportar")
+    // Export remains mostly same but adjusted for URL if we want global export? User didn't ask explicitly but good to keep system specific export
+    @PostMapping("/sistema/{systemId}/exportar")
     public ResponseEntity<?> exportAuditData(
             @PathVariable Integer systemId,
             @RequestBody AuditExportRequest request,
             @RequestParam String format,
             @RequestHeader(value = "Authorization", required = false) String token) {
+             // ... existing export implementation logic ...
         try {
             Integer userId = getUserIdFromToken(token);
             if (userId == null) {
@@ -362,10 +489,11 @@ public class AuditController {
         }
     }
 
-    @GetMapping("/usuarios")
+    @GetMapping("/sistema/{systemId}/usuarios")
     public ResponseEntity<?> getUsers(
             @PathVariable Integer systemId,
             @RequestHeader(value = "Authorization", required = false) String token) {
+             // ... existing getUsers logic ...
         try {
             Integer userId = getUserIdFromToken(token);
             if (userId == null) {

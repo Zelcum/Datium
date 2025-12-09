@@ -557,16 +557,12 @@ async function sendInvitation() {
         return;
     }
 
-    // Usar showLoading si está disponible en app.js o un estado local button loading
-    const btn = document.querySelector('#invitationModal button[onclick="sendInvitation()"]');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-lg">refresh</span> Enviando...';
+    showLoading('Enviando invitación...');
 
     try {
         const res = await apiFetch(`/systems/${currentInvitationSystemId}/invite`, {
             method: 'POST',
-            body: JSON.stringify({ email: email, permission: 'VIEWER' }) // Por defecto VIEWER, o agregar selector en UI
+            body: JSON.stringify({ email: email, permission: 'EDITOR' }) // Default to EDITOR for full access
         });
 
         if (res.ok) {
@@ -579,9 +575,6 @@ async function sendInvitation() {
         }
     } catch (e) {
         showError('Error de conexión');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
     }
 }
 

@@ -196,6 +196,8 @@ async function saveRecord() {
         ? `/tables/${tableId}/records/${editingRecordId}`
         : `/tables/${tableId}/records`;
 
+    showLoading(editingRecordId ? 'Actualizando registro...' : 'Guardando registro...');
+
     const res = await apiFetch(url, {
         method: method,
         body: JSON.stringify({ values: fieldValues })

@@ -37,6 +37,30 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Integer> {
 
     @Query("SELECT COUNT(a) FROM AuditLog a WHERE a.systemId = :systemId")
     Long countBySystemId(@Param("systemId") Integer systemId);
+
+    List<AuditLog> findBySystemIdInOrderByCreatedAtDesc(List<Integer> systemIds);
+
+    @Query("SELECT a FROM AuditLog a WHERE a.systemId IN :systemIds AND " +
+           "(LOWER(a.action) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(a.details) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(a.ip) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "ORDER BY a.createdAt DESC")
+    List<AuditLog> searchBySystemIdIn(@Param("systemIds") List<Integer> systemIds, @Param("search") String search);
+
+    @Query("SELECT a FROM AuditLog a WHERE a.systemId IN :systemIds " +
+           "AND (:search IS NULL OR :search = '' OR " +
+           "LOWER(a.action) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(a.details) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(a.ip) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:dateFrom IS NULL OR a.createdAt >= :dateFrom) " +
+           "AND (:dateTo IS NULL OR a.createdAt <= :dateTo) " +
+           "AND (:userId IS NULL OR a.userId = :userId) " +
+           "ORDER BY a.createdAt DESC")
+    List<AuditLog> filterBySystemIdIn(@Param("systemIds") List<Integer> systemIds,
+                                     @Param("search") String search,
+                                     @Param("dateFrom") LocalDateTime dateFrom,
+                                     @Param("dateTo") LocalDateTime dateTo,
+                                     @Param("userId") Integer userId);
 }
 
 

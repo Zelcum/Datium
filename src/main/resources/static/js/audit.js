@@ -12,16 +12,21 @@ async function loadSystems() {
         if (res.ok) {
             const systems = await res.json();
             const select = document.getElementById('auditSystemSelect');
-            select.innerHTML = '<option value="">Seleccionar Sistema...</option>';
+            select.innerHTML = '<option value="-1">Todos los sistemas</option>'; // Default "Todos"
             systems.forEach(sys => {
                 select.innerHTML += `<option value="${sys.id}">${sys.name}</option>`;
             });
 
-            // If only one system, select it automatically
-            if (systems.length === 1) {
-                select.value = systems[0].id;
-                onSystemSelectChange();
+            // Check URL param
+            const urlParams = new URLSearchParams(window.location.search);
+            const systemIdParam = urlParams.get('systemId');
+
+            if (systemIdParam) {
+                select.value = systemIdParam;
             }
+
+            // Allow default selection (which is -1) to trigger load
+            onSystemSelectChange();
         }
     } catch (e) {
         console.error(e);
@@ -48,7 +53,7 @@ async function loadSystemUsers() {
 
     userSelect.innerHTML = '<option value="">Todos</option>';
 
-    if (!systemId) return;
+    if (!systemId || systemId === '-1') return; // Cannot load users for "all systems" easily yet, or we could implement a global users endpoint
 
     try {
         const res = await apiFetch(`/auditoria/sistema/${systemId}/usuarios`);
@@ -73,7 +78,9 @@ async function loadAuditLogs() {
 
     const container = document.getElementById('logsContainer');
 
+    // Remove "select system" check since we default to "All" (value -1)
     if (!systemId) {
+        // Technically shouldn't happen if we default to -1, but if empty option is selected
         container.innerHTML = `
             <div class="p-8 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center gap-3">
                  <span class="material-symbols-outlined text-4xl opacity-50">search</span>
@@ -97,10 +104,20 @@ async function loadAuditLogs() {
         if (userId) queryParams.append('userId', userId);
 
         let endpoint = '';
-        if (type === 'security') {
-            endpoint = `/auditoria/sistema/${systemId}/seguridad/filtrar?${queryParams.toString()}`;
+        if (systemId === '-1') {
+            // Global
+            if (type === 'security') {
+                endpoint = `/auditoria/seguridad/filtrar?${queryParams.toString()}`;
+            } else {
+                endpoint = `/auditoria/logs/filtrar?${queryParams.toString()}`;
+            }
         } else {
-            endpoint = `/auditoria/sistema/${systemId}/logs/filtrar?${queryParams.toString()}`;
+            // Specific System
+            if (type === 'security') {
+                endpoint = `/auditoria/sistema/${systemId}/seguridad/filtrar?${queryParams.toString()}`;
+            } else {
+                endpoint = `/auditoria/sistema/${systemId}/logs/filtrar?${queryParams.toString()}`;
+            }
         }
 
         const res = await apiFetch(endpoint);
@@ -143,7 +160,10 @@ function renderLogs(logs, type) {
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex justify-between items-start">
-                            <h4 class="font-bold text-sm text-[#111418] dark:text-white">${log.event}</h4>
+                             <div class="flex items-center gap-2">
+                                <span class="px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-xs font-mono text-gray-500">${log.systemName || 'Sistema'}</span>
+                                <h4 class="font-bold text-sm text-[#111418] dark:text-white">${log.event}</h4>
+                            </div>
                             <span class="text-xs text-gray-400 whitespace-nowrap ml-2">${date}</span>
                         </div>
                         <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">${log.details || ''}</p>
@@ -165,7 +185,10 @@ function renderLogs(logs, type) {
                     </div>
                     <div class="flex-1 min-w-0">
                          <div class="flex justify-between items-start">
-                            <h4 class="font-bold text-sm text-[#111418] dark:text-white">${log.action}</h4>
+                             <div class="flex items-center gap-2">
+                                <span class="px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-xs font-mono text-gray-500">${log.systemName || 'Sistema'}</span>
+                                <h4 class="font-bold text-sm text-[#111418] dark:text-white">${log.action}</h4>
+                            </div>
                             <span class="text-xs text-gray-400 whitespace-nowrap ml-2">${date}</span>
                         </div>
                          <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">${log.details || ''}</p>
