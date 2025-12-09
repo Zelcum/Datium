@@ -48,16 +48,24 @@ function redirigirAIndex() {
 }
 
 function inicializarTema() {
-    const temaGuardado = localStorage.getItem('tema') || 'dark';
-    document.documentElement.classList.toggle('dark', temaGuardado === 'dark');
+    const theme = localStorage.getItem('theme');
+    if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
     actualizarIconoTema();
 }
 
 function toggleTema() {
     const html = document.documentElement;
-    html.classList.toggle('dark');
-    const temaActual = html.classList.contains('dark') ? 'dark' : 'light';
-    localStorage.setItem('tema', temaActual);
+    if (html.classList.contains('dark')) {
+        html.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+    } else {
+        html.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+    }
     actualizarIconoTema();
 }
 
@@ -103,44 +111,6 @@ function cerrarSesion() {
     redirigirALogin();
 }
 
-function showLoadingScreen() {
-    const loadingHTML = `
-        <div class="loading-overlay active" id="loading-overlay">
-            <div class="loading-content">
-                <img src="img/Datium logo modo claro.jpeg" alt="Datium" class="loading-logo block dark:hidden" />
-                <img src="img/Datium logo modo oscuro.jpeg" alt="Datium" class="loading-logo hidden dark:block" />
-                <div id="loading-spinner-container">
-                    <div class="loading-spinner" id="loading-spinner"></div>
-                    <div class="checkmark" id="checkmark"></div>
-                </div>
-                <p class="loading-text" id="loading-text">Iniciando sesión...</p>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', loadingHTML);
-}
-
-function showLoadingSuccess() {
-    const spinner = document.getElementById('loading-spinner');
-    const checkmark = document.getElementById('checkmark');
-    const loadingText = document.getElementById('loading-text');
-
-    if (spinner) spinner.style.display = 'none';
-    if (checkmark) checkmark.classList.add('show');
-    if (loadingText) {
-        loadingText.textContent = '¡Bienvenido!';
-        loadingText.classList.add('success-text');
-    }
-}
-
-function hideLoadingScreen() {
-    const overlay = document.getElementById('loading-overlay');
-    if (overlay) {
-        overlay.classList.remove('active');
-        setTimeout(() => overlay.remove(), 300);
-    }
-}
-
 async function login() {
     const emailInput = document.getElementById('login-email');
     const passwordInput = document.getElementById('login-password');
@@ -154,11 +124,11 @@ async function login() {
     const password = passwordInput.value;
 
     if (!email || !password) {
-        alert('Por favor completa todos los campos');
+        showError('Por favor completa todos los campos');
         return;
     }
 
-    showLoadingScreen();
+    showLoading('Iniciando sesión...');
 
     try {
         const response = await fetch(API_URL + '/autenticacion/login', {
@@ -171,8 +141,7 @@ async function login() {
         try {
             data = await response.json();
         } catch (e) {
-            hideLoadingScreen();
-            alert('Error: El servidor no respondió correctamente. Verifica que esté corriendo en http://localhost:8080');
+            showError('Error de servidor. Verifique conexión.');
             console.error('Error parseando respuesta:', e);
             return;
         }
@@ -182,18 +151,15 @@ async function login() {
             if (data.usuario) {
                 usuarioActual = data.usuario;
             }
-            showLoadingSuccess();
-            setTimeout(() => {
+            showSuccess('¡Bienvenido!', () => {
                 redirigirAIndex();
-            }, 1500);
+            });
         } else {
-            hideLoadingScreen();
-            alert('Error: ' + (data.error || 'Credenciales inválidas'));
+            showError('Error: ' + (data.error || 'Credenciales inválidas'));
         }
     } catch (error) {
-        hideLoadingScreen();
+        showError('Error de conexión.');
         console.error('Error en login:', error);
-        alert('Error de conexión. Por favor intenta nuevamente.');
     }
 }
 
@@ -204,23 +170,21 @@ async function registro() {
     const planId = (typeof window !== 'undefined' && window.planSeleccionado) ? window.planSeleccionado : 1;
 
     if (!nombre || !email || !password) {
-        alert('Por favor completa todos los campos');
+        showError('Por favor completa todos los campos');
         return;
     }
 
     if (!email.includes('@')) {
-        alert('Por favor ingresa un email válido');
+        showError('Por favor ingresa un email válido');
         return;
     }
 
     if (password.length < 6) {
-        alert('La contraseña debe tener al menos 6 caracteres');
+        showError('La contraseña debe tener al menos 6 caracteres');
         return;
     }
 
-    showLoadingScreen();
-    const loadingText = document.getElementById('loading-text');
-    if (loadingText) loadingText.textContent = 'Creando tu cuenta...';
+    showLoading('Creando tu cuenta...');
 
     try {
         const response = await fetch(API_URL + '/autenticacion/registro', {
@@ -232,20 +196,15 @@ async function registro() {
         const data = await response.json();
 
         if (response.ok && data.token) {
-            showLoadingSuccess();
-            const successText = document.getElementById('loading-text');
-            if (successText) successText.textContent = '¡Cuenta creada exitosamente!';
-            setTimeout(() => {
+            showSuccess('¡Cuenta creada exitosamente!', () => {
                 redirigirADashboard();
-            }, 1500);
+            });
         } else {
-            hideLoadingScreen();
-            alert('Error: ' + (data.error || 'No se pudo crear la cuenta'));
+            showError('Error: ' + (data.error || 'No se pudo crear la cuenta'));
         }
     } catch (error) {
-        hideLoadingScreen();
+        showError('Error de conexión.');
         console.error('Error en registro:', error);
-        alert('Error de conexión. Por favor intenta nuevamente.');
     }
 }
 
@@ -262,19 +221,15 @@ async function recuperarPassword() {
             body: JSON.stringify({ email })
         });
         const data = await response.json();
-        alert(data.mensaje || 'Si el email existe, se enviará un enlace de recuperación');
+        showSuccess(data.mensaje || 'Si existe, se envió el correo.', null);
     } catch (error) {
-        alert('Error: ' + error.message);
+        showError('Error: ' + error.message);
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
-    inicializarTema();
+    // inicializarTema(); // Handled in <head> to prevent flicker
 
-    if (path.includes('login.html') || path.includes('register.html')) {
-        // Auto-redirect removed per user request
-        // validarSesion(false).then(isValid => { ... }); 
-    }
+
 });
-

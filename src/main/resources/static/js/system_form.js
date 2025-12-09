@@ -3,7 +3,6 @@ let editingSystemId = null;
 document.addEventListener('DOMContentLoaded', () => {
     initDropZone();
 
-    // Check for ID in URL
     const urlParams = new URLSearchParams(window.location.search);
     const sysId = urlParams.get('id');
 
@@ -11,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadSystemFromApi(sysId);
     }
 
-    // Listen for data from parent (fallback/legacy)
     window.addEventListener('message', (event) => {
         if (event.data.type === 'editSystem') {
             loadSystemData(event.data.payload);
@@ -20,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Notify parent we are ready
     if (window.parent !== window) {
         window.parent.postMessage({ type: 'iframeReady' }, '*');
     }
@@ -28,27 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadSystemFromApi(id) {
     try {
-        const res = await apiFetch(`/systems/${id}`); // Assuming this endpoint exists or similar
-        // Actually /systems returns all, avoiding full fetch if possible, or filter. 
-        // Ideally backend supports GET /systems/{id}. 
-        // Looking at controller previously, we have DELETE /systems/{id}, but GET /systems returns list.
-        // Let's check controller. If not, we have to fetch all and find. 
-        // WAIT: I should check controller first.
-        // But for now let's assume I need to fetch all if no specific endpoint.
-        // Actually, let's implement GET /systems/{id} if needed, or use filtering.
-        // Re-reading controller... 
-        // I will implement a fetchOne approach in JS for now: fetch all and find, as I didn't verify GET /systems/{id} exists.
-        // BETTER: I'll use fetch `/systems` and find, to be safe without backend changes if not strictly needed.
-        // actually, let's check controller later. For now, fetch all.
-
         const allRes = await apiFetch('/systems');
         if (allRes.ok) {
             const systems = await allRes.json();
             const sys = systems.find(s => s.id == id);
             if (sys) {
                 loadSystemData(sys);
-                document.getElementById('formTitle').innerText = 'Editar Sistema'; // Not existing in form HTML? 
-                // formTitle is in dashboard.html. In system_form.html it is h1.
                 document.querySelector('h1').innerText = 'Editar Sistema';
             }
         }
@@ -57,13 +39,10 @@ async function loadSystemFromApi(id) {
     }
 }
 
-// --- Tab Logic ---
 function switchTab(tabId) {
-    // Hide all contents
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     document.getElementById(`content-${tabId}`).classList.remove('hidden');
 
-    // Update buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active-tab', 'border-primary', 'text-primary');
         btn.classList.add('border-transparent');
@@ -85,8 +64,6 @@ function toggleSecurityFields() {
         document.getElementById('generalPassword').value = '';
     }
 }
-
-
 
 function initDropZone() {
     const dropZone = document.getElementById('dropZone');
@@ -136,7 +113,7 @@ function removeImage() {
 }
 
 async function handleFileUpload(file) {
-    if (!file.type.startsWith('image/')) return alert('Solo se permiten imágenes');
+    if (!file.type.startsWith('image/')) return showError('Solo se permiten imágenes');
 
     const formData = new FormData();
     formData.append('file', file);
@@ -147,8 +124,19 @@ async function handleFileUpload(file) {
     uploadPlaceholder.innerHTML = '<span class="material-symbols-outlined animate-spin text-3xl text-primary">progress_activity</span>';
 
     try {
+        // Need token for upload usually, but this fetch was http://localhost:8080... hardcoded
+        // Ideally use apiFetch or add header. 
+        // existing code used explicit fetch.
+        // Assuming public upload or token not needed for this temp upload?
+        // Actually, let's try to add token if it exists just in case.
+        const token = localStorage.getItem('token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
         const res = await fetch('http://localhost:8080/api/upload/image', {
             method: 'POST',
+            credentials: 'include',
+            headers: headers,
             body: formData
         });
 
@@ -170,7 +158,7 @@ async function handleFileUpload(file) {
             throw new Error('Upload failed');
         }
     } catch (e) {
-        alert('Error al subir imagen');
+        showError('Error al subir imagen');
         uploadPlaceholder.innerHTML = originalContent;
     }
 }
@@ -227,17 +215,19 @@ async function submitForm() {
     const generalPassword = document.getElementById('generalPassword').value;
 
     if (!name) {
-        alert('El nombre del sistema es requerido');
+        showError('El nombre del sistema es requerido');
         return;
     }
 
     if (securityMode === 'general' && !generalPassword && !editingSystemId) {
-        alert('La contraseña es requerida para el modo de seguridad general');
+        showError('La contraseña es requerida para el modo de seguridad general');
         return;
     }
 
     if (window.parent !== window) {
         window.parent.postMessage({ type: 'startLoading' }, '*');
+    } else {
+        showLoading('Guardando sistema...');
     }
 
     const method = editingSystemId ? 'PUT' : 'POST';
@@ -259,21 +249,23 @@ async function submitForm() {
 
         if (res.ok) {
             if (window.parent === window) {
-                window.location.href = 'dashboard.html';
+                showSuccess('Sistema guardado correctamente', () => {
+                    window.location.href = 'dashboard.html';
+                });
             } else {
                 window.parent.postMessage({ type: 'systemSaved' }, '*');
                 resetForm();
             }
         } else {
             const errorData = await res.json();
-            alert(errorData.message || errorData.error || 'Error al guardar el sistema');
+            showError(errorData.message || errorData.error || 'Error al guardar el sistema');
             if (window.parent !== window) {
                 window.parent.postMessage({ type: 'stopLoading' }, '*');
             }
         }
     } catch (e) {
         console.error('Error:', e);
-        alert('Error de conexión. Por favor intenta nuevamente.');
+        showError('Error de conexión. Por favor intenta nuevamente.');
         if (window.parent !== window) {
             window.parent.postMessage({ type: 'stopLoading' }, '*');
         }

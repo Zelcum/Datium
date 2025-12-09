@@ -11,4 +11,7 @@ public interface SystemRelationshipRepository extends JpaRepository<SystemRelati
     List<SystemRelationship> findBySystemId(Integer systemId);
     List<SystemRelationship> findByFromTableId(Integer fromTableId);
     List<SystemRelationship> findByToTableId(Integer toTableId);
+    
+    void deleteByFromTableId(Integer fromTableId);
+    void deleteByToTableId(Integer toTableId);
 }

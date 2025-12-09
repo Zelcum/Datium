@@ -17,14 +17,11 @@ public class SystemRelationshipService {
     private SystemRelationshipRepository systemRelationshipRepository;
 
     public List<SystemRelationshipResponse> getAllRelationships(Integer systemId, Integer userId) {
-        // TODO: Validate user access
         List<SystemRelationship> relationships = systemRelationshipRepository.findBySystemId(systemId);
         return relationships.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
 
     public SystemRelationshipResponse createRelationship(Integer systemId, SystemRelationshipRequest request, Integer userId) {
-        // TODO: Validate user permissions
-        
         SystemRelationship relationship = new SystemRelationship();
         relationship.setSystemId(systemId);
         relationship.setFromTableId(request.getFromTableId());
@@ -38,7 +35,6 @@ public class SystemRelationshipService {
     }
 
     public void deleteRelationship(Integer systemId, Integer relationshipId, Integer userId) {
-        // TODO: Validate user permissions
         SystemRelationship relationship = systemRelationshipRepository.findById(relationshipId)
                 .orElseThrow(() -> new RuntimeException("Relationship not found"));
         

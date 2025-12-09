@@ -15,7 +15,7 @@ import java.util.Map;
 public class JwtUtil {
 
     private static final String SECRET_KEY = "DatiumSecretKeyForJWTTokenGenerationAndValidation2024";
-    private static final long EXPIRATION_TIME = 86400000; // 24 hours
+    private static final long EXPIRATION_TIME = 86400000;
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());

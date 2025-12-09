@@ -45,7 +45,6 @@ async function loadUserProfile() {
 function updateUserUI() {
     if (!userProfile) return;
 
-    // Sidebar
     const nameEl = document.getElementById('userName');
     const emailEl = document.getElementById('userEmail');
     const initialEl = document.getElementById('userInitial');
@@ -53,10 +52,6 @@ function updateUserUI() {
     if (nameEl) nameEl.innerText = userProfile.name || 'Usuario';
     if (emailEl) emailEl.innerText = userProfile.email || '...';
     if (initialEl) initialEl.innerText = (userProfile.name || 'U').charAt(0).toUpperCase();
-
-    // Header element removed
-    // const headerEmailEl = document.getElementById('headerUserEmail');
-    // if (headerEmailEl) headerEmailEl.innerText = userProfile.email || userProfile.name || 'Usuario';
 
     if (userProfile.avatarUrl) {
         const avatarImg = document.getElementById('userAvatar');
@@ -177,8 +172,6 @@ function renderSystemsSlider() {
     }).join('');
 }
 
-// --- System Actions & Security ---
-
 async function enterSystem(id) {
     checkSystemAccess(id, () => {
         window.location.href = `system.html?id=${id}`;
@@ -189,20 +182,16 @@ async function checkSystemAccess(systemId, actionCallback) {
     const system = currentSystems.find(s => s.id === systemId);
     if (!system) return;
 
-    // Check if system has password (general)
-    // Enforce prompt even for owners if mode is general
     if (system.securityMode === 'general') {
         openPasswordPrompt(systemId, actionCallback);
         return;
     }
 
-    // Owner always has access (for other modes or if they pass security check)
     if (userProfile && system.ownerId === userProfile.id) {
         actionCallback();
         return;
     }
 
-    // Individual or None
     actionCallback();
 }
 
@@ -242,8 +231,6 @@ async function verifyAnd(systemId, password, callback) {
     }
 }
 
-
-
 function confirmPassword() {
     if (promptCallback) {
         const pwd = document.getElementById('promptPasswordInput').value;
@@ -262,11 +249,6 @@ async function editSystem(event, id) {
     checkSystemAccess(id, () => {
         window.location.href = `system_form.html?id=${id}`;
         return;
-
-
-
-
-
     });
 }
 
@@ -297,7 +279,6 @@ async function loadStatistics() {
         animateValue('statTotalUsers', 0, stats.totalUsers || 0, 1000);
         animateValue('statTotalRecords', 0, stats.totalRecords || 0, 1000);
 
-        // Calculate Secure Systems (General + Individual)
         const totalSecure = (stats.securityGeneral || 0) + (stats.securityIndividual || 0);
         animateValue('statSecureSystems', 0, totalSecure, 1000);
 
@@ -332,18 +313,13 @@ function renderSecurityChart(stats) {
     const secure = (stats.securityGeneral || 0) + (stats.securityIndividual || 0);
     const notSecure = stats.securityNone || 0;
 
-    // If no data, show empty gray ring
-    if (secure === 0 && notSecure === 0) {
-        // Placeholder
-    }
-
     securityChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Segura', 'Ninguna'],
             datasets: [{
                 data: [secure, notSecure],
-                backgroundColor: ['#22c55e', '#ef4444'], // Green, Red
+                backgroundColor: ['#22c55e', '#ef4444'],
                 borderWidth: 0,
                 hoverOffset: 4
             }]
@@ -371,20 +347,19 @@ function renderPlanChart(usage) {
     const max = usage.max === -1 ? 100 : usage.max;
     const current = usage.current;
 
-    // For unlimited, show all as available (Green)
     const data = usage.max === -1
         ? [0, 100]
         : [current, Math.max(0, max - current)];
 
     planChart = new Chart(ctx, {
-        type: 'doughnut', // Better than pie for this
+        type: 'doughnut',
         data: {
             labels: ['Usado', 'Disponible'],
             datasets: [{
                 data: data,
                 backgroundColor: [
-                    '#ef4444', // Red (Used)
-                    '#22c55e', // Green (Available)
+                    '#ef4444',
+                    '#22c55e',
                 ],
                 borderWidth: 0,
                 hoverOffset: 4
@@ -393,7 +368,7 @@ function renderPlanChart(usage) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '75%', // Thinner ring
+            cutout: '75%',
             plugins: {
                 legend: { display: false },
                 tooltip: { enabled: false }
@@ -428,7 +403,7 @@ function renderActivityChart(labels, data) {
                     return bg;
                 },
                 borderWidth: 2,
-                tension: 0.1, // Sharper lines as per image
+                tension: 0.1,
                 pointRadius: 3,
                 pointBackgroundColor: '#151f2b',
                 pointBorderColor: color,
@@ -494,7 +469,6 @@ function toggleCreateForm() {
     const isHidden = container.classList.contains('hidden');
     const iframe = document.getElementById('systemFormFrame');
 
-    // Smooth fade logic could be here, but using simple class switch for now
     if (isHidden) {
         container.classList.remove('hidden');
         if (!editingSystemId) {
@@ -507,7 +481,6 @@ function toggleCreateForm() {
     }
 }
 
-// Global functions for potential external use or onclicks
 window.toggleCreateForm = toggleCreateForm;
 
 init();

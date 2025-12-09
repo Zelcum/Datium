@@ -30,23 +30,13 @@
                 },
             },
         }
-
-        // Init theme immediately to prevent FOUC
+    </script>
+    <script>
         const theme = localStorage.getItem('theme');
         if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
-        }
-
-        function toggleTema() {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
         }
     </script>
 </head>
@@ -54,7 +44,6 @@
 <body
     class="font-display bg-background-light dark:bg-background-dark text-[#111418] dark:text-gray-200 overflow-hidden">
 
-    <!-- Loading Overlay -->
     <div id="loadingOverlay"
         class="fixed inset-0 bg-background-light/80 dark:bg-background-dark/90 backdrop-blur-md z-[100] hidden flex flex-col items-center justify-center transition-opacity duration-300">
         <div class="relative">
@@ -103,13 +92,13 @@
                         dashboard
                     </a>
 
-                    <a href="#"
+                    <a href="connections.html"
                         class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
                         <span class="material-symbols-outlined">cable</span>
                         Conexiones
                     </a>
 
-                    <a href="#"
+                    <a href="audit.html"
                         class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
                         <span class="material-symbols-outlined">history</span>
                         Auditoría
@@ -145,15 +134,11 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main
             class="flex-1 h-full overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark relative scroll-smooth p-6">
             <div class="max-w-7xl mx-auto space-y-6 relative z-10 w-full">
 
-                <!-- Top Header -->
-                <!-- Top Header Removed -->
 
-                <!-- Create Form Modal (Hidden) -->
                 <div id="createSystemContainer"
                     class="hidden transform transition-all duration-500 ease-out origin-top z-50">
                     <div
@@ -181,7 +166,6 @@
                     </div>
                 </div>
 
-                <!-- Password Prompt Modal -->
                 <div id="passwordPromptModal"
                     class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center transition-opacity duration-300">
                     <div
@@ -217,9 +201,7 @@
                     </div>
                 </div>
 
-                <!-- Stats Grid (Row 1) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- Stat Card 1: Total Systems -->
                     <div
                         class="bg-white dark:bg-[#151f2b] rounded-2xl p-5 border border-gray-200 dark:border-gray-800 shadow-lg group relative overflow-hidden">
                         <div class="flex justify-between items-start mb-4">
@@ -234,7 +216,6 @@
                         <h4 class="text-gray-500 dark:text-gray-400 text-xs font-medium">Sistemas Totales</h4>
                     </div>
 
-                    <!-- Stat Card 2: Total Users -->
                     <div
                         class="bg-white dark:bg-[#151f2b] rounded-2xl p-5 border border-gray-200 dark:border-gray-800 shadow-lg group">
                         <div class="flex justify-between items-start mb-4">
@@ -246,7 +227,6 @@
                         <h4 class="text-gray-500 dark:text-gray-400 text-xs font-medium">Usuarios Totales</h4>
                     </div>
 
-                    <!-- Stat Card 3: Total Records -->
                     <div
                         class="bg-white dark:bg-[#151f2b] rounded-2xl p-5 border border-gray-200 dark:border-gray-800 shadow-lg group">
                         <div class="flex justify-between items-start mb-4">
@@ -259,7 +239,6 @@
                         <h4 class="text-gray-500 dark:text-gray-400 text-xs font-medium">Registros Totales</h4>
                     </div>
 
-                    <!-- Stat Card 4: Secure Systems -->
                     <div
                         class="bg-white dark:bg-[#151f2b] rounded-2xl p-5 border border-gray-200 dark:border-gray-800 shadow-lg group">
                         <div class="flex justify-between items-start mb-4">
@@ -273,11 +252,8 @@
                     </div>
                 </div>
 
-                <!-- Row 2: Activity Chart & Quick Actions -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-                    <!-- Activity Chart (2/3) -->
-                    <!-- Systems Table Section (2/3) -->
                     <div
                         class="lg:col-span-2 bg-white dark:bg-[#151f2b] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg flex flex-col h-[400px] overflow-hidden">
                         <div
@@ -316,7 +292,6 @@
                                     </tr>
                                 </thead>
                                 <tbody id="systemsList" class="divide-y divide-gray-200 dark:divide-gray-800">
-                                    <!-- Loaded via JS -->
                                 </tbody>
                             </table>
 
@@ -332,11 +307,9 @@
                         </div>
                     </div>
 
-                    <!-- Quick Actions (1/3) -->
                     <div class="flex flex-col gap-4 h-full">
                         <h3 class="font-bold text-[#111418] dark:text-white text-sm mb-1">Acciones Rápidas</h3>
 
-                        <!-- Action 1 -->
                         <button onclick="window.location.href='system_form.html'"
                             class="flex-1 bg-white dark:bg-[#1a2634] hover:bg-gray-50 dark:hover:bg-[#1e2c3d] rounded-xl p-4 border border-gray-200 dark:border-gray-800 hover:border-blue-500/50 transition-all text-left flex items-center gap-4 group">
                             <div
@@ -349,25 +322,23 @@
                             </div>
                         </button>
 
-                        <!-- Action 2 -->
-                        <button
+                        <button onclick="window.location.href='connections.html'"
                             class="flex-1 bg-white dark:bg-[#1a2634] hover:bg-gray-50 dark:hover:bg-[#1e2c3d] rounded-xl p-4 border border-gray-200 dark:border-gray-800 hover:border-purple-500/50 transition-all text-left flex items-center gap-4 group">
                             <div
                                 class="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
-                                <span class="material-symbols-outlined">mail</span>
+                                <span class="material-symbols-outlined">cable</span>
                             </div>
                             <div>
-                                <div class="text-purple-400 font-bold text-sm">Gestionar Invitaciones</div>
-                                <div class="text-gray-500 text-xs">Ver pendientes y enviadas</div>
+                                <div class="text-purple-400 font-bold text-sm">Conexiones</div>
+                                <div class="text-gray-500 text-xs">Mover tablas entre sistemas</div>
                             </div>
                         </button>
 
-                        <!-- Action 3 -->
-                        <button
+                        <button onclick="window.location.href='audit.html'"
                             class="flex-1 bg-white dark:bg-[#1a2634] hover:bg-gray-50 dark:hover:bg-[#1e2c3d] rounded-xl p-4 border border-gray-200 dark:border-gray-800 hover:border-orange-500/50 transition-all text-left flex items-center gap-4 group">
                             <div
                                 class="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
-                                <span class="material-symbols-outlined">search</span>
+                                <span class="material-symbols-outlined">history</span>
                             </div>
                             <div>
                                 <div class="text-orange-400 font-bold text-sm">Consultar Auditoría</div>
@@ -377,10 +348,8 @@
                     </div>
                 </div>
 
-                <!-- Row 3: Circular Charts & Tip -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-                    <!-- Security Chart -->
                     <div
                         class="bg-white dark:bg-[#151f2b] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg p-5 flex flex-col items-center">
                         <div class="w-full flex items-center gap-2 mb-4">
@@ -390,7 +359,6 @@
                         <div class="h-32 w-32 relative">
                             <canvas id="securityChart"></canvas>
                         </div>
-                        <!-- Legend -->
                         <div class="flex gap-4 mt-4">
                             <div class="flex items-center gap-1.5">
                                 <span class="w-2 h-2 rounded-full bg-red-500"></span>
@@ -403,7 +371,6 @@
                         </div>
                     </div>
 
-                    <!-- Plan Chart -->
                     <div
                         class="bg-white dark:bg-[#151f2b] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg p-5 flex flex-col items-center">
                         <div class="w-full flex items-center gap-2 mb-4">
@@ -419,7 +386,6 @@
                         </div>
                     </div>
 
-                    <!-- Pro Tip -->
                     <div
                         class="bg-white dark:bg-[#151f2b] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 flex flex-col justify-center relative overflow-hidden">
                         <div class="absolute -right-4 -top-4 opacity-10">
@@ -441,7 +407,6 @@
         </main>
     </div>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/app.js"></script>

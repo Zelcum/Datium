@@ -39,8 +39,6 @@ public class PlanValidationService {
     }
 
     public void validateRecordLimit(Integer systemId) {
-        // Need to find owner to know the plan
-        // System -> OwnerId -> User -> Plan
         com.Datium.Datium.entity.System system = systemRepository.findById(systemId)
                 .orElseThrow(() -> new RuntimeException("Sistema no encontrado"));
         
@@ -106,4 +104,3 @@ public class PlanValidationService {
        }
    }
 }
-

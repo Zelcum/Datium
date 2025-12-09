@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.io.ByteArrayOutputStream;
 
-// POI & PDF
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Row;
@@ -27,7 +26,6 @@ import com.lowagie.text.Document;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.PdfPTable;
-
 
 @Service
 public class SystemDataService {
@@ -185,9 +183,8 @@ public class SystemDataService {
     private void validateFieldValues(Integer systemId, Map<String, String> fieldValues, Map<String, Integer> fieldNameToId) {
         if (fieldValues == null || fieldValues.isEmpty()) return;
 
-        // Get all relationships for this system to check FKs
         List<SystemRelationship> relationships = systemRelationshipRepository.findBySystemId(systemId);
-        Map<Integer, SystemRelationship> fieldRelMap = new HashMap<>(); // FromFieldId -> Rel
+        Map<Integer, SystemRelationship> fieldRelMap = new HashMap<>();
         for (SystemRelationship rel : relationships) {
             fieldRelMap.put(rel.getFromFieldId(), rel);
         }
@@ -200,12 +197,10 @@ public class SystemDataService {
                 if (value != null && !value.isEmpty()) {
                     try {
                         Integer targetRecordId = Integer.parseInt(value);
-                        // Check if record exists in target table
                         boolean exists = systemRecordRepository.existsById(targetRecordId);
                         if (!exists) {
                             throw new RuntimeException("El valor '" + value + "' para el campo '" + entry.getKey() + "' no existe en la tabla relacionada.");
                         }
-                        // Optionally check if record belongs to target table (systemRecordRepository.findById(...) check tableId)
                         SystemRecord targetRecord = systemRecordRepository.findById(targetRecordId).orElse(null);
                         if (targetRecord == null || !targetRecord.getTableId().equals(rel.getToTableId())) {
                              throw new RuntimeException("El registro referenciado no pertenece a la tabla correcta.");
@@ -231,7 +226,6 @@ public class SystemDataService {
             fieldNameToId.put(field.getName(), field.getId());
         }
 
-        // Validate FKs
         validateFieldValues(systemId, request.getFieldValues(), fieldNameToId);
         
         SystemRecord record = new SystemRecord();
@@ -274,7 +268,6 @@ public class SystemDataService {
             fieldNameToId.put(field.getName(), field.getId());
         }
 
-         // Validate FKs
         validateFieldValues(systemId, request.getFieldValues(), fieldNameToId);
         
         record = systemRecordRepository.save(record);
@@ -298,10 +291,6 @@ public class SystemDataService {
         
         return convertToRecordResponse(record, systemId);
     }
-
-    @Transactional
-    // Old deleteRecord removed to encourage usage of cascade-enabled version
-
 
     private SystemFieldResponse convertToFieldResponse(SystemField field) {
         SystemFieldResponse response = new SystemFieldResponse();
@@ -344,17 +333,13 @@ public class SystemDataService {
         return response;
     }
 
-    // --- TABLE BASED OPERATIONS ---
-
     @Autowired
     private SystemRelationshipRepository systemRelationshipRepository;
 
     public List<SystemFieldResponse> getFieldsByTable(Integer tableId, Integer userId) {
-        // TODO: Validate user access to the system containing the table
         List<SystemField> fields = systemFieldRepository.findByTableIdOrderByOrderIndexAsc(tableId);
         List<SystemRelationship> relationships = systemRelationshipRepository.findByFromTableId(tableId);
         
-        // Map fieldId -> Relationship
         Map<Integer, SystemRelationship> fieldRelMap = new HashMap<>();
         for (SystemRelationship rel : relationships) {
             fieldRelMap.put(rel.getFromFieldId(), rel);
@@ -366,7 +351,6 @@ public class SystemDataService {
                 SystemRelationship rel = fieldRelMap.get(f.getId());
                 r.setRelatedTableId(rel.getToTableId());
                 
-                // Fetch the name of the display field
                 if (rel.getToFieldId() != null) {
                    systemFieldRepository.findById(rel.getToFieldId())
                            .ifPresent(relatedField -> r.setRelatedFieldName(relatedField.getName()));
@@ -384,11 +368,8 @@ public class SystemDataService {
          com.Datium.Datium.entity.SystemTable table = systemTableRepository.findById(tableId)
                  .orElseThrow(() -> new RuntimeException("Tabla no encontrada"));
          
-         // Validate Plan Limit
          planValidationService.validateFieldLimit(table.getSystemId());
          
-         // TODO: Validate Permissions
-
         SystemField field = new SystemField();
         field.setSystemId(table.getSystemId());
         field.setTableId(tableId);
@@ -449,7 +430,6 @@ public class SystemDataService {
          com.Datium.Datium.entity.SystemTable table = systemTableRepository.findById(tableId)
                  .orElseThrow(() -> new RuntimeException("Tabla no encontrada"));
 
-        // Validate Plan Limit
         planValidationService.validateRecordLimit(table.getSystemId());
 
         SystemRecord record = new SystemRecord();
@@ -458,7 +438,6 @@ public class SystemDataService {
         record.setCreatedBy(userId);
         record = systemRecordRepository.save(record);
 
-        // Validate values
         if (request.getValues() != null) {
             List<SystemRelationship> relationships = systemRelationshipRepository.findByFromTableId(tableId);
             Map<Integer, SystemRelationship> fieldRelMap = new HashMap<>();
@@ -476,7 +455,6 @@ public class SystemDataService {
                         if(!valStr.isEmpty()) {
                             Integer targetId = Integer.parseInt(valStr);
                             SystemRelationship rel = fieldRelMap.get(fieldId);
-                            // Verify target record exists and is in target table
                             SystemRecord targetRecord = systemRecordRepository.findById(targetId)
                                 .orElseThrow(() -> new RuntimeException("Registro relacionado ID " + targetId + " no encontrado."));
                             
@@ -509,11 +487,9 @@ public class SystemDataService {
 
     @Transactional
     public void deleteRecord(Integer recordId, Integer userId) {
-        // Find record
         com.Datium.Datium.entity.SystemRecord record = systemRecordRepository.findById(recordId)
                 .orElseThrow(() -> new RuntimeException("Registro no encontrado"));
         
-        // Permission check
         if (!hasPermission(record.getSystemId(), userId, "delete_record")) {
              throw new RuntimeException("No tienes permisos para eliminar registros");
         }
@@ -521,38 +497,23 @@ public class SystemDataService {
         Integer systemId = record.getSystemId();
         Integer tableId = record.getTableId();
         
-        // --- CASCADE DELETE LOGIC ---
-        // Find if this table is a target of any relationship (i.e., other tables point to this one)
         List<SystemRelationship> incomingRelationships = systemRelationshipRepository.findByToTableId(tableId);
         
         for (SystemRelationship rel : incomingRelationships) {
-            // rel.getFromFieldId() is the field in the OTHER table (fromTable) that points to THIS table
-            // We need to find records in 'fromTable' where 'fromField' == recordId
-            
             List<SystemRecordValue> dependentValues = systemRecordValueRepository.findByFieldIdAndValue(rel.getFromFieldId(), String.valueOf(recordId));
             
             for (SystemRecordValue val : dependentValues) {
-                // Recursively delete the dependent record
-                // Note: We might want to check for circular dependencies or infinite loops, 
-                // but for simple hierarchy, this works.
                 try {
-                     // We pass userId for permission check recursively
                      deleteRecord(val.getRecordId(), userId);
                 } catch (Exception e) {
-                    // Log error but continue? Or fail all? 
-                    // Fail all is safer for data integrity.
                     throw new RuntimeException("Error al eliminar registro dependiente (Cascade): " + e.getMessage());
                 }
             }
         }
         
-        // Delete values first
         systemRecordValueRepository.deleteByRecordId(recordId);
-        // Delete record
         systemRecordRepository.delete(record);
     }
-
-
 
     private SystemRecordResponse convertToRecordResponse(SystemRecord record) {
         SystemRecordResponse response = new SystemRecordResponse();
@@ -600,20 +561,7 @@ public class SystemDataService {
         Integer tableId = record.getTableId();
         List<SystemField> fields = systemFieldRepository.findByTableIdOrderByOrderIndexAsc(tableId);
 
-        // Validate values
         if (request.getValues() != null) {
-            // Validate Required Fields
-             // Merge existing values with new values for validation? 
-             // Or just validate input? Usually inputs to update are partial. 
-             // But if specific field is required and we send empty, it should fail.
-             // If we don't send it, it keeps underlying value.
-             // Let's check: if key exists in map (even if null/empty), checking.
-             // If key not in map, we assume old value persists.
-             
-             // However, for strictness, let's fetch current values to check full state?
-             // That's heavier. 
-             // Let's just check if the incoming change violates requiredness.
-             
             for (SystemField field : fields) {
                 if (field.getRequired() && request.getValues().containsKey(field.getId())) {
                     Object val = request.getValues().get(field.getId());
@@ -653,7 +601,6 @@ public class SystemDataService {
             }
         }
 
-        // Update values
         if (request.getValues() != null) {
             for (Map.Entry<Integer, Object> entry : request.getValues().entrySet()) {
                 Integer fieldId = entry.getKey();
@@ -684,12 +631,9 @@ public class SystemDataService {
         return convertToRecordResponse(record);
     }
 
-
-
     private Map<String, Map<String, String>> resolveRelationDisplayValues(Integer tableId, List<SystemFieldResponse> fields, List<SystemRecordResponse> records) {
-        Map<String, Map<String, String>> resolvedMap = new HashMap<>(); // FieldName -> (RecordID -> DisplayValue)
+        Map<String, Map<String, String>> resolvedMap = new HashMap<>(); 
 
-        // 1. Identify relation fields and their config
         List<SystemRelationship> relationships = systemRelationshipRepository.findByFromTableId(tableId);
         Map<Integer, SystemRelationship> fieldRelMap = new HashMap<>();
         for (SystemRelationship rel : relationships) {
@@ -699,11 +643,10 @@ public class SystemDataService {
         for (SystemFieldResponse field : fields) {
             if ("relation".equalsIgnoreCase(field.getType()) && fieldRelMap.containsKey(field.getId())) {
                 SystemRelationship rel = fieldRelMap.get(field.getId());
-                Integer targetDisplayFieldId = rel.getToFieldId(); // Field ID in target table to display
+                Integer targetDisplayFieldId = rel.getToFieldId(); 
                 
                 if (targetDisplayFieldId == null || targetDisplayFieldId == 0) continue;
 
-                // 2. Collect all FK IDs from records for this field
                 List<Integer> targetRecordIds = new ArrayList<>();
                 for (SystemRecordResponse record : records) {
                     String val = record.getFieldValues().get(field.getName());
@@ -716,7 +659,6 @@ public class SystemDataService {
 
                 if (targetRecordIds.isEmpty()) continue;
 
-                // 3. Query target values
                 Map<String, String> valueMap = new HashMap<>();
                 List<Integer> distinctIds = targetRecordIds.stream().distinct().collect(Collectors.toList());
                 
@@ -732,31 +674,25 @@ public class SystemDataService {
     }
 
     public byte[] exportTableToCsv(Integer tableId, Integer userId) {
-        // Fetch Metadata and Data
         List<SystemFieldResponse> fields = getFieldsByTable(tableId, userId);
         List<SystemRecordResponse> records = getRecordsByTable(tableId, userId);
         
-        // Resolve Relations
         Map<String, Map<String, String>> resolvedValues = resolveRelationDisplayValues(tableId, fields, records);
 
         StringBuilder csv = new StringBuilder();
-        // UTF-8 BOM for Excel compatibility
         csv.append("\uFEFF");
 
-        // Header
         csv.append("ID");
         for (SystemFieldResponse field : fields) {
             csv.append(";").append(escapeCsv(field.getName()));
         }
         csv.append("\n");
 
-        // Rows
         for (SystemRecordResponse record : records) {
             csv.append(record.getId());
             for (SystemFieldResponse field : fields) {
                 String val = record.getFieldValues().get(field.getName());
                 
-                // Check for resolved value
                 if (resolvedValues.containsKey(field.getName()) && val != null) {
                     String resolved = resolvedValues.get(field.getName()).get(val);
                     if (resolved != null) val = resolved;
@@ -774,20 +710,17 @@ public class SystemDataService {
         List<SystemFieldResponse> fields = getFieldsByTable(tableId, userId);
         List<SystemRecordResponse> records = getRecordsByTable(tableId, userId);
         
-        // Resolve Relations
         Map<String, Map<String, String>> resolvedValues = resolveRelationDisplayValues(tableId, fields, records);
 
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Data");
             
-            // Header
             Row headerRow = sheet.createRow(0);
             headerRow.createCell(0).setCellValue("ID");
             for (int i = 0; i < fields.size(); i++) {
                 headerRow.createCell(i + 1).setCellValue(fields.get(i).getName());
             }
 
-            // Data
             int rowNum = 1;
             for (SystemRecordResponse record : records) {
                 Row row = sheet.createRow(rowNum++);
@@ -795,7 +728,6 @@ public class SystemDataService {
                 for (int i = 0; i < fields.size(); i++) {
                     String val = record.getFieldValues().get(fields.get(i).getName());
                     
-                    // Check for resolved value
                     if (resolvedValues.containsKey(fields.get(i).getName()) && val != null) {
                         String resolved = resolvedValues.get(fields.get(i).getName()).get(val);
                         if (resolved != null) val = resolved;
@@ -815,8 +747,20 @@ public class SystemDataService {
     public byte[] exportTableToPdf(Integer tableId, Integer userId) {
         List<SystemFieldResponse> fields = getFieldsByTable(tableId, userId);
         List<SystemRecordResponse> records = getRecordsByTable(tableId, userId);
+        com.Datium.Datium.entity.SystemTable sysTable = systemTableRepository.findById(tableId).orElse(null);
+        String tableName = sysTable != null ? sysTable.getName() : "Tabla " + tableId;
+        Integer sysId = sysTable != null ? sysTable.getSystemId() : null;
+        String systemName = "Sistema";
+        String systemImageUrl = null;
         
-        // Resolve Relations
+        if (sysId != null) {
+            com.Datium.Datium.entity.System sys = systemRepository.findById(sysId).orElse(null);
+            if (sys != null) {
+                systemName = sys.getName();
+                systemImageUrl = sys.getImageUrl();
+            }
+        }
+        
         Map<String, Map<String, String>> resolvedValues = resolveRelationDisplayValues(tableId, fields, records);
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -824,59 +768,86 @@ public class SystemDataService {
             PdfWriter.getInstance(document, out);
             document.open();
 
-            // Meta
-            document.add(new Paragraph("Reporte de Tabla (ID: " + tableId + ")"));
-            document.add(new Paragraph("Generado el: " + new Date()));
-            document.add(new Paragraph(" ")); // Spacer
+            PdfPTable headerTable = new PdfPTable(2);
+            headerTable.setWidthPercentage(100);
+            headerTable.setWidths(new float[]{1, 4});
 
-            // Table
+            com.lowagie.text.Image pdfLogo = null;
+            try {
+                
+            } catch (Exception e) {}
+
+            com.lowagie.text.Font titleFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 18, com.lowagie.text.Font.BOLD, java.awt.Color.BLACK);
+            com.lowagie.text.Font subtitleFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 12, com.lowagie.text.Font.NORMAL, java.awt.Color.GRAY);
+            
+            Paragraph title = new Paragraph("Datium - " + systemName, titleFont);
+            Paragraph subtitle = new Paragraph("Tabla: " + tableName, subtitleFont);
+            Paragraph date = new Paragraph("Generado el: " + new Date().toString(), new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 10));
+            
+            document.add(title);
+            document.add(subtitle);
+            document.add(date);
+            document.add(new Paragraph(" ")); 
+
             int numCols = fields.size() + 1;
             PdfPTable table = new PdfPTable(numCols);
             table.setWidthPercentage(100);
+            
+            com.lowagie.text.Font headerFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 10, com.lowagie.text.Font.BOLD, java.awt.Color.WHITE);
+            java.awt.Color headerColor = new java.awt.Color(37, 99, 235); 
 
-            // Headers
-            table.addCell("ID");
+            com.lowagie.text.pdf.PdfPCell idHeader = new com.lowagie.text.pdf.PdfPCell(new Paragraph("ID", headerFont));
+            idHeader.setBackgroundColor(headerColor);
+            idHeader.setPadding(5);
+            table.addCell(idHeader);
+            
             for (SystemFieldResponse field : fields) {
-                table.addCell(field.getName());
+                com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new Paragraph(field.getName(), headerFont));
+                cell.setBackgroundColor(headerColor);
+                cell.setPadding(5);
+                table.addCell(cell);
             }
 
-            // Rows
+            com.lowagie.text.Font contentFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 9, com.lowagie.text.Font.NORMAL);
+
+            boolean alternate = false;
+            java.awt.Color altColor = new java.awt.Color(245, 247, 250);
+
             for (SystemRecordResponse record : records) {
-                table.addCell(String.valueOf(record.getId()));
+                addCell(table, String.valueOf(record.getId()), contentFont, alternate, altColor);
+                
                 for (SystemFieldResponse field : fields) {
                     String val = record.getFieldValues().get(field.getName());
-                    
-                    // Check for resolved value
                     if (resolvedValues.containsKey(field.getName()) && val != null) {
                         String resolved = resolvedValues.get(field.getName()).get(val);
                         if (resolved != null) val = resolved;
                     }
-                    
-                    table.addCell(val != null ? val : "");
+                    addCell(table, val != null ? val : "", contentFont, alternate, altColor);
                 }
+                alternate = !alternate;
             }
 
             document.add(table);
             document.close();
             return out.toByteArray();
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Error creando PDF: " + e.getMessage());
         }
+    }
+
+    private void addCell(PdfPTable table, String text, com.lowagie.text.Font font, boolean alternate, java.awt.Color altColor) {
+        com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new Paragraph(text, font));
+        cell.setPadding(4);
+        if (alternate) {
+            cell.setBackgroundColor(altColor);
+        }
+        table.addCell(cell);
     }
 
     private String escapeCsv(String val) {
         if (val == null) return "";
         String escaped = val.replace("\"", "\"\"");
-        // Force quotes for safety and use semicolon for Excel region compat mostly?
-        // User complained about "rare characters". 
-        // BOM \uFEFF + Standard Comma is usually best for standard CSV.
-        // But some Spanish Excels prefer Semicolon. 
-        // Let's stick to standard CSV (semicolon in replacement logic above) 
-        // to be safe I switched to semicolon in the generator above to handle European locales better?
-        // Actually, standard CSV uses comma. If I use semicolon, I should call it CSV (European).
-        // Let's stick to semicolon separated if user is spanish (likely), or Comma.
-        // User said "letters with tilde look weird" -> This is purely ENCODING. BOM fixes it.
-        // I will revert to comma but keep BOM.
         
         if (escaped.contains(";") || escaped.contains("\n") || escaped.contains("\"")) {
             return "\"" + escaped + "\"";
@@ -884,4 +855,3 @@ public class SystemDataService {
         return escaped;
     }
 }
-

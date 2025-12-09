@@ -42,7 +42,7 @@ public class TableDataController {
         } catch (RuntimeException e) {
              return ResponseEntity.status(404).body("{\"error\": \"" + e.getMessage() + "\"}");
         } catch (Exception e) {
-             e.printStackTrace(); // Log to console
+             e.printStackTrace();
              return ResponseEntity.status(500).body("{\"error\": \"" + e.getMessage() + "\"}");
         }
     }
@@ -131,7 +131,6 @@ public class TableDataController {
                     return jwtUtil.extractUserId(token);
                 }
             } catch (Exception e) {
-                // Invalid
             }
         }
         throw new RuntimeException("Invalid token");

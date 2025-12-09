@@ -57,7 +57,6 @@ public class UserService {
 
         User user = userOpt.get();
 
-        // Check if email is being changed and if it's already in use
         if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
             if (userRepository.existsByEmail(request.getEmail())) {
                 throw new RuntimeException("El email ya está en uso");
@@ -65,7 +64,6 @@ public class UserService {
             user.setEmail(request.getEmail());
         }
 
-        // Update name if provided
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
             user.setName(request.getName());
         }
@@ -98,17 +96,14 @@ public class UserService {
 
         User user = userOpt.get();
 
-        // Verify current password
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
             throw new RuntimeException("La contraseña actual es incorrecta");
         }
 
-        // Validate new password
         if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {
             throw new RuntimeException("La nueva contraseña debe tener al menos 6 caracteres");
         }
 
-        // Update password
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
@@ -126,7 +121,6 @@ public class UserService {
 
         User user = userOpt.get();
 
-        // Validate plan ID
         if (request.getNewPlanId() == null) {
             throw new RuntimeException("ID de plan inválido");
         }
@@ -158,7 +152,6 @@ public class UserService {
 
         User user = userOpt.get();
 
-        // Update avatar URL
         if (request.getAvatarUrl() != null) {
             user.setAvatarUrl(request.getAvatarUrl());
         }

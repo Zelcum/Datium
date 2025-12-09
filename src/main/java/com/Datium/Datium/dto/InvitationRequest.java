@@ -3,10 +3,10 @@ package com.Datium.Datium.dto;
 public class InvitationRequest {
     private Integer systemId;
     private String inviteeEmail;
-    private String role; // admin, editor, viewer
-    private String accessType; // none, general, individual
-    private String individualPassword; // Solo si accessType es individual
-    private Integer expirationDays; // Días hasta expiración (opcional)
+    private String role;
+    private String accessType;
+    private String individualPassword;
+    private Integer expirationDays;
 
     public Integer getSystemId() {
         return systemId;
@@ -56,4 +56,3 @@ public class InvitationRequest {
         this.expirationDays = expirationDays;
     }
 }
-

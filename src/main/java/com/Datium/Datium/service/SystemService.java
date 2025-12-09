@@ -58,18 +58,13 @@ public class SystemService {
     private PlanValidationService planValidationService;
 
     public List<SystemResponse> getAllSystems(Integer userId) {
-        java.lang.System.out.println("SystemService.getAllSystems - userId: " + userId);
         try {
             if (userId == null) {
-                java.lang.System.out.println("UserId es null, retornando lista vacía");
                 return new ArrayList<>();
             }
             
             List<System> ownedSystems = systemRepository.findByOwnerId(userId);
             List<SystemUser> invitedSystems = systemUserRepository.findByUserId(userId);
-            
-            java.lang.System.out.println("Sistemas propios: " + ownedSystems.size());
-            java.lang.System.out.println("Sistemas invitados: " + invitedSystems.size());
             
             java.util.Set<Integer> systemIds = new java.util.HashSet<>();
             List<System> allSystems = new ArrayList<>();
@@ -89,16 +84,11 @@ public class SystemService {
                 }
             }
             
-            java.lang.System.out.println("Sistemas encontrados en BD: " + allSystems.size());
             List<SystemResponse> responses = allSystems.stream()
                 .map(system -> convertToResponse(system, userId))
                 .collect(Collectors.toList());
-            java.lang.System.out.println("Sistemas convertidos: " + responses.size());
-            long invitedCount = responses.stream().filter(r -> r.getIsInvited() != null && r.getIsInvited()).count();
-            java.lang.System.out.println("Sistemas invitados en respuesta: " + invitedCount);
             return responses;
         } catch (Exception e) {
-            java.lang.System.err.println("Error en getAllSystems: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
@@ -120,7 +110,6 @@ public class SystemService {
 
     @Transactional
     public SystemResponse createSystem(SystemRequest request, Integer userId) {
-        // Validate Plan Limit
         planValidationService.validateSystemLimit(userId);
         
         System system = new System();
@@ -304,8 +293,6 @@ public class SystemService {
         boolean isInvited = !isOwner && systemUserRepository.existsBySystemIdAndUserId(system.getId(), userId);
         response.setIsInvited(isInvited);
         
-        java.lang.System.out.println("convertToResponse - System ID: " + system.getId() + ", User ID: " + userId + ", isOwner: " + isOwner + ", isInvited: " + isInvited);
-        
         return response;
     }
 
@@ -327,7 +314,6 @@ public class SystemService {
         
         List<System> ownedSystems = systemRepository.findByOwnerId(userId);
         
-        // Fetch User Plan
         User user = userRepository.findById(userId).orElse(null);
         com.Datium.Datium.entity.Plan plan = null;
         if (user != null && user.getPlanId() != null) {
@@ -345,7 +331,7 @@ public class SystemService {
             SystemStatisticsResponse.PlanUsage planUsage = new SystemStatisticsResponse.PlanUsage();
             planUsage.setCurrent(0L);
             planUsage.setMax(plan != null && plan.getMaxSystems() != null ? plan.getMaxSystems().longValue() : -1L);
-            planUsage.setPlanName(plan != null ? plan.getName() : "Básico"); // Default or fetched
+            planUsage.setPlanName(plan != null ? plan.getName() : "Básico");
             stats.setPlanUsage(planUsage);
             
             List<String> labels = new ArrayList<>();
@@ -450,22 +436,17 @@ public class SystemService {
         System system = systemRepository.findById(systemId)
             .orElseThrow(() -> new RuntimeException("Sistema no encontrado"));
         
-        // If system has no password, it's considered verified (or return true?)
-        // If security mode is none, return true.
         if (system.getSecurityMode() == System.SecurityMode.none) {
             return true;
         }
 
         if (system.getSecurityMode() == System.SecurityMode.general) {
             String hash = system.getGeneralPasswordHash();
-            if (hash == null || hash.isEmpty()) return true; // If no password set, open access
+            if (hash == null || hash.isEmpty()) return true;
             if (password == null) return false;
             return passwordEncoder.matches(password, hash);
         }
 
-        // For individual mode, we might need userID? The current request is mainly for "general" password prompt.
-        // Assuming this is for the general password check for now as per requirements.
         return true; 
     }
 }
-

@@ -15,6 +15,14 @@
         rel="stylesheet" />
     <link rel="stylesheet" href="css/styles.css">
     <script>
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -81,7 +89,7 @@
 
                 <nav class="px-4 flex flex-col gap-2">
                     <a href="dashboard.html"
-                        class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
+                        class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-xl text-sm font-bold shadow-sm shadow-primary/10">
                         <span class="material-symbols-outlined">dns</span>
                         dashboard
                     </a>
@@ -104,20 +112,21 @@
             <div
                 class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 backdrop-blur-md">
 
-                <div class="flex items-center gap-3 mb-4 px-1 p-2 bg-primary/10 rounded-lg">
-                    <div id="sidebarUserAvatarContainer"
-                        class="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md ring-2 ring-white dark:ring-gray-800 overflow-hidden">
-                        <span id="sidebarUserInitial">U</span>
-                        <img id="sidebarUserAvatar" src="" class="h-full w-full object-cover hidden" alt="Avatar">
+                <a href="profile.html"
+                    class="flex items-center gap-3 mb-4 px-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors p-2 cursor-pointer group">
+                    <div id="userAvatarContainer"
+                        class="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md ring-2 ring-white dark:ring-gray-800 overflow-hidden group-hover:ring-primary transition-all">
+                        <span id="userInitial">U</span>
+                        <img id="userAvatar" src="" class="h-full w-full object-cover hidden" alt="Avatar">
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p id="sidebarUserName"
-                            class="text-sm font-bold truncate text-[#111418] dark:text-white text-primary">
+                        <p id="userName"
+                            class="text-sm font-bold truncate text-[#111418] dark:text-white group-hover:text-primary transition-colors">
                             Cargando...
                         </p>
-                        <p id="sidebarUserEmail" class="text-xs text-gray-500 truncate">...</p>
+                        <p id="userEmail" class="text-xs text-gray-500 truncate">...</p>
                     </div>
-                </div>
+                </a>
 
                 <button onclick="logout()"
                     class="flex items-center gap-2 w-full justify-center px-4 py-2.5 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl text-sm font-bold transition-all shadow-sm">
@@ -127,7 +136,6 @@
             </div>
         </aside>
 
-        <!-- Main Content (Profile) -->
         <main
             class="flex-1 h-full overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark relative scroll-smooth p-6">
             <div class="max-w-5xl mx-auto h-full flex flex-col gap-6">
@@ -136,9 +144,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                    <!-- Left Column -->
                     <div class="flex flex-col gap-6">
-                        <!-- Profile Image Card -->
                         <div
                             class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl flex flex-col items-center text-center">
                             <div class="relative group cursor-pointer mb-4"
@@ -167,7 +173,6 @@
                             </button>
                         </div>
 
-                        <!-- Password Card -->
                         <div
                             class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl">
                             <div class="flex items-center gap-2 mb-4 text-red-500">
@@ -198,9 +203,7 @@
                         </div>
                     </div>
 
-                    <!-- Right Column -->
                     <div class="flex flex-col gap-6">
-                        <!-- Personal Info -->
                         <div
                             class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl">
                             <div class="flex items-center gap-2 mb-6 text-primary">
@@ -234,7 +237,6 @@
                             </div>
                         </div>
 
-                        <!-- Plans -->
                         <div
                             class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl flex-1">
                             <div class="flex items-center gap-2 mb-6 text-green-500">
@@ -253,7 +255,6 @@
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <!-- Free -->
                                 <div
                                     class="p-4 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-primary transition-all group">
                                     <h4 class="font-bold text-gray-400 group-hover:text-primary transition-colors">Free
@@ -269,7 +270,6 @@
                                     </button>
                                 </div>
 
-                                <!-- Pro -->
                                 <div
                                     class="p-4 rounded-2xl border-2 border-primary bg-primary/5 relative overflow-hidden">
                                     <div
@@ -288,7 +288,6 @@
                                     </button>
                                 </div>
 
-                                <!-- Corporate -->
                                 <div
                                     class="p-4 rounded-2xl border border-gray-900 dark:border-gray-600 bg-gray-900 dark:bg-black/40 text-white">
                                     <h4 class="font-bold text-gray-300">Corporate</h4>
@@ -316,39 +315,23 @@
     <script src="js/app.js"></script>
     <script src="js/profile.js"></script>
     <script>
-        // Init theme
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
 
-        function toggleTema() {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.theme = 'light';
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.theme = 'dark';
-            }
-        }
 
-        // Custom duplicate function to load sidebar user info separately from the main profile logic
         async function loadSidebarInfo() {
             const res = await apiFetch('/user/profile');
             if (res && res.ok) {
                 const userProfile = await res.json();
 
-                const nameEl = document.getElementById('sidebarUserName');
-                const emailEl = document.getElementById('sidebarUserEmail');
-                const initialEl = document.getElementById('sidebarUserInitial');
+                const nameEl = document.getElementById('userName');
+                const emailEl = document.getElementById('userEmail');
+                const initialEl = document.getElementById('userInitial');
 
                 if (nameEl) nameEl.innerText = userProfile.name || 'Usuario';
                 if (emailEl) emailEl.innerText = userProfile.email || '...';
                 if (initialEl) initialEl.innerText = (userProfile.name || 'U').charAt(0).toUpperCase();
 
                 if (userProfile.avatarUrl) {
-                    const avatarImg = document.getElementById('sidebarUserAvatar');
+                    const avatarImg = document.getElementById('userAvatar');
                     if (avatarImg) {
                         avatarImg.src = userProfile.avatarUrl;
                         avatarImg.classList.remove('hidden');
@@ -356,7 +339,6 @@
                     }
                 }
 
-                // Also update page header
                 const pageInitial = document.getElementById('pageUserInitial');
                 const pageAvatar = document.getElementById('pageUserAvatar');
                 if (pageInitial) pageInitial.innerText = (userProfile.name || 'U').charAt(0).toUpperCase();

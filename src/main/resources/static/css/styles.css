@@ -115,3 +115,15 @@ body {
     background: linear-gradient(-45deg, #0f172a, #111827, #0b1120, #0f172a) !important;
     background-size: 400% 400%;
 }
+
+/* Card Depth for Light Mode */
+.bg-white {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    border: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.dark .bg-white,
+.dark .dark\:bg-gray-800 {
+    box-shadow: none;
+    border: 1px solid rgba(55, 65, 81, 0.5);
+}

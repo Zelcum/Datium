@@ -40,6 +40,7 @@
         opacity: 0;
         transform: scale(0.9);
     }
+
     to {
         opacity: 1;
         transform: scale(1);
@@ -53,10 +54,13 @@
 }
 
 @keyframes pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         opacity: 1;
         transform: scale(1);
     }
+
     50% {
         opacity: 0.8;
         transform: scale(1.05);
@@ -98,6 +102,7 @@
     from {
         transform: scale(0);
     }
+
     to {
         transform: scale(1);
     }
@@ -124,6 +129,7 @@
     from {
         height: 0;
     }
+
     to {
         height: 24px;
     }
@@ -144,6 +150,7 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -152,4 +159,47 @@
 .success-text {
     color: #10b981 !important;
     font-weight: 700;
+}
+
+.loading-spinner.error {
+    border-color: #ef4444;
+    border-top-color: transparent;
+    animation: none;
+}
+
+.error-text {
+    color: #ef4444 !important;
+    font-weight: 700;
+}
+
+.cross {
+    display: none;
+    width: 60px;
+    height: 60px;
+    position: relative;
+    animation: scaleIn 0.3s ease-out;
+}
+
+.cross.show {
+    display: block;
+}
+
+.cross::before,
+.cross::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 4px;
+    background-color: #ef4444;
+    border-radius: 2px;
+}
+
+.cross::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cross::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
 }

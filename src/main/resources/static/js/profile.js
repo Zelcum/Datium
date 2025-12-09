@@ -9,14 +9,11 @@ async function loadProfile() {
     if (res.ok) {
         const user = await res.json();
 
-        // Populate Info
         document.getElementById('profileName').value = user.name || '';
         document.getElementById('profileEmail').value = user.email || '';
         document.getElementById('profileNameDisplay').innerText = user.name || 'Sin nombre';
         document.getElementById('profileEmailDisplay').innerText = user.email;
 
-        // Populate Avatar
-        // Populate Avatar
         const avatarImg = document.getElementById('pageUserAvatar');
         const initialEl = document.getElementById('pageUserInitial');
 
@@ -32,11 +29,9 @@ async function loadProfile() {
             avatarImg.classList.add('hidden');
         }
 
-        // Current Plan
-        const plans = { 1: 'Free', 2: 'Pro', 3: 'Corporate' }; // Hardcoded for display logic simplicity or fetch from backend if available
+        const plans = { 1: 'Free', 2: 'Pro', 3: 'Corporate' };
         document.getElementById('currentPlanName').innerText = user.planName || 'Gratuito';
 
-        // Update Plan Buttons State
         updatePlanButtons(user.planId);
     }
 }
@@ -44,7 +39,7 @@ async function loadProfile() {
 function updatePlanButtons(currentPlanId) {
     const btns = document.querySelectorAll('#plansContainer button');
     btns.forEach((btn, index) => {
-        const planId = index + 1; // 1, 2, 3
+        const planId = index + 1;
         if (planId === currentPlanId) {
             btn.disabled = true;
             btn.innerText = 'Actual';
@@ -53,7 +48,6 @@ function updatePlanButtons(currentPlanId) {
         } else {
             btn.disabled = false;
             btn.innerText = 'Seleccionar';
-            // Reset classes logic could be better but simplified here
         }
     });
 }
@@ -64,9 +58,10 @@ async function handleAvatarChange(input) {
         const formData = new FormData();
         formData.append('file', file);
 
-        // Upload Image
+        showLoading('Subiendo nueva imagen...');
+
         try {
-            const token = localStorage.getItem('token'); // Use 'token' key matching app.js
+            const token = localStorage.getItem('token');
             const res = await fetch(`${API_URL}/upload/image`, {
                 method: 'POST',
                 headers: {
@@ -77,24 +72,24 @@ async function handleAvatarChange(input) {
 
             if (res.ok) {
                 const data = await res.json();
-                const newAvatarUrl = data.url; // Or path
+                const newAvatarUrl = data.url;
 
-                // Update Profile with new URL
                 await updateAvatarUrl(newAvatarUrl);
 
-                // Update UI
                 const avatarImg = document.getElementById('pageUserAvatar');
                 const initialEl = document.getElementById('pageUserInitial');
 
                 avatarImg.src = newAvatarUrl;
                 avatarImg.classList.remove('hidden');
                 if (initialEl) initialEl.classList.add('hidden');
+
+                showSuccess('Imagen actualizada correctamente');
             } else {
-                alert('Error subiendo imagen');
+                showError('Error subiendo imagen');
             }
         } catch (e) {
             console.error(e);
-            alert('Error subiendo imagen');
+            showError('Error de conexión al subir imagen');
         }
     }
 }
@@ -104,21 +99,23 @@ async function updateAvatarUrl(url) {
         method: 'PUT',
         body: JSON.stringify({ avatarUrl: url })
     });
-    if (!res.ok) alert('Error actualizando avatar en perfil');
+    if (!res.ok) showError('Error guardando avatar en perfil');
 }
 
 async function updateProfile() {
     const name = document.getElementById('profileName').value;
+
+    showLoading('Guardando perfil...');
+
     const res = await apiFetch('/user/profile', {
         method: 'PUT',
         body: JSON.stringify({ name })
     });
 
     if (res.ok) {
-        alert('Perfil actualizado');
-        loadProfile();
+        showSuccess('Perfil actualizado exitosamente', () => loadProfile());
     } else {
-        alert('Error actualizando perfil');
+        showError('Error actualizando perfil');
     }
 }
 
@@ -126,7 +123,9 @@ async function changePassword() {
     const currentPassword = document.getElementById('currentPassword').value;
     const newPassword = document.getElementById('newPassword').value;
 
-    if (!currentPassword || !newPassword) return alert('Ambos campos son requeridos');
+    if (!currentPassword || !newPassword) return showError('Ambos campos son requeridos');
+
+    showLoading('Actualizando contraseña...');
 
     const res = await apiFetch('/user/password', {
         method: 'PUT',
@@ -134,34 +133,35 @@ async function changePassword() {
     });
 
     if (res.ok) {
-        alert('Contraseña actualizada');
+        showSuccess('Contraseña actualizada correctamente');
         document.getElementById('currentPassword').value = '';
         document.getElementById('newPassword').value = '';
     } else {
         const err = await res.json();
-        alert(err.error || 'Error cambiando contraseña');
+        showError(err.error || 'Error cambiando contraseña');
     }
 }
 
 async function changePlan(planId) {
-    if (!confirm('¿Cambiar de plan?')) return;
+    showConfirm('¿Estás seguro de que deseas cambiar de plan?', async () => {
+        showLoading('Actualizando plan...');
 
-    const res = await apiFetch('/user/plan', {
-        method: 'PUT',
-        body: JSON.stringify({ newPlanId: planId })
-    });
-
-    if (res.ok) {
-        alert('Plan actualizado exitosamente');
-        loadProfile();
-    } else {
         try {
-            const err = await res.json();
-            alert(err.error || 'Error cambiando plan');
+            const res = await apiFetch('/user/plan', {
+                method: 'PUT',
+                body: JSON.stringify({ newPlanId: planId })
+            });
+
+            if (res.ok) {
+                showSuccess('Plan actualizado exitosamente', () => loadProfile());
+            } else {
+                const err = await res.json();
+                showError(err.error || 'Error cambiando plan');
+            }
         } catch (e) {
-            alert('Error cambiando plan');
+            showError('Error de conexión al cambiar plan');
         }
-    }
+    });
 }
 
 init();

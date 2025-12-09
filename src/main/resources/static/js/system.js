@@ -20,7 +20,6 @@ async function loadSystemDetails() {
         document.getElementById('systemDesc').innerText = system.description || 'Sin descripción';
         document.title = `${system.name} - Datium`;
 
-        // Load Image
         const img = document.getElementById('systemLogo');
         img.src = system.imageUrl || 'img/Isotipo modo claro.jpeg';
         img.onerror = () => { img.src = 'img/Isotipo modo claro.jpeg'; };
@@ -31,7 +30,7 @@ async function loadTables() {
     const res = await apiFetch(`/systems/${systemId}/tables`);
     if (res.ok) {
         allTables = await res.json();
-        filterTables(); // Initial render
+        filterTables();
     }
 }
 
@@ -96,12 +95,9 @@ function renderTables(tables) {
     `).join('');
 }
 
-// --- Modal Logic ---
-
 async function openRegisterModal(tableId, tableName) {
     currentRegisterTableId = tableId;
 
-    // Populate Modal Header
     const sysName = document.getElementById('systemName').innerText;
     const sysLogoSrc = document.getElementById('systemLogo').src;
 
@@ -117,7 +113,6 @@ async function openRegisterModal(tableId, tableName) {
     `;
     document.getElementById('registerModal').classList.remove('hidden');
 
-    // Fetch Fields
     try {
         const res = await apiFetch(`/tables/${tableId}/fields`);
         if (res.ok) {
@@ -197,16 +192,24 @@ async function renderModalFields() {
                     options = Object.entries(relationCache[f.relatedTableId]).map(([id, val]) => ({ id, val }));
                 }
             }
+
             const safeOptions = JSON.stringify(options).replace(/"/g, '&quot;');
+            const isEmpty = options.length === 0;
+            const emptyMessage = isEmpty ? '<p class="text-xs text-red-500 mt-1">No hay registros en esta tabla.</p>' : '';
+            const disabledAttr = isEmpty ? 'disabled' : '';
+            const placeholder = isEmpty ? 'No hay opciones disponibles' : 'Buscar...';
+
             inputHtml = `
                 <div class="relative relation-search-container">
-                    <input type="text" class="${baseInputClass}" id="search_modal_field_${f.id}" placeholder="Buscar..." 
+                    <input type="text" class="${baseInputClass} ${isEmpty ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}" 
+                           id="search_modal_field_${f.id}" placeholder="${placeholder}" ${disabledAttr}
                            autocomplete="off" onfocus="showRelationOptions(${f.id})" 
                            oninput="filterRelationOptions(${f.id})" 
                            onblur="setTimeout(() => hideRelationOptions(${f.id}), 200)">
                     <input type="hidden" id="modal_field_${f.id}">
                     <div id="list_modal_field_${f.id}" class="absolute w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-auto z-50" 
                          style="max-height: 200px; display: none;" data-options="${safeOptions}"></div>
+                    ${emptyMessage}
                 </div>
             `;
         } else {
@@ -239,7 +242,6 @@ async function submitRegister() {
         const searchEl = document.getElementById(`search_modal_field_${f.id}`);
         const val = el ? el.value : '';
 
-        // Validation visual feedback
         const visualEl = searchEl || el;
 
         if (f.required && !val) {
@@ -252,9 +254,11 @@ async function submitRegister() {
     });
 
     if (hasError) {
-        alert('Por favor completa los campos requeridos');
+        showError('Por favor completa los campos requeridos');
         return;
     }
+
+    showLoading('Guardando registro...');
 
     try {
         const res = await apiFetch(`/tables/${currentRegisterTableId}/records`, {
@@ -263,15 +267,21 @@ async function submitRegister() {
         });
 
         if (res.ok) {
-            closeRegisterModal();
-            alert('Registro guardado exitosamente');
+            showSuccess('Registro guardado', () => {
+                closeRegisterModal();
+                loadTables();
+            });
         } else {
-            const err = await res.json();
-            alert('Error: ' + (err.message || 'No se pudo guardar'));
+            try {
+                const errorData = await res.json();
+                showError(errorData.message || errorData.error || 'Error al guardar');
+            } catch (e) {
+                showError('Error al guardar datos');
+            }
         }
     } catch (e) {
         console.error(e);
-        alert('Error de conexión');
+        showError('Error de conexión');
     }
 }
 
@@ -281,11 +291,14 @@ function goToCreateTable() {
 
 async function deleteTable(id) {
     if (!confirm('¿Eliminar tabla? Se perderán todos los datos.')) return;
+    showLoading('Eliminando tabla...');
     const res = await apiFetch(`/systems/${systemId}/tables/${id}`, { method: 'DELETE' });
     if (res.ok) {
-        loadTables();
+        showSuccess('Tabla eliminada', () => {
+            loadTables();
+        });
     } else {
-        alert('Error eliminando tabla');
+        showError('Error eliminando tabla');
     }
 }
 
@@ -293,10 +306,10 @@ async function loadSidebarInfo() {
     const res = await apiFetch('/user/profile');
     if (res && res.ok) {
         const userProfile = await res.json();
-        const nameEl = document.getElementById('sidebarUserName');
-        const emailEl = document.getElementById('sidebarUserEmail');
-        const initialEl = document.getElementById('sidebarUserInitial');
-        const avatarImg = document.getElementById('sidebarUserAvatar');
+        const nameEl = document.getElementById('userName');
+        const emailEl = document.getElementById('userEmail');
+        const initialEl = document.getElementById('userInitial');
+        const avatarImg = document.getElementById('userAvatar');
 
         if (nameEl) nameEl.innerText = userProfile.name || 'Usuario';
         if (emailEl) emailEl.innerText = userProfile.email || '...';
@@ -317,7 +330,6 @@ async function loadSidebarInfo() {
     }
 }
 
-// Helper functions for relation lookup
 function showRelationOptions(fieldId) {
     const list = document.getElementById(`list_modal_field_${fieldId}`);
     const data = JSON.parse(list.dataset.options || '[]');

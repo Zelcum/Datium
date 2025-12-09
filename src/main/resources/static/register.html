@@ -12,6 +12,14 @@
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         rel="stylesheet" />
     <link rel="stylesheet" href="css/styles.css">
+    <script>
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
     <link rel="stylesheet" href="css/loading.css">
     <style>
         .material-symbols-outlined {
@@ -330,120 +338,11 @@
             strengthText.className = `text-xs mt-1 ${color.replace('bg-', 'text-')}`;
         }
 
-        async function registro() {
-            const nombre = document.getElementById('registro-nombre').value.trim();
-            const email = document.getElementById('registro-email').value.trim();
-            const password = document.getElementById('registro-password').value;
-
-            if (!nombre || !email || !password) {
-                mostrarMensaje('Por favor completa todos los campos', 'error');
-                return;
-            }
-
-            if (!email.includes('@')) {
-                mostrarMensaje('Por favor ingresa un email válido', 'error');
-                return;
-            }
-
-            if (password.length < 6) {
-                mostrarMensaje('La contraseña debe tener al menos 6 caracteres', 'error');
-                return;
-            }
-
-            mostrarMensaje('Creando cuenta...', 'info');
-            deshabilitarFormulario(true);
-
-            try {
-                const response = await fetch(API_URL_REGISTER + '/autenticacion/registro', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        nombre: nombre,
-                        email: email,
-                        password: password,
-                        planId: planSeleccionado
-                    })
-                });
-
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    mostrarMensaje('Error: El servidor no respondió correctamente. Verifica que esté corriendo.', 'error');
-                    deshabilitarFormulario(false);
-                    return;
-                }
-
-                if (response.ok && data.token) {
-                    mostrarMensaje('¡Cuenta creada exitosamente! Redirigiendo al login...', 'success');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                } else {
-                    const errorMsg = data.error || data.mensaje || 'No se pudo crear la cuenta. Por favor intenta nuevamente.';
-                    mostrarMensaje('Error: ' + errorMsg, 'error');
-                    deshabilitarFormulario(false);
-                }
-            } catch (error) {
-                console.error('Error en registro:', error);
-                let mensajeError = 'Error de conexión. ';
-                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    mensajeError += 'No se pudo conectar con el servidor. Verifica que:\n';
-                    mensajeError += '1. El servidor esté corriendo en http://localhost:8080\n';
-                    mensajeError += '2. La base de datos MySQL esté activa\n';
-                    mensajeError += '3. No haya problemas de firewall bloqueando la conexión';
-                } else {
-                    mensajeError += error.message || 'Error desconocido';
-                }
-                mostrarMensaje(mensajeError, 'error');
-                deshabilitarFormulario(false);
-            }
-        }
-
-        function mostrarMensaje(mensaje, tipo) {
-            const mensajeDiv = document.getElementById('mensaje-registro');
-            if (!mensajeDiv) {
-                const nuevoDiv = document.createElement('div');
-                nuevoDiv.id = 'mensaje-registro';
-                nuevoDiv.className = `fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-lg shadow-lg max-w-md ${tipo === 'success' ? 'bg-green-500 text-white' :
-                    tipo === 'error' ? 'bg-red-500 text-white' :
-                        'bg-blue-500 text-white'
-                    }`;
-                nuevoDiv.textContent = mensaje;
-                document.body.appendChild(nuevoDiv);
-                setTimeout(() => {
-                    nuevoDiv.remove();
-                }, tipo === 'success' ? 5000 : 8000);
-            } else {
-                mensajeDiv.className = `fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-lg shadow-lg max-w-md ${tipo === 'success' ? 'bg-green-500 text-white' :
-                    tipo === 'error' ? 'bg-red-500 text-white' :
-                        'bg-blue-500 text-white'
-                    }`;
-                mensajeDiv.textContent = mensaje;
-                mensajeDiv.style.display = 'block';
-                if (tipo !== 'info') {
-                    setTimeout(() => {
-                        mensajeDiv.style.display = 'none';
-                    }, tipo === 'success' ? 5000 : 8000);
-                }
-            }
-        }
-
-        function deshabilitarFormulario(deshabilitar) {
-            const inputs = document.querySelectorAll('#registro-nombre, #registro-email, #registro-password');
-            const boton = document.querySelector('button[onclick="registro()"]');
-            inputs.forEach(input => {
-                input.disabled = deshabilitar;
-            });
-            if (boton) {
-                boton.disabled = deshabilitar;
-                boton.style.opacity = deshabilitar ? '0.6' : '1';
-                boton.style.cursor = deshabilitar ? 'not-allowed' : 'pointer';
-            }
-        }
-
         window.planSeleccionado = planSeleccionado;
     </script>
+
+
+    <script src="js/app.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/animations.js"></script>
 </body>

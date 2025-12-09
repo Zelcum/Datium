@@ -3,6 +3,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const tableId = urlParams.get('id');
 let currentSystemId = null;
 let currentFields = [];
+let allRecords = [];
 const relationCache = {};
 
 function goBack() {
@@ -12,8 +13,6 @@ function goBack() {
 async function init() {
     await getSystemId();
     await loadData();
-    // setupEventListeners(); // Removed
-
     loadSidebarInfo();
 }
 
@@ -25,18 +24,20 @@ async function getSystemId() {
             const table = await res.json();
             currentSystemId = table.systemId;
 
-            // Fetch System Name
             const sysRes = await apiFetch(`/systems/${currentSystemId}`);
-            let systemName = 'Sistema';
             if (sysRes.ok) {
                 const sys = await sysRes.json();
-                systemName = sys.name;
+
+                const logoEl = document.getElementById('systemLogo');
+                if (logoEl) {
+                    logoEl.src = sys.imageUrl || 'img/Isotipo modo claro.jpeg';
+                    logoEl.onerror = () => { logoEl.src = 'img/Isotipo modo claro.jpeg'; };
+                }
+
+                document.getElementById('tableName').innerText = table.name;
+                document.getElementById('tableDesc').innerText = table.description || 'Sin descripción';
+                document.title = `${table.name} - Datium`;
             }
-
-            const titleEl = document.getElementById('pageTitle');
-            if (titleEl) titleEl.innerText = `${systemName} - ${table.name || 'Tabla'}`;
-            document.title = `${table.name} - Datium`;
-
             return currentSystemId;
         }
     } catch (e) { console.error(e); }
@@ -44,19 +45,34 @@ async function getSystemId() {
 }
 
 async function loadData() {
+    await getSystemId();
+
     const fieldsRes = await apiFetch(`/tables/${tableId}/fields`);
     if (fieldsRes.ok) {
         currentFields = await fieldsRes.json();
         renderTableHead();
-        // await renderRecordForm(); // Form removed from UI
     }
 
     const recordsRes = await apiFetch(`/tables/${tableId}/records`);
     if (recordsRes.ok) {
-        const records = await recordsRes.json();
-        await resolveForeignKeys(records);
+        allRecords = await recordsRes.json();
+        const countEl = document.getElementById('recordCount');
+        if (countEl) countEl.innerText = allRecords.length;
+        await resolveForeignKeys(allRecords);
+        renderTableBody(allRecords);
     }
 }
+
+function filterRecords() {
+    const term = document.getElementById('recordSearch').value.toLowerCase();
+    const filtered = allRecords.filter(r => {
+        if (String(r.id).includes(term)) return true;
+        return Object.values(r.fieldValues).some(v => String(v).toLowerCase().includes(term));
+    });
+    renderTableBody(filtered);
+}
+
+document.getElementById('recordSearch').addEventListener('input', filterRecords);
 
 async function resolveForeignKeys(records) {
     const relationFields = currentFields.filter(f => f.relatedTableId);
@@ -120,21 +136,22 @@ function renderTableBody(records) {
 }
 
 function editRecord(id) {
-    const record = currentRecords.find(r => r.id === id);
+    const record = allRecords.find(r => r.id === id);
     if (!record) return;
 
     editingRecordId = id;
-    document.getElementById('formTitle').innerHTML = 'Editar Registro';
-    document.getElementById('btnSave').innerHTML = '<span class="material-symbols-outlined">check_circle</span> Actualizar';
-    document.getElementById('btnCancel').style.display = 'block';
+    document.getElementById('modalTitle').innerText = 'Editar Registro #' + id;
+
+    openRegisterModal(true);
 
     currentFields.forEach(f => {
-        const el = document.getElementById(`field_${f.id}`);
+        const el = document.getElementById(`modal_field_${f.id}`);
+        const searchEl = document.getElementById(`search_modal_field_${f.id}`);
+
         const val = record.fieldValues[f.name];
 
         if (f.type === 'relation') {
             if (el) el.value = val;
-            const searchEl = document.getElementById(`search_field_${f.id}`);
             if (searchEl && relationCache[f.relatedTableId]) {
                 searchEl.value = relationCache[f.relatedTableId][val] || val || '';
             }
@@ -142,28 +159,34 @@ function editRecord(id) {
             if (el) el.value = val || '';
         }
     });
-
-    document.getElementById('recordFormCard').scrollIntoView({ behavior: 'smooth' });
 }
 
-function cancelEdit() {
-    editingRecordId = null;
-    document.getElementById('formTitle').innerText = 'Agregar Registro';
-    document.getElementById('btnSave').innerHTML = '<span class="material-symbols-outlined">save</span> Guardar Registro';
-    document.getElementById('btnCancel').style.display = 'none';
+function openRegisterModal(isEditing = false) {
+    document.getElementById('registerModal').classList.remove('hidden');
+    if (!isEditing) {
+        editingRecordId = null;
+        document.getElementById('modalTitle').innerHTML = '<span class="material-symbols-outlined text-primary">post_add</span> Registrar Datos';
+        document.getElementById('recordForm').reset();
 
-    currentFields.forEach(f => {
-        const el = document.getElementById(`field_${f.id}`);
-        const searchEl = document.getElementById(`search_field_${f.id}`);
-        if (el) el.value = '';
-        if (searchEl) searchEl.value = '';
-    });
+        currentFields.forEach(f => {
+            if (f.type === 'relation') {
+                const el = document.getElementById(`modal_field_${f.id}`);
+                if (el) el.value = '';
+            }
+        });
+    }
+    renderModalFields();
+}
+
+function closeRegisterModal() {
+    document.getElementById('registerModal').classList.add('hidden');
+    editingRecordId = null;
 }
 
 async function saveRecord() {
     const fieldValues = {};
     currentFields.forEach(f => {
-        const el = document.getElementById(`field_${f.id}`);
+        const el = document.getElementById(`modal_field_${f.id}`);
         const val = el ? el.value : null;
         fieldValues[f.id] = val;
     });
@@ -179,33 +202,42 @@ async function saveRecord() {
     });
 
     if (res.ok) {
-        cancelEdit();
-        loadData();
+        showSuccess(editingRecordId ? 'Registro actualizado' : 'Registro guardado', () => {
+            closeRegisterModal();
+            loadData();
+        });
     } else {
         try {
             const errorData = await res.json();
-            alert(errorData.message || errorData.error || await res.text());
+            showError(errorData.message || errorData.error || await res.text());
         } catch (e) {
-            const err = await res.text();
-            alert('Error al guardar: ' + err);
+            showError('Error al guardar datos');
         }
     }
 }
 
 async function deleteRecord(id) {
     if (!confirm('¿Eliminar registro?')) return;
+    showLoading('Eliminando...');
     const res = await apiFetch(`/tables/${tableId}/records/${id}`, { method: 'DELETE' });
     if (res.ok) {
-        loadData();
+        showSuccess('Registro eliminado', () => {
+            loadData();
+        });
     } else {
-        alert('Error eliminando registro');
+        showError('Error eliminando registro');
     }
 }
 
-async function renderRecordForm() {
-    const container = document.getElementById('recordForm');
+async function renderModalFields() {
+    const container = document.getElementById('modalFieldsContainer');
+
+    if (container.children.length > 0 && editingRecordId !== null) return;
+
+    container.innerHTML = '';
+
     if (currentFields.length === 0) {
-        container.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-4">No hay campos definidos aún.</div>';
+        container.innerHTML = '<div class="text-center text-gray-400 py-4">No hay campos variables definidos.</div>';
         return;
     }
 
@@ -217,7 +249,7 @@ async function renderRecordForm() {
             const opts = f.options || [];
             inputHtml = `
                 <div class="relative">
-                    <select id="field_${f.id}" class="${baseInputClass} appearance-none cursor-pointer">
+                    <select id="modal_field_${f.id}" class="${baseInputClass} appearance-none cursor-pointer">
                         <option value="">Seleccionar...</option>
                         ${opts.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
                     </select>
@@ -229,7 +261,7 @@ async function renderRecordForm() {
         } else if (f.type === 'boolean') {
             inputHtml = `
                 <div class="relative">
-                    <select id="field_${f.id}" class="${baseInputClass} appearance-none cursor-pointer">
+                    <select id="modal_field_${f.id}" class="${baseInputClass} appearance-none cursor-pointer">
                         <option value="">Seleccionar...</option>
                         <option value="true">Sí</option>
                         <option value="false">No</option>
@@ -261,19 +293,27 @@ async function renderRecordForm() {
                 }
             }
             const safeOptions = JSON.stringify(options).replace(/"/g, '&quot;');
+
+            const isEmpty = options.length === 0;
+            const emptyMessage = isEmpty ? '<p class="text-xs text-red-500 mt-1">No hay registros en esta tabla.</p>' : '';
+            const disabledAttr = isEmpty ? 'disabled' : '';
+            const placeholder = isEmpty ? 'No hay opciones disponibles' : 'Buscar...';
+
             inputHtml = `
-                <div class="position-relative relation-search-container">
-                    <input type="text" class="${baseInputClass}" id="search_field_${f.id}" placeholder="Buscar..." 
+                <div class="relative relation-search-container">
+                    <input type="text" class="${baseInputClass} ${isEmpty ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}" 
+                           id="search_modal_field_${f.id}" placeholder="${placeholder}" ${disabledAttr}
                            autocomplete="off" onfocus="showRelationOptions(${f.id})" 
                            oninput="filterRelationOptions(${f.id})" 
                            onblur="setTimeout(() => hideRelationOptions(${f.id}), 200)">
-                    <input type="hidden" id="field_${f.id}">
-                    <div id="list_field_${f.id}" class="absolute w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-auto z-50" 
+                    <input type="hidden" id="modal_field_${f.id}">
+                    <div id="list_modal_field_${f.id}" class="absolute w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-auto z-50" 
                          style="max-height: 200px; display: none;" data-options="${safeOptions}"></div>
+                    ${emptyMessage}
                 </div>
             `;
         } else {
-            inputHtml = `<input type="${getInputType(f.type)}" id="field_${f.id}" class="${baseInputClass}" placeholder="${f.name}">`;
+            inputHtml = `<input type="${getInputType(f.type)}" id="modal_field_${f.id}" class="${baseInputClass}" placeholder="${f.name}">`;
         }
 
         return `
@@ -289,20 +329,20 @@ async function renderRecordForm() {
 }
 
 function showRelationOptions(fieldId) {
-    const list = document.getElementById(`list_field_${fieldId}`);
+    const list = document.getElementById(`list_modal_field_${fieldId}`);
     const data = JSON.parse(list.dataset.options || '[]');
     renderRelationOptions(fieldId, data);
     list.style.display = 'block';
 }
 
 function hideRelationOptions(fieldId) {
-    const list = document.getElementById(`list_field_${fieldId}`);
+    const list = document.getElementById(`list_modal_field_${fieldId}`);
     if (list) list.style.display = 'none';
 }
 
 function filterRelationOptions(fieldId) {
-    const text = document.getElementById(`search_field_${fieldId}`).value.toLowerCase();
-    const list = document.getElementById(`list_field_${fieldId}`);
+    const text = document.getElementById(`search_modal_field_${fieldId}`).value.toLowerCase();
+    const list = document.getElementById(`list_modal_field_${fieldId}`);
     const data = JSON.parse(list.dataset.options || '[]');
     const filtered = data.filter(d => String(d.val).toLowerCase().includes(text) || String(d.id).includes(text));
     renderRelationOptions(fieldId, filtered);
@@ -310,7 +350,7 @@ function filterRelationOptions(fieldId) {
 }
 
 function renderRelationOptions(fieldId, options) {
-    const list = document.getElementById(`list_field_${fieldId}`);
+    const list = document.getElementById(`list_modal_field_${fieldId}`);
     if (options.length === 0) {
         list.innerHTML = '<div class="p-3 text-gray-500 text-sm">No se encontraron resultados</div>';
         return;
@@ -324,8 +364,8 @@ function renderRelationOptions(fieldId, options) {
 }
 
 function selectRelationOption(fieldId, id, val) {
-    document.getElementById(`field_${fieldId}`).value = id;
-    document.getElementById(`search_field_${fieldId}`).value = val;
+    document.getElementById(`modal_field_${fieldId}`).value = id;
+    document.getElementById(`search_modal_field_${fieldId}`).value = val;
     hideRelationOptions(fieldId);
 }
 
@@ -343,17 +383,18 @@ async function exportTable(format = 'csv') {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `tabla_${tableId}.${format}`; // Fallback filename
+            a.download = `tabla_${tableId}.${format}`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();
+            showSuccess('Tabla exportada correctamente');
         } else {
-            alert('Error exportando tabla (' + format + ')');
+            showError('Error exportando tabla (' + format + ')');
         }
     } catch (e) {
         console.error(e);
-        alert('Error exportando tabla');
+        showError('Error exportando tabla');
     }
 }
 
@@ -361,10 +402,10 @@ async function loadSidebarInfo() {
     const res = await apiFetch('/user/profile');
     if (res && res.ok) {
         const userProfile = await res.json();
-        const nameEl = document.getElementById('sidebarUserName');
-        const emailEl = document.getElementById('sidebarUserEmail');
-        const initialEl = document.getElementById('sidebarUserInitial');
-        const avatarImg = document.getElementById('sidebarUserAvatar');
+        const nameEl = document.getElementById('userName');
+        const emailEl = document.getElementById('userEmail');
+        const initialEl = document.getElementById('userInitial');
+        const avatarImg = document.getElementById('userAvatar');
 
         if (nameEl) nameEl.innerText = userProfile.name || 'Usuario';
         if (emailEl) emailEl.innerText = userProfile.email || '...';

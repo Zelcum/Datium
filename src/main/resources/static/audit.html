@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Datium</title>
+    <title>Datium - Auditoría</title>
     <link rel="icon" type="image/jpeg" href="img/Isotipo modo oscuro.jpeg" id="favicon">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com" rel="preconnect" />
@@ -39,24 +39,6 @@
             },
         }
     </script>
-    <style>
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-
-        .dark ::-webkit-scrollbar-thumb {
-            background: #374151;
-        }
-    </style>
 </head>
 
 <body
@@ -89,19 +71,19 @@
 
                 <nav class="px-4 flex flex-col gap-2">
                     <a href="dashboard.html"
-                        class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-xl text-sm font-bold shadow-sm shadow-primary/10">
+                        class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
                         <span class="material-symbols-outlined">dns</span>
                         dashboard
                     </a>
 
-                    <a href="#"
+                    <a href="connections.html"
                         class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
                         <span class="material-symbols-outlined">cable</span>
                         Conexiones
                     </a>
 
-                    <a href="#"
-                        class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
+                    <a href="audit.html"
+                        class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-xl text-sm font-bold shadow-sm shadow-primary/10">
                         <span class="material-symbols-outlined">history</span>
                         Auditoría
                     </a>
@@ -138,74 +120,99 @@
 
         <main
             class="flex-1 h-full overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark relative scroll-smooth p-6">
-            <div class="max-w-4xl mx-auto space-y-6">
+            <div class="max-w-6xl mx-auto flex flex-col gap-6">
 
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h1 class="text-2xl font-bold text-[#111418] dark:text-white flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary">add_circle</span>
-                            Crear Nueva Tabla
-                        </h1>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Define la estructura para tus datos</p>
+                <div class="flex flex-col gap-2">
+                    <h1 class="text-2xl font-bold text-[#111418] dark:text-white flex items-center gap-3">
+                        <span class="material-symbols-outlined text-primary text-3xl">history</span>
+                        Registro de Auditoría
+                    </h1>
+                    <p class="text-gray-500 dark:text-gray-400">Consulta el historial de actividades y eventos de
+                        seguridad.</p>
+                </div>
+
+                <!-- Filters -->
+                <div
+                    class="bg-white dark:bg-[#151f2b] rounded-2xl p-4 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-wrap gap-4 items-end">
+
+                    <div class="flex-1 min-w-[200px]">
+                        <label
+                            class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Sistema</label>
+                        <select id="auditSystemSelect" onchange="loadAuditLogs()"
+                            class="w-full px-3 py-2 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-[#111418] dark:text-white focus:ring-2 focus:ring-primary/50 outline-none text-sm">
+                            <option value="">Seleccionar Sistema...</option>
+                        </select>
                     </div>
-                    <button onclick="goBack()"
-                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium text-sm">
-                        <span class="material-symbols-outlined text-lg">arrow_back</span>
-                        Cancelar
+
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Tipo</label>
+                        <select id="auditTypeSelect" onchange="loadAuditLogs()"
+                            class="w-full px-3 py-2 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-[#111418] dark:text-white focus:ring-2 focus:ring-primary/50 outline-none text-sm">
+                            <option value="activity">Actividad</option>
+                            <option value="security">Seguridad</option>
+                        </select>
+                    </div>
+
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Buscar</label>
+                        <div class="relative">
+                            <input type="text" id="searchInput" onkeyup="debounceSearch()"
+                                placeholder="Usuario, acción..."
+                                class="w-full pl-9 pr-3 py-2 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-[#111418] dark:text-white focus:ring-2 focus:ring-primary/50 outline-none text-sm">
+                            <span
+                                class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
+                        </div>
+                    </div>
+
+                    <button onclick="loadAuditLogs()"
+                        class="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <span class="material-symbols-outlined">refresh</span>
                     </button>
                 </div>
 
+                <!-- Logs List -->
                 <div
-                    class="bg-white dark:bg-[#151f2b] rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-lg">
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre de
-                                la Tabla</label>
-                            <input type="text" id="newTableName" placeholder="Ej. Clientes"
-                                class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 font-medium focus:ring-2 focus:ring-primary/50 transition-all dark:text-white">
-                        </div>
-                        <div>
-                            <label
-                                class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Descripción</label>
-                            <input type="text" id="newTableDesc" placeholder="Descripción breve"
-                                class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 font-medium focus:ring-2 focus:ring-primary/50 transition-all dark:text-white">
+                    class="bg-white dark:bg-[#151f2b] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col">
+                    <div id="logsContainer" class="divide-y divide-gray-100 dark:divide-gray-800">
+                        <!-- Logs will be injected here -->
+                        <div class="p-8 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center gap-3">
+                            <span class="material-symbols-outlined text-4xl opacity-50">search</span>
+                            <p>Selecciona un sistema para ver los registros.</p>
                         </div>
                     </div>
+                </div>
 
-                    <div class="mb-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h4 class="text-sm font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                <span class="material-symbols-outlined text-base">list</span>
-                                Columnas / Campos
-                            </h4>
-                            <button onclick="addNewFieldRow()"
-                                class="px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-bold text-xs transition-colors flex items-center gap-1">
-                                <span class="material-symbols-outlined text-base">add</span>
-                                Agregar Campo
-                            </button>
-                        </div>
+            </div>
+        </main>
+    </div>
 
-                        <div id="newFieldsContainer" class="space-y-3"></div>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/audit.js"></script>
+    <script>
+        async function loadUserInfo() {
+            const res = await apiFetch('/user/profile');
+            if (res && res.ok) {
+                const userProfile = await res.json();
+                const nameEl = document.getElementById('userName');
+                const emailEl = document.getElementById('userEmail');
+                const initialEl = document.getElementById('userInitial');
+                const avatarEl = document.getElementById('userAvatar');
 
-                        <div class="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-100 dark:border-gray-800/50">
-                            <button type="button" onclick="goBack()"
-                                class="px-6 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
-                                Cancelar
-                            </button>
-                            <button type="button" onclick="saveTable()" id="btnSubmit"
-                                class="px-8 py-2.5 rounded-xl bg-gradient-to-r from-primary to-blue-600 text-white font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                                <span class="material-symbols-outlined">check_circle</span>
-                                Guardar Tabla
-                            </button>
-                        </div>
-                        <script src="js/auth.js"></script>
-                        <script src="js/app.js"></script>
-                        <script src="js/table_form.js"></script>
+                if (nameEl) nameEl.innerText = userProfile.name || 'Usuario';
+                if (emailEl) emailEl.innerText = userProfile.email || '...';
 
-                        <script>
-
-                        </script>
+                if (userProfile.avatarUrl) {
+                    avatarEl.src = userProfile.avatarUrl;
+                    avatarEl.classList.remove('hidden');
+                    if (initialEl) initialEl.classList.add('hidden');
+                } else if (initialEl) {
+                    initialEl.innerText = (userProfile.name || 'U').charAt(0).toUpperCase();
+                }
+            }
+        }
+        loadUserInfo();
+    </script>
 </body>
 
 </html>

@@ -13,7 +13,6 @@ async function init() {
         return;
     }
 
-    // Load tables for relation lookups
     await loadSystemTablesForRelations();
 
     if (tableId) {
@@ -25,7 +24,6 @@ async function init() {
         }
         await loadTableData();
     } else {
-        // Add one initial empty row
         addNewFieldRow();
     }
 
@@ -44,16 +42,13 @@ async function loadSystemTablesForRelations() {
 }
 
 async function loadTableData() {
-    // 1. Get Table Details
     const res = await apiFetch(`/tables/${tableId}`);
     if (res.ok) {
         const table = await res.json();
-        // Handle if map or entity
         document.getElementById('newTableName').value = table.name;
         document.getElementById('newTableDesc').value = table.description || '';
     }
 
-    // 2. Get Fields
     const fieldsRes = await apiFetch(`/tables/${tableId}/fields`);
     if (fieldsRes.ok) {
         const fields = await fieldsRes.json();
@@ -70,7 +65,6 @@ async function loadTableData() {
 function addNewFieldRow(fieldData = null) {
     const container = document.getElementById('newFieldsContainer');
     const div = document.createElement('div');
-    // Tailwind Row Style
     div.className = 'bg-gray-50 dark:bg-gray-900/50 p-3 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-wrap gap-3 items-end animate-fade-in';
 
     div.innerHTML = `
@@ -88,7 +82,6 @@ function addNewFieldRow(fieldData = null) {
             </select>
         </div>
         
-        <!-- Dynamic Options/Relation -->
         <div class="flex-1 min-w-[200px] flex gap-2" >
              <div class="field-options-container flex-1 hidden">
                 <input type="text" class="new-field-options w-full px-3 py-2 rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-black/20 text-sm dark:text-white" placeholder="Opciones: A, B, C">
@@ -109,13 +102,13 @@ function addNewFieldRow(fieldData = null) {
                 <input type="checkbox" class="new-field-required form-checkbox rounded text-primary border-gray-300 dark:border-gray-600 bg-transparent focus:ring-0 w-4 h-4">
                 <span class="ml-2 text-xs text-gray-500 font-medium">Req.</span>
             </label>
-            <button onclick="this.closest('div').remove()" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar campo">
+            </label>
+            <button type="button" onclick="const row = this.closest('.bg-gray-50'); row.style.opacity = '0'; setTimeout(() => row.remove(), 300);" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar campo">
                 <span class="material-symbols-outlined text-lg">delete</span>
             </button>
         </div>
     `;
 
-    // Logic to toggle inputs
     const select = div.querySelector('.new-field-type');
     const optionsDiv = div.querySelector('.field-options-container');
     const relationDiv = div.querySelector('.field-relation-container');
@@ -141,7 +134,6 @@ function addNewFieldRow(fieldData = null) {
 
     select.addEventListener('change', (e) => toggleType(e.target.value));
 
-    // Logic to load fields when table selected
     const loadRelFields = async (tId, selectedFieldId = null) => {
         if (!tId) return;
         relDisplaySelect.innerHTML = '<option value="">Cargando...</option>';
@@ -152,7 +144,7 @@ function addNewFieldRow(fieldData = null) {
             const fields = await res.json();
             relDisplaySelect.innerHTML = fields.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
             relDisplaySelect.disabled = false;
-            // IMPORTANT: If we have a selectedFieldId, set it AFTER populating options.
+
             if (selectedFieldId) {
                 relDisplaySelect.value = selectedFieldId;
             }
@@ -165,7 +157,6 @@ function addNewFieldRow(fieldData = null) {
 
     container.appendChild(div);
 
-    // Pre-fill if data exists
     if (fieldData) {
         nameInput.value = fieldData.name;
         select.value = fieldData.type;
@@ -176,34 +167,18 @@ function addNewFieldRow(fieldData = null) {
         if (fieldData.type === 'select' && fieldData.options) {
             optionsInput.value = fieldData.options.join(', ');
         }
+
         if (fieldData.type === 'relation' && fieldData.relatedTableId) {
             relTableSelect.value = fieldData.relatedTableId;
 
-            // Wait for fields to load to select display field
-            loadRelFields(fieldData.relatedTableId).then(() => {
-                // Determine which option to select.
-                // If API returned relatedDisplayFieldId, use it.
-                // If not, we have relatedFieldName. Sync by name.
-                // SystemFieldResponse usually has relatedDisplayFieldId if mapped correctly?
-                // Let's check DTO. SystemFieldResponse has `relatedFieldName` and `relatedTableId`.
-                // It does NOT have `relatedDisplayFieldId` in my reading of it (Step 545).
-                // Wait, Step 545 output:
-                /*
-                79:     private Integer relatedTableId;
-                80:     private String relatedFieldName;
-                */
-                // It does NOT have `relatedDisplayFieldId`.
-                // So I MUST select by TEXT.
-
-                if (fieldData.relatedFieldName) {
-                    for (let i = 0; i < relDisplaySelect.options.length; i++) {
-                        if (relDisplaySelect.options[i].text === fieldData.relatedFieldName) {
-                            relDisplaySelect.selectedIndex = i;
-                            break;
-                        }
+            loadRelFields(fieldData.relatedTableId, fieldData.relatedDisplayFieldId)
+                .then(() => {
+                    if (!fieldData.relatedDisplayFieldId && fieldData.relatedFieldName) {
+                        const options = Array.from(relDisplaySelect.options);
+                        const match = options.find(opt => opt.text === fieldData.relatedFieldName);
+                        if (match) relDisplaySelect.value = match.value;
                     }
-                }
-            });
+                });
         }
 
         const idInput = document.createElement('input');
@@ -226,7 +201,7 @@ async function saveTable() {
         const nameInput = row.querySelector('.new-field-name');
         if (!nameInput) return null;
 
-        const idInput = row.querySelector('.new-field-id'); // Get ID if exists
+        const idInput = row.querySelector('.new-field-id');
         const fieldId = idInput ? parseInt(idInput.value) : null;
 
         const type = row.querySelector('.new-field-type').value;
@@ -242,13 +217,12 @@ async function saveTable() {
             const fId = row.querySelector('.new-field-rel-display').value;
 
             if (!tId) validationError = 'Debe seleccionar una Tabla Destino para los campos de tipo Relación.';
-            // strict validation? yes
             if (tId) relatedTableId = parseInt(tId);
             if (fId) relatedDisplayFieldId = parseInt(fId);
         }
 
         return {
-            id: fieldId, // Send ID
+            id: fieldId,
             name: nameInput.value,
             type: type,
             required: row.querySelector('.new-field-required').checked,
@@ -261,39 +235,49 @@ async function saveTable() {
 
     if (validationError) return alert(validationError);
 
+    const btn = document.getElementById('btnSubmit');
+    const originalBtnContent = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Guardando...';
+    btn.disabled = true;
+
     if (tableId) {
-        // Update Table (PUT)
         const res = await apiFetch(`/systems/${systemId}/tables/${tableId}`, {
             method: 'PUT',
-            body: JSON.stringify({ name, description, fields }) // Include fields
+            body: JSON.stringify({ name, description, fields })
         });
 
         if (res.ok) {
-            alert('Tabla y campos actualizados correctamente.');
-            window.location.href = `system.html?id=${systemId}`;
+            showSuccess('Tabla y campos actualizados correctamente.', () => {
+                window.location.href = `system.html?id=${systemId}`;
+            });
         } else {
+            btn.innerHTML = originalBtnContent;
+            btn.disabled = false;
             try {
                 const errorData = await res.json();
-                alert(errorData.message || errorData.error || 'Error actualizando tabla');
+                showError(errorData.message || errorData.error || 'Error actualizando tabla');
             } catch (e) {
-                alert('Error actualizando tabla');
+                showError('Error actualizando tabla');
             }
         }
     } else {
-        // Create Table (POST)
         const res = await apiFetch(`/systems/${systemId}/tables`, {
             method: 'POST',
             body: JSON.stringify({ name, description, fields })
         });
 
         if (res.ok) {
-            window.location.href = `system.html?id=${systemId}`;
+            showSuccess('Tabla creada exitosamente', () => {
+                window.location.href = `system.html?id=${systemId}`;
+            });
         } else {
+            btn.innerHTML = originalBtnContent;
+            btn.disabled = false;
             try {
                 const errorData = await res.json();
-                alert(errorData.message || 'Error creando tabla');
+                showError(errorData.message || 'Error creando tabla');
             } catch (e) {
-                alert('Error creando tabla');
+                showError('Error creando tabla');
             }
         }
     }
@@ -303,10 +287,10 @@ async function loadSidebarInfo() {
     const res = await apiFetch('/user/profile');
     if (res && res.ok) {
         const userProfile = await res.json();
-        const nameEl = document.getElementById('sidebarUserName');
-        const emailEl = document.getElementById('sidebarUserEmail');
-        const initialEl = document.getElementById('sidebarUserInitial');
-        const avatarImg = document.getElementById('sidebarUserAvatar');
+        const nameEl = document.getElementById('userName');
+        const emailEl = document.getElementById('userEmail');
+        const initialEl = document.getElementById('userInitial');
+        const avatarImg = document.getElementById('userAvatar');
 
         if (nameEl) nameEl.innerText = userProfile.name || 'Usuario';
         if (emailEl) emailEl.innerText = userProfile.email || '...';
