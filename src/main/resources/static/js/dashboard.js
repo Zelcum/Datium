@@ -157,7 +157,7 @@ function renderSystemsSlider() {
     sliderContainer.innerHTML = currentSystems.map((system, index) => {
         const imageUrl = system.imageUrl || 'img/Isotipo modo claro.jpeg';
         return `
-            <div class="system-slide min-w-[280px] bg-white dark:bg-[#1a2634] rounded-xl p-4 border border-gray-200 dark:border-gray-800 hover:border-primary/50 transition-all cursor-pointer"
+            <div class="system-slide min-w-[280px] bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/20 dark:border-white/10 hover:bg-white/30 dark:hover:bg-black/30 transition-all cursor-pointer"
                  onclick="enterSystem(${system.id})">
                 <div class="flex items-center gap-3 mb-3">
                     <img src="${imageUrl}" alt="${system.name}" 

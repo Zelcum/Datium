@@ -4,6 +4,7 @@ const systemId = urlParams.get('id');
 let allTables = [];
 let currentRegisterTableId = null;
 let currentRegisterFields = [];
+const relationCache = {};
 
 async function init() {
     await loadSystemDetails();
@@ -99,7 +100,15 @@ function renderTables(tables) {
 
 async function openRegisterModal(tableId, tableName) {
     currentRegisterTableId = tableId;
-    document.getElementById('modalTitle').innerText = `Registrar en ${tableName}`;
+
+    // Populate Modal Header
+    const sysName = document.getElementById('systemName').innerText;
+    const sysLogoSrc = document.getElementById('systemLogo').src;
+
+    document.getElementById('modalSystemName').innerText = sysName;
+    document.getElementById('modalTableName').innerText = tableName;
+    document.getElementById('modalSystemLogo').src = sysLogoSrc;
+
     document.getElementById('modalFieldsContainer').innerHTML = `
         <div class="text-center py-8">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
@@ -113,7 +122,7 @@ async function openRegisterModal(tableId, tableName) {
         const res = await apiFetch(`/tables/${tableId}/fields`);
         if (res.ok) {
             currentRegisterFields = await res.json();
-            renderModalFields();
+            await renderModalFields();
         } else {
             document.getElementById('modalFieldsContainer').innerHTML = '<p class="text-red-500 text-center">Error cargando campos</p>';
         }
@@ -130,37 +139,76 @@ function closeRegisterModal() {
     document.getElementById('registerForm').reset();
 }
 
-function renderModalFields() {
+async function renderModalFields() {
     const container = document.getElementById('modalFieldsContainer');
     if (currentRegisterFields.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-center">Esta tabla no tiene campos definidos.</p>';
         return;
     }
 
-    container.innerHTML = currentRegisterFields.map(f => {
+    const htmlPromises = currentRegisterFields.map(async f => {
         const baseInputClass = "w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white placeholder-gray-400";
         let inputHtml = '';
 
         if (f.type === 'select') {
             const opts = f.options || [];
             inputHtml = `
-                <select id="modal_field_${f.id}" class="${baseInputClass}">
-                    <option value="">Seleccionar...</option>
-                    ${opts.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-                </select>
+                <div class="relative">
+                    <select id="modal_field_${f.id}" class="${baseInputClass} appearance-none cursor-pointer">
+                        <option value="">Seleccionar...</option>
+                        ${opts.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                        <span class="material-symbols-outlined text-lg">expand_more</span>
+                    </div>
+                </div>
             `;
         } else if (f.type === 'boolean') {
             inputHtml = `
-                <select id="modal_field_${f.id}" class="${baseInputClass}">
-                    <option value="">Seleccionar...</option>
-                    <option value="true">Sí</option>
-                    <option value="false">No</option>
-                </select>
+                <div class="relative">
+                    <select id="modal_field_${f.id}" class="${baseInputClass} appearance-none cursor-pointer">
+                        <option value="">Seleccionar...</option>
+                        <option value="true">Sí</option>
+                        <option value="false">No</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                        <span class="material-symbols-outlined text-lg">expand_more</span>
+                    </div>
+                </div>
             `;
         } else if (f.type === 'relation') {
-            // Simplified relation for modal (text input for ID for now to avoid complex async/cache logic duplication)
-            // Ideally we'd copy the full relation search logic, but let's keep it simple for this iteration or use a standard input
-            inputHtml = `<input type="text" id="modal_field_${f.id}" class="${baseInputClass}" placeholder="ID de ${f.name} (Relación)">`;
+            let options = [];
+            if (f.relatedTableId) {
+                if (!relationCache[f.relatedTableId]) {
+                    try {
+                        const res = await apiFetch(`/tables/${f.relatedTableId}/records`);
+                        if (res.ok) {
+                            const recs = await res.json();
+                            const map = {};
+                            recs.forEach(r => {
+                                const val = f.relatedFieldName ? r.fieldValues[f.relatedFieldName] : r.id;
+                                map[r.id] = val;
+                            });
+                            relationCache[f.relatedTableId] = map;
+                            options = Object.entries(map).map(([id, val]) => ({ id, val }));
+                        }
+                    } catch (err) { console.error(err); }
+                } else {
+                    options = Object.entries(relationCache[f.relatedTableId]).map(([id, val]) => ({ id, val }));
+                }
+            }
+            const safeOptions = JSON.stringify(options).replace(/"/g, '&quot;');
+            inputHtml = `
+                <div class="relative relation-search-container">
+                    <input type="text" class="${baseInputClass}" id="search_modal_field_${f.id}" placeholder="Buscar..." 
+                           autocomplete="off" onfocus="showRelationOptions(${f.id})" 
+                           oninput="filterRelationOptions(${f.id})" 
+                           onblur="setTimeout(() => hideRelationOptions(${f.id}), 200)">
+                    <input type="hidden" id="modal_field_${f.id}">
+                    <div id="list_modal_field_${f.id}" class="absolute w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-auto z-50" 
+                         style="max-height: 200px; display: none;" data-options="${safeOptions}"></div>
+                </div>
+            `;
         } else {
             const type = f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text';
             inputHtml = `<input type="${type}" id="modal_field_${f.id}" class="${baseInputClass}" placeholder="${f.name}">`;
@@ -174,7 +222,10 @@ function renderModalFields() {
                 ${inputHtml}
             </div>
         `;
-    }).join('');
+    });
+
+    const htmlParts = await Promise.all(htmlPromises);
+    container.innerHTML = htmlParts.join('');
 }
 
 async function submitRegister() {
@@ -185,13 +236,17 @@ async function submitRegister() {
 
     currentRegisterFields.forEach(f => {
         const el = document.getElementById(`modal_field_${f.id}`);
+        const searchEl = document.getElementById(`search_modal_field_${f.id}`);
         const val = el ? el.value : '';
 
+        // Validation visual feedback
+        const visualEl = searchEl || el;
+
         if (f.required && !val) {
-            el.classList.add('border-red-500');
+            if (visualEl) visualEl.classList.add('border-red-500');
             hasError = true;
         } else {
-            if (el) el.classList.remove('border-red-500');
+            if (visualEl) visualEl.classList.remove('border-red-500');
         }
         values[f.id] = val;
     });
@@ -260,6 +315,48 @@ async function loadSidebarInfo() {
             if (avatarImg) avatarImg.classList.add('hidden');
         }
     }
+}
+
+// Helper functions for relation lookup
+function showRelationOptions(fieldId) {
+    const list = document.getElementById(`list_modal_field_${fieldId}`);
+    const data = JSON.parse(list.dataset.options || '[]');
+    renderRelationOptions(fieldId, data);
+    list.style.display = 'block';
+}
+
+function hideRelationOptions(fieldId) {
+    const list = document.getElementById(`list_modal_field_${fieldId}`);
+    if (list) list.style.display = 'none';
+}
+
+function filterRelationOptions(fieldId) {
+    const text = document.getElementById(`search_modal_field_${fieldId}`).value.toLowerCase();
+    const list = document.getElementById(`list_modal_field_${fieldId}`);
+    const data = JSON.parse(list.dataset.options || '[]');
+    const filtered = data.filter(d => String(d.val).toLowerCase().includes(text) || String(d.id).includes(text));
+    renderRelationOptions(fieldId, filtered);
+    list.style.display = 'block';
+}
+
+function renderRelationOptions(fieldId, options) {
+    const list = document.getElementById(`list_modal_field_${fieldId}`);
+    if (options.length === 0) {
+        list.innerHTML = '<div class="p-3 text-gray-500 text-sm">No se encontraron resultados</div>';
+        return;
+    }
+    list.innerHTML = options.map(o => `
+        <a href="javascript:void(0)" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
+           onclick="selectRelationOption(${fieldId}, '${o.id}', '${o.val.replace(/'/g, "\\'")}')">
+           ${o.val} <span class="text-xs text-gray-400 ml-2">#${o.id}</span>
+        </a>
+    `).join('');
+}
+
+function selectRelationOption(fieldId, id, val) {
+    document.getElementById(`modal_field_${fieldId}`).value = id;
+    document.getElementById(`search_modal_field_${fieldId}`).value = val;
+    hideRelationOptions(fieldId);
 }
 
 init();

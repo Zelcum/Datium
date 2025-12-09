@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Sistema - Datium</title>
+    <title>Datium</title>
     <link rel="icon" type="image/jpeg" href="img/Isotipo modo oscuro.jpeg" id="favicon">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com" rel="preconnect" />
@@ -136,11 +136,6 @@
                         <span class="material-symbols-outlined text-lg">arrow_back</span>
                         Volver
                     </a>
-                    <button onclick="goToCreateTable()"
-                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold transition-colors shadow-lg shadow-primary/30 text-sm">
-                        <span class="material-symbols-outlined text-lg">add</span>
-                        Crear Tabla
-                    </button>
                 </div>
 
                 <!-- Centered Header -->
@@ -158,12 +153,21 @@
                     </div>
 
                     <!-- Search Bar -->
-                    <div class="w-full max-w-md relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="material-symbols-outlined text-gray-400">search</span>
+                    <!-- Search Bar & Action -->
+                    <div class="w-full max-w-xl flex items-center gap-3">
+                        <div class="flex-1 relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="material-symbols-outlined text-gray-400">search</span>
+                            </div>
+                            <input type="text" id="tableSearchInput" placeholder="Buscar tablas..."
+                                oninput="filterTables()"
+                                class="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#151f2b] border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white shadow-sm">
                         </div>
-                        <input type="text" id="tableSearchInput" placeholder="Buscar tablas..." oninput="filterTables()"
-                            class="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#151f2b] border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white shadow-sm">
+                        <button onclick="goToCreateTable()"
+                            class="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold transition-colors shadow-lg shadow-primary/30 text-sm whitespace-nowrap">
+                            <span class="material-symbols-outlined text-lg">add</span>
+                            Crear Tabla
+                        </button>
                     </div>
                 </div>
 
@@ -197,20 +201,25 @@
 
                     <!-- Header -->
                     <div
-                        class="bg-gray-50 dark:bg-[#151f2b] px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <div class="p-2 bg-primary/10 rounded-lg text-primary">
-                                <span class="material-symbols-outlined">post_add</span>
-                            </div>
+                        class="bg-gray-50 dark:bg-[#151f2b] px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-start">
+                        <div class="flex items-center gap-4">
+                            <img id="modalSystemLogo" src="" alt="System Logo"
+                                class="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700">
                             <div>
-                                <h3 class="text-lg font-bold text-[#111418] dark:text-white" id="modalTitle">Registrar
+                                <div
+                                    class="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                                    <span id="modalSystemName">Sistema</span>
+                                    <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+                                    <span id="modalTableName">Tabla</span>
+                                </div>
+                                <h3 class="text-xl font-bold text-[#111418] dark:text-white flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-emerald-500">post_add</span>
+                                    Registrar
                                 </h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400" id="modalSubtitle">Ingresa los datos
-                                    del nuevo registro</p>
                             </div>
                         </div>
                         <button onclick="closeRegisterModal()"
-                            class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                            class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 p-1">
                             <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
