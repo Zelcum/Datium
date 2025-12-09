@@ -174,4 +174,12 @@ public class UserService {
                 user.getAvatarUrl(),
                 user.getCreatedAt());
     }
+
+    public boolean verifyPassword(Integer userId, String password) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            return false;
+        }
+        return passwordEncoder.matches(password, userOpt.get().getPasswordHash());
+    }
 }

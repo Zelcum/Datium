@@ -160,3 +160,13 @@ CREATE TABLE security_audit (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE system_shares (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    system_id INT NOT NULL,
+    user_email VARCHAR(150) NOT NULL,
+    permission_level VARCHAR(20) NOT NULL,
+    status VARCHAR(20) DEFAULT 'ACCEPTED',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (system_id) REFERENCES systems(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

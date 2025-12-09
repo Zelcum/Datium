@@ -217,16 +217,23 @@ async function saveRecord() {
 }
 
 async function deleteRecord(id) {
-    if (!confirm('¿Eliminar registro?')) return;
-    showLoading('Eliminando...');
-    const res = await apiFetch(`/tables/${tableId}/records/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-        showSuccess('Registro eliminado', () => {
-            loadData();
+    showConfirm('¿Eliminar registro?', () => {
+        promptPassword(async () => {
+            showLoading('Eliminando...');
+            try {
+                const res = await apiFetch(`/tables/${tableId}/records/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showSuccess('Registro eliminado', () => {
+                        loadData();
+                    });
+                } else {
+                    showError('Error eliminando registro');
+                }
+            } catch (e) {
+                showError('Error de conexión');
+            }
         });
-    } else {
-        showError('Error eliminando registro');
-    }
+    });
 }
 
 async function renderModalFields() {

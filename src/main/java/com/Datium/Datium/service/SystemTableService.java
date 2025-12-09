@@ -104,29 +104,18 @@ public class SystemTableService {
     @Autowired
     private com.Datium.Datium.repository.SystemRepository systemRepository;
 
+    @Autowired
+    private com.Datium.Datium.repository.SystemShareRepository systemShareRepository;
+
     @org.springframework.transaction.annotation.Transactional
     public void moveTable(Integer tableId, Integer targetSystemId, Integer userId) {
         SystemTable table = getTable(tableId);
         
-        // Validate target system exists and belongs to user
-        com.Datium.Datium.entity.System targetSystem = systemRepository.findById(targetSystemId)
-            .orElseThrow(() -> new RuntimeException("Sistema destino no encontrado"));
-            
-        if (!targetSystem.getOwnerId().equals(userId)) {
-             throw new RuntimeException("No tienes permiso sobre el sistema destino");
-        }
+        // Validate target system access
+        checkSystemAccess(targetSystemId, userId, "No tienes permiso para modificar el sistema destino");
         
-        // Validate source system ownership (implicit if we trust getTable+controller check, but better to be safe)
-        // Checking if the table currently belongs to a system owned by the user is complex without extra lookups.
-        // However, the controller usually validates token. 
-        // We really should check if the current table's system belongs to the user or if the user has access.
-        // Assuming for now getTable is just ID lookup.
-        com.Datium.Datium.entity.System sourceSystem = systemRepository.findById(table.getSystemId())
-            .orElseThrow(() -> new RuntimeException("Sistema origen no encontrado"));
-        
-        if (!sourceSystem.getOwnerId().equals(userId)) {
-            throw new RuntimeException("No tienes permiso sobre el sistema origen");
-        }
+        // Validate source system access
+        checkSystemAccess(table.getSystemId(), userId, "No tienes permiso para modificar el sistema origen");
 
         // Validate table limit in target
         planValidationService.validateTableLimit(targetSystemId);
@@ -144,4 +133,45 @@ public class SystemTableService {
         table.setSystemId(targetSystemId);
         tableRepository.save(table);
     }
+
+    @Autowired
+    private com.Datium.Datium.repository.UserRepository userRepository;
+
+    private void checkSystemAccess(Integer systemId, Integer userId, String errorMessage) {
+        com.Datium.Datium.entity.System system = systemRepository.findById(systemId)
+            .orElseThrow(() -> new RuntimeException("Sistema no encontrado"));
+
+        if (system.getOwnerId().equals(userId)) {
+            return;
+        }
+
+        com.Datium.Datium.entity.User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            // Check SystemShare (by email)
+            java.util.Optional<com.Datium.Datium.entity.SystemShare> share = 
+                systemShareRepository.findBySystemIdAndUserEmail(systemId, user.getEmail());
+            
+            if (share.isPresent() && "EDITOR".equals(share.get().getPermissionLevel())) {
+                return;
+            }
+            
+            // Check SystemUser (by userId) - Legacy/Internal method
+            // Need to inject SystemUserRepository
+             java.util.Optional<com.Datium.Datium.entity.SystemUser> systemUser =
+                systemUserRepository.findBySystemIdAndUserId(systemId, userId);
+
+            if (systemUser.isPresent()) {
+                com.Datium.Datium.entity.SystemUser.Role role = systemUser.get().getRole();
+                if (role == com.Datium.Datium.entity.SystemUser.Role.admin || 
+                    role == com.Datium.Datium.entity.SystemUser.Role.editor) {
+                    return;
+                }
+            }
+        }
+
+        throw new RuntimeException(errorMessage);
+    }
+
+    @Autowired
+    private com.Datium.Datium.repository.SystemUserRepository systemUserRepository;
 }

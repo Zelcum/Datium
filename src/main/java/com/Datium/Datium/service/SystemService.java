@@ -55,6 +55,9 @@ public class SystemService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
+    private SystemShareRepository systemShareRepository;
+
+    @Autowired
     private PlanValidationService planValidationService;
 
     public List<SystemResponse> getAllSystems(Integer userId) {
@@ -63,8 +66,12 @@ public class SystemService {
                 return new ArrayList<>();
             }
             
+            User currentUser = userRepository.findById(userId).orElse(null);
+            if (currentUser == null) return new ArrayList<>();
+
             List<System> ownedSystems = systemRepository.findByOwnerId(userId);
             List<SystemUser> invitedSystems = systemUserRepository.findByUserId(userId);
+            List<com.Datium.Datium.entity.SystemShare> sharedSystems = systemShareRepository.findByUserEmail(currentUser.getEmail());
             
             java.util.Set<Integer> systemIds = new java.util.HashSet<>();
             List<System> allSystems = new ArrayList<>();
@@ -81,6 +88,16 @@ public class SystemService {
                         allSystems.add(system);
                         systemIds.add(system.getId());
                     }
+                }
+            }
+
+            for (com.Datium.Datium.entity.SystemShare share : sharedSystems) {
+                if (!systemIds.contains(share.getSystemId())) {
+                     System system = systemRepository.findById(share.getSystemId()).orElse(null);
+                     if (system != null) {
+                         allSystems.add(system);
+                         systemIds.add(system.getId());
+                     }
                 }
             }
             
@@ -101,7 +118,15 @@ public class SystemService {
         boolean isOwner = system.getOwnerId().equals(userId);
         boolean isInvited = systemUserRepository.existsBySystemIdAndUserId(id, userId);
         
+        boolean isShared = false;
         if (!isOwner && !isInvited) {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null) {
+                isShared = systemShareRepository.findBySystemIdAndUserEmail(id, user.getEmail()).isPresent();
+            }
+        }
+        
+        if (!isOwner && !isInvited && !isShared) {
             throw new RuntimeException("No tienes permisos para ver este sistema");
         }
         

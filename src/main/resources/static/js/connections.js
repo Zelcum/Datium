@@ -96,22 +96,74 @@ function checkMoveButtonState() {
     }
 
     btn.disabled = !(s && t && tbl);
+
+    updateVisuals();
 }
 
-async function moveTable() {
-    const tableId = document.getElementById('tableSelect').value;
-    const targetSystemId = document.getElementById('targetSystemSelect').value;
-    const sourceSystemId = document.getElementById('sourceSystemSelect').value;
+function updateVisuals() {
+    const sSelect = document.getElementById('sourceSystemSelect');
+    const tSelect = document.getElementById('targetSystemSelect');
+    const tblSelect = document.getElementById('tableSelect');
 
-    if (!tableId || !targetSystemId) return;
+    const sId = sSelect.value;
+    const tId = tSelect.value;
+    const tblId = tblSelect.value;
 
-    if (sourceSystemId === targetSystemId) {
-        showError('El sistema destino no puede ser igual al origen');
-        return;
+    const sSystem = allSystems.find(sys => String(sys.id) === String(sId));
+    const tSystem = allSystems.find(sys => String(sys.id) === String(tId));
+
+    // Update Source Visuals
+    const sLogo = document.getElementById('visualSourceLogo');
+    const sName = document.getElementById('visualSourceName');
+    if (sSystem) {
+        sLogo.src = sSystem.imageUrl || 'img/Isotipo modo claro.jpeg';
+        sLogo.classList.remove('opacity-50', 'grayscale');
+        sName.innerText = sSystem.name;
+        sName.classList.remove('text-gray-400');
+        sName.classList.add('text-[#111418]', 'dark:text-white');
+    } else {
+        sLogo.src = 'img/Isotipo modo claro.jpeg';
+        sLogo.classList.add('opacity-50', 'grayscale');
+        sName.innerText = 'Selecciona Origen';
+        sName.classList.add('text-gray-400');
     }
 
-});
+    // Update Target Visuals
+    const tLogo = document.getElementById('visualTargetLogo');
+    const tName = document.getElementById('visualTargetName');
+    if (tSystem) {
+        tLogo.src = tSystem.imageUrl || 'img/Isotipo modo claro.jpeg';
+        tLogo.classList.remove('opacity-50', 'grayscale');
+        tName.innerText = tSystem.name;
+        tName.classList.remove('text-gray-400');
+        tName.classList.add('text-[#111418]', 'dark:text-white');
+    } else {
+        tLogo.src = 'img/Isotipo modo claro.jpeg';
+        tLogo.classList.add('opacity-50', 'grayscale');
+        tName.innerText = 'Selecciona Destino';
+        tName.classList.add('text-gray-400');
+    }
+
+    // Update Table Visual
+    const tblContainer = document.getElementById('visualTableContainer');
+    const tblName = document.getElementById('visualTableName');
+
+    if (tblId) {
+        const tblText = tblSelect.options[tblSelect.selectedIndex].text;
+        tblName.innerText = tblText;
+        tblName.classList.remove('text-gray-500');
+        tblName.classList.add('text-primary', 'font-bold');
+        tblContainer.classList.remove('opacity-50');
+        tblContainer.classList.add('bg-blue-50', 'dark:bg-blue-900/10', 'border-blue-200', 'dark:border-blue-800');
+    } else {
+        tblName.innerText = 'Ninguna tabla seleccionada';
+        tblName.classList.add('text-gray-500');
+        tblName.classList.remove('text-primary', 'font-bold');
+        tblContainer.classList.add('opacity-50');
+        tblContainer.classList.remove('bg-blue-50', 'dark:bg-blue-900/10', 'border-blue-200', 'dark:border-blue-800');
+    }
 }
+
 
 function confirmMove() {
     showConfirm('¿Estás seguro de mover esta tabla? Las relaciones existentes se eliminarán.', async () => {

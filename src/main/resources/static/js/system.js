@@ -290,16 +290,23 @@ function goToCreateTable() {
 }
 
 async function deleteTable(id) {
-    if (!confirm('¿Eliminar tabla? Se perderán todos los datos.')) return;
-    showLoading('Eliminando tabla...');
-    const res = await apiFetch(`/systems/${systemId}/tables/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-        showSuccess('Tabla eliminada', () => {
-            loadTables();
+    showConfirm('¿Eliminar tabla? Se perderán todos los datos.', () => {
+        promptPassword(async () => {
+            showLoading('Eliminando tabla...');
+            try {
+                const res = await apiFetch(`/systems/${systemId}/tables/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showSuccess('Tabla eliminada', () => {
+                        loadTables();
+                    });
+                } else {
+                    showError('Error eliminando tabla');
+                }
+            } catch (e) {
+                showError('Error de conexión');
+            }
         });
-    } else {
-        showError('Error eliminando tabla');
-    }
+    });
 }
 
 async function loadSidebarInfo() {

@@ -1,58 +1,12 @@
 package com.Datium.Datium.dto;
 
 public class InvitationRequest {
-    private Integer systemId;
-    private String inviteeEmail;
-    private String role;
-    private String accessType;
-    private String individualPassword;
-    private Integer expirationDays;
+    private String email;
+    private String permission; // EDITOR, VIEWER
 
-    public Integer getSystemId() {
-        return systemId;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public void setSystemId(Integer systemId) {
-        this.systemId = systemId;
-    }
-
-    public String getInviteeEmail() {
-        return inviteeEmail;
-    }
-
-    public void setInviteeEmail(String inviteeEmail) {
-        this.inviteeEmail = inviteeEmail;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public String getAccessType() {
-        return accessType;
-    }
-
-    public void setAccessType(String accessType) {
-        this.accessType = accessType;
-    }
-
-    public String getIndividualPassword() {
-        return individualPassword;
-    }
-
-    public void setIndividualPassword(String individualPassword) {
-        this.individualPassword = individualPassword;
-    }
-
-    public Integer getExpirationDays() {
-        return expirationDays;
-    }
-
-    public void setExpirationDays(Integer expirationDays) {
-        this.expirationDays = expirationDays;
-    }
+    public String getPermission() { return permission; }
+    public void setPermission(String permission) { this.permission = permission; }
 }

@@ -10,7 +10,8 @@ let securityChart = null;
 let promptCallback = null;
 
 async function init() {
-    await Promise.all([loadUserProfile(), loadSystems(), loadStatistics()]);
+    await loadUserProfile();
+    await Promise.all([loadSystems(), loadStatistics()]);
 
     window.addEventListener('message', (event) => {
         if (event.data.type === 'startLoading') {
@@ -126,8 +127,15 @@ function renderSystemsTable() {
                         <span class="text-gray-400 text-xs">${createdDate}</span>
                     </div>
                 </td>
+
                 <td class="py-4 px-5 text-right">
                     <div class="flex items-center justify-end gap-2">
+                        ${(userProfile && system.ownerId === userProfile.id) ? `
+                        <button onclick="openInvitationModal(event, ${system.id})" 
+                                class="p-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors"
+                                title="Invitar Usuarios">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
+                        </button>` : ''}
                         <button onclick="editSystem(event, ${system.id})" 
                                 class="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors"
                                 title="Editar">
@@ -482,5 +490,146 @@ function toggleCreateForm() {
 }
 
 window.toggleCreateForm = toggleCreateForm;
+
+
+let currentInvitationSystemId = null;
+
+function openInvitationModal(event, systemId) {
+    if (event) event.stopPropagation();
+    currentInvitationSystemId = systemId;
+    document.getElementById('invitationModal').classList.remove('hidden');
+    document.getElementById('inviteEmail').value = '';
+    loadInvitations(systemId);
+}
+
+function closeInvitationModal() {
+    document.getElementById('invitationModal').classList.add('hidden');
+    currentInvitationSystemId = null;
+}
+
+async function loadInvitations(systemId) {
+    const listEl = document.getElementById('invitationsList');
+    listEl.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">Cargando...</div>';
+
+    try {
+        const res = await apiFetch(`/systems/${systemId}/invitations`);
+        if (res.ok) {
+            const invitations = await res.json();
+            if (invitations.length === 0) {
+                listEl.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">No hay usuarios invitados aún.</div>';
+                return;
+            }
+
+            listEl.innerHTML = invitations.map(inv => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center gap-3">
+                        <div class="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                            ${inv.userEmail.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold text-[#111418] dark:text-white">${inv.userEmail}</div>
+                            <div class="text-xs text-gray-400">${inv.permissionLevel === 'EDITOR' ? 'Editor' : 'Visualizador'}</div>
+                        </div>
+                    </div>
+                    ${inv.status === 'ACCEPTED' ?
+                    '<span class="text-[10px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded-md font-bold">Aceptado</span>' :
+                    '<span class="text-[10px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded-md font-bold">Pendiente</span>'}
+                    <button onclick="revokeInvitation(${systemId}, ${inv.id})" 
+                        class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors" title="Revocar acceso">
+                        <span class="material-symbols-outlined text-lg">block</span>
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            listEl.innerHTML = '<div class="text-center py-8 text-red-400 text-sm">Error al cargar invitaciones.</div>';
+        }
+    } catch (e) {
+        console.error(e);
+        listEl.innerHTML = '<div class="text-center py-8 text-red-400 text-sm">Error de conexión.</div>';
+    }
+}
+
+async function sendInvitation() {
+    if (!currentInvitationSystemId) return;
+    const email = document.getElementById('inviteEmail').value;
+    if (!email) {
+        showError('Ingresa un correo electrónico');
+        return;
+    }
+
+    // Usar showLoading si está disponible en app.js o un estado local button loading
+    const btn = document.querySelector('#invitationModal button[onclick="sendInvitation()"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-lg">refresh</span> Enviando...';
+
+    try {
+        const res = await apiFetch(`/systems/${currentInvitationSystemId}/invite`, {
+            method: 'POST',
+            body: JSON.stringify({ email: email, permission: 'VIEWER' }) // Por defecto VIEWER, o agregar selector en UI
+        });
+
+        if (res.ok) {
+            showSuccess('Invitación enviada');
+            document.getElementById('inviteEmail').value = '';
+            loadInvitations(currentInvitationSystemId);
+        } else {
+            const data = await res.json();
+            showError(data.message || 'Error al invitar');
+        }
+    } catch (e) {
+        showError('Error de conexión');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function deleteSystem(event, id) {
+    if (event) event.stopPropagation();
+
+    // First confirm intention
+    showConfirm('¿Estás seguro de eliminar este sistema? Esta acción no se puede deshacer.', () => {
+        // Then prompt password for security
+        promptPassword(async () => {
+            showLoading('Eliminando sistema...');
+            try {
+                const res = await apiFetch(`/systems/${id}`, { method: 'DELETE' });
+                if (res && res.ok) {
+                    showSuccess('Sistema eliminado', () => {
+                        loadSystems();
+                        loadStatistics();
+                    });
+                } else {
+                    const errorData = await res.json();
+                    showError(errorData.message || 'Error al eliminar sistema');
+                }
+            } catch (e) {
+                showError('Error de conexión');
+            }
+        });
+    });
+}
+
+async function revokeInvitation(systemId, shareId) {
+    showConfirm('¿Seguro que deseas revocar el acceso a este usuario?', () => {
+        promptPassword(async () => {
+            try {
+                const res = await apiFetch(`/systems/${systemId}/invitations/${shareId}`, {
+                    method: 'DELETE'
+                });
+                if (res.ok) {
+                    showSuccess('Acceso revocado', () => {
+                        loadInvitations(systemId);
+                    });
+                } else {
+                    showError('Error al revocar acceso');
+                }
+            } catch (e) {
+                showError('Error de conexión');
+            }
+        });
+    });
+}
 
 init();

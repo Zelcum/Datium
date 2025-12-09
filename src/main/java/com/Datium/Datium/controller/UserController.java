@@ -122,4 +122,28 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+    @PostMapping("/verify-password")
+    public ResponseEntity<?> verifyPassword(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, String> request) {
+        try {
+            Integer userId = extractUserIdFromToken(authHeader);
+            String password = request.get("password");
+            
+            if (password == null || password.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Contraseña no proporcionada"));
+            }
+
+            boolean isValid = userService.verifyPassword(userId, password);
+            if (isValid) {
+                return ResponseEntity.ok(Map.of("valid", true));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Contraseña incorrecta"));
+            }
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error interno del servidor");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 }

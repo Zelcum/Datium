@@ -20,7 +20,7 @@ async function loadSystems() {
             // If only one system, select it automatically
             if (systems.length === 1) {
                 select.value = systems[0].id;
-                loadAuditLogs();
+                onSystemSelectChange();
             }
         }
     } catch (e) {
@@ -36,10 +36,41 @@ function debounceSearch() {
     }, 500);
 }
 
+
+async function onSystemSelectChange() {
+    loadSystemUsers();
+    loadAuditLogs();
+}
+
+async function loadSystemUsers() {
+    const systemId = document.getElementById('auditSystemSelect').value;
+    const userSelect = document.getElementById('userSelect');
+
+    userSelect.innerHTML = '<option value="">Todos</option>';
+
+    if (!systemId) return;
+
+    try {
+        const res = await apiFetch(`/auditoria/sistema/${systemId}/usuarios`);
+        if (res.ok) {
+            const users = await res.json();
+            users.forEach(u => {
+                userSelect.innerHTML += `<option value="${u.userId}">${u.name} (${u.email})</option>`;
+            });
+        }
+    } catch (e) {
+        console.error("Error loading users", e);
+    }
+}
+
 async function loadAuditLogs() {
     const systemId = document.getElementById('auditSystemSelect').value;
     const type = document.getElementById('auditTypeSelect').value;
     const search = document.getElementById('searchInput').value;
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
+    const userId = document.getElementById('userSelect').value;
+
     const container = document.getElementById('logsContainer');
 
     if (!systemId) {
@@ -59,15 +90,17 @@ async function loadAuditLogs() {
     `;
 
     try {
+        const queryParams = new URLSearchParams();
+        if (search) queryParams.append('search', search);
+        if (dateFrom) queryParams.append('dateFrom', dateFrom);
+        if (dateTo) queryParams.append('dateTo', dateTo);
+        if (userId) queryParams.append('userId', userId);
+
         let endpoint = '';
         if (type === 'security') {
-            endpoint = search
-                ? `/auditoria/sistema/${systemId}/seguridad/buscar?search=${encodeURIComponent(search)}`
-                : `/auditoria/sistema/${systemId}/seguridad`;
+            endpoint = `/auditoria/sistema/${systemId}/seguridad/filtrar?${queryParams.toString()}`;
         } else {
-            endpoint = search
-                ? `/auditoria/sistema/${systemId}/logs/buscar?search=${encodeURIComponent(search)}`
-                : `/auditoria/sistema/${systemId}/logs`;
+            endpoint = `/auditoria/sistema/${systemId}/logs/filtrar?${queryParams.toString()}`;
         }
 
         const res = await apiFetch(endpoint);

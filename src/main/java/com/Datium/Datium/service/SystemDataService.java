@@ -54,6 +54,12 @@ public class SystemDataService {
     @Autowired
     private SystemUserRepository systemUserRepository;
 
+    @Autowired
+    private SystemShareRepository systemShareRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
     private boolean hasPermission(Integer systemId, Integer userId, String action) {
         com.Datium.Datium.entity.System system = systemRepository.findById(systemId)
             .orElseThrow(() -> new RuntimeException("Sistema no encontrado"));
@@ -62,15 +68,31 @@ public class SystemDataService {
             return true;
         }
         
+        // 1. Check Legacy SystemUser
         SystemUser systemUser = systemUserRepository.findBySystemIdAndUserId(systemId, userId)
             .orElse(null);
         
-        if (systemUser == null) {
-            return false;
+        if (systemUser != null) {
+            SystemUser.Role role = systemUser.getRole();
+            return checkRolePermission(role, action);
         }
-        
-        SystemUser.Role role = systemUser.getRole();
-        
+
+        // 2. Check SystemShare
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            SystemShare share = systemShareRepository.findBySystemIdAndUserEmail(systemId, user.getEmail())
+                    .orElse(null);
+            
+            if (share != null && "ACCEPTED".equals(share.getStatus())) {
+                String perm = share.getPermissionLevel(); // "EDITOR", "VIEWER"
+                return checkSharePermission(perm, action);
+            }
+        }
+
+        return false;
+    }
+
+    private boolean checkRolePermission(SystemUser.Role role, String action) {
         switch (action) {
             case "manage_fields":
                 return role == SystemUser.Role.admin;
@@ -80,6 +102,28 @@ public class SystemDataService {
                 return role == SystemUser.Role.admin || role == SystemUser.Role.editor;
             case "view":
                 return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean checkSharePermission(String perm, String action) {
+        // EDITOR = Can do everything except maybe manage users (not handled here) 
+        // VIEWER = Read only
+        
+        boolean isEditor = "EDITOR".equals(perm);
+        
+        switch (action) {
+            case "manage_fields":
+                return isEditor; // Editors can manage fields? Let's say yes for now to be generous, or maybe only Admin?
+                                 // Requirement: "Invited users see the system as their own". 
+                                 // Usually separate "Admin" might be needed but EDITOR is high level.
+            case "create_record":
+            case "update_record":
+            case "delete_record":
+                return isEditor;
+            case "view":
+                return true; // Both EDITOR and VIEWER can view
             default:
                 return false;
         }
