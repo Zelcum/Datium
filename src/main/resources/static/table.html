@@ -60,7 +60,7 @@
         <aside
             class="w-64 h-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between flex-shrink-0 z-50 transition-all duration-300">
             <div>
-                <div class="p-4 flex justify-center items-center h-40">
+                <div class="p-4 flex justify-center items-center h-60">
                     <img src="img/Datium logo modo claro.jpeg"
                         class="h-full w-auto object-contain block dark:hidden hover:scale-105 transition-transform duration-300 p-2"
                         alt="Datium">
@@ -83,11 +83,7 @@
                         <span class="material-symbols-outlined">dns</span>
                         dashboard
                     </a>
-                    <a href="dashboard.html"
-                        class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-xl text-sm font-bold shadow-sm shadow-primary/10">
-                        <span class="material-symbols-outlined">grid_view</span>
-                        Sistemas
-                    </a>
+
                     <a href="#"
                         class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
                         <span class="material-symbols-outlined">cable</span>
@@ -137,9 +133,8 @@
                     <div>
                         <h1 class="text-2xl font-bold text-[#111418] dark:text-white flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary">table_chart</span>
-                            Vista de Tabla
+                            <span id="pageTitle">Cargando...</span>
                         </h1>
-                        <p id="tableName" class="text-gray-500 dark:text-gray-400 mt-1 ml-9">Cargando...</p>
                     </div>
                     <div class="flex gap-3">
                         <div class="relative group">
@@ -179,34 +174,7 @@
                     <!-- Full Width Data Section -->
                     <div class="lg:col-span-3 space-y-6">
 
-                        <!-- Add Record -->
-                        <div id="recordFormCard"
-                            class="bg-white dark:bg-[#151f2b] rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">
-                            <div
-                                class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-green-500">
-                            </div>
-                            <div class="flex justify-between items-center mb-6">
-                                <h2 class="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-emerald-500">post_add</span>
-                                    <span id="formTitle">Agregar Registro</span>
-                                </h2>
-                                <button onclick="cancelEdit()" id="btnCancel"
-                                    class="hidden text-sm text-red-500 hover:text-red-600 font-medium transition-colors">Cancelar</button>
-                            </div>
 
-                            <div id="recordForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Dynamic Fields -->
-                                <div class="col-span-2 text-center text-gray-400 text-sm py-4">Cargando campos...</div>
-                            </div>
-
-                            <div class="mt-6 flex justify-end">
-                                <button onclick="saveRecord()" id="btnSave"
-                                    class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
-                                    <span class="material-symbols-outlined">save</span>
-                                    Guardar Registro
-                                </button>
-                            </div>
-                        </div>
 
                         <!-- Data Table -->
                         <div

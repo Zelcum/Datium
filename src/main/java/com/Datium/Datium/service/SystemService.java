@@ -309,11 +309,13 @@ public class SystemService {
         return response;
     }
 
+    @Autowired
+    private PlanRepository planRepository;
+
     public SystemStatisticsResponse getStatistics(Integer userId) {
         SystemStatisticsResponse stats = new SystemStatisticsResponse();
         
         if (userId == null) {
-            java.lang.System.out.println("getStatistics: userId es null, retornando estadísticas vacías");
             stats.setTotalSystems(0L);
             stats.setSecurityNone(0L);
             stats.setSecurityGeneral(0L);
@@ -323,11 +325,15 @@ public class SystemService {
             return stats;
         }
         
-        java.lang.System.out.println("getStatistics: Calculando estadísticas para userId: " + userId);
-        
         List<System> ownedSystems = systemRepository.findByOwnerId(userId);
-        java.lang.System.out.println("getStatistics: Sistemas propios encontrados: " + ownedSystems.size());
         
+        // Fetch User Plan
+        User user = userRepository.findById(userId).orElse(null);
+        com.Datium.Datium.entity.Plan plan = null;
+        if (user != null && user.getPlanId() != null) {
+            plan = planRepository.findById(user.getPlanId()).orElse(null);
+        }
+
         if (ownedSystems.isEmpty()) {
             stats.setTotalSystems(0L);
             stats.setSecurityNone(0L);
@@ -338,8 +344,8 @@ public class SystemService {
             
             SystemStatisticsResponse.PlanUsage planUsage = new SystemStatisticsResponse.PlanUsage();
             planUsage.setCurrent(0L);
-            planUsage.setMax(999L);
-            planUsage.setPlanName("Básico");
+            planUsage.setMax(plan != null && plan.getMaxSystems() != null ? plan.getMaxSystems().longValue() : -1L);
+            planUsage.setPlanName(plan != null ? plan.getName() : "Básico"); // Default or fetched
             stats.setPlanUsage(planUsage);
             
             List<String> labels = new ArrayList<>();
@@ -373,10 +379,7 @@ public class SystemService {
         
         java.util.Set<Integer> distinctUserIds = new java.util.HashSet<>();
         for (System system : ownedSystems) {
-            if (!system.getOwnerId().equals(userId)) {
-                java.lang.System.out.println("ADVERTENCIA: Sistema " + system.getId() + " no pertenece al usuario " + userId);
-                continue;
-            }
+            if (!system.getOwnerId().equals(userId)) continue;
             
             distinctUserIds.add(system.getOwnerId());
             List<SystemUser> systemUsers = systemUserRepository.findBySystemId(system.getId());
@@ -385,20 +388,16 @@ public class SystemService {
             }
         }
         stats.setTotalUsers((long) distinctUserIds.size());
-        java.lang.System.out.println("getStatistics: Total usuarios únicos: " + distinctUserIds.size());
         
         long totalRecords = 0L;
         for (System system : ownedSystems) {
-            if (!system.getOwnerId().equals(userId)) {
-                continue;
-            }
+            if (!system.getOwnerId().equals(userId)) continue;
             Long count = systemRecordRepository.countBySystemId(system.getId());
             if (count != null) {
                 totalRecords += count;
             }
         }
         stats.setTotalRecords(totalRecords);
-        java.lang.System.out.println("getStatistics: Total registros: " + totalRecords);
         
         stats.setPlanBasic(0L);
         stats.setPlanPro(0L);
@@ -406,44 +405,31 @@ public class SystemService {
         
         SystemStatisticsResponse.PlanUsage planUsage = new SystemStatisticsResponse.PlanUsage();
         planUsage.setCurrent((long) ownedSystems.size());
-        planUsage.setMax(999L);
-        planUsage.setPlanName("Básico");
+        planUsage.setMax(plan != null && plan.getMaxSystems() != null ? plan.getMaxSystems().longValue() : -1L);
+        planUsage.setPlanName(plan != null ? plan.getName() : "Básico");
         stats.setPlanUsage(planUsage);
         
-        if (!ownedSystems.isEmpty()) {
-            List<Integer> systemIds = ownedSystems.stream().map(System::getId).collect(Collectors.toList());
-            LocalDateTime startDate = LocalDate.now().minusDays(6).atStartOfDay();
-            List<Object[]> results = systemRecordRepository.countBySystemIdsGroupedByDate(systemIds, startDate);
+        List<Integer> systemIds = ownedSystems.stream().map(System::getId).collect(Collectors.toList());
+        LocalDateTime startDate = LocalDate.now().minusDays(6).atStartOfDay();
+        List<Object[]> results = systemRecordRepository.countBySystemIdsGroupedByDate(systemIds, startDate);
 
-            Map<String, Long> activityMap = new HashMap<>();
-            for (Object[] row : results) {
-                // Handle different date types that JPA might return (java.sql.Date or java.util.Date)
-                String dateStr = row[0].toString(); 
-                Long count = (Long) row[1];
-                activityMap.put(dateStr, count);
-            }
-
-            List<String> labels = new ArrayList<>();
-            List<Long> data = new ArrayList<>();
-            for (int i = 6; i >= 0; i--) {
-                LocalDate date = LocalDate.now().minusDays(i);
-                String dateStr = date.toString();
-                labels.add(dateStr);
-                data.add(activityMap.getOrDefault(dateStr, 0L));
-            }
-            stats.setActivityLabels(labels);
-            stats.setActivityData(data);
-        } else {
-             List<String> labels = new ArrayList<>();
-             List<Long> data = new ArrayList<>();
-             for (int i = 6; i >= 0; i--) {
-                 LocalDate date = LocalDate.now().minusDays(i);
-                 labels.add(date.toString());
-                 data.add(0L);
-             }
-             stats.setActivityLabels(labels);
-             stats.setActivityData(data);
+        Map<String, Long> activityMap = new HashMap<>();
+        for (Object[] row : results) {
+            String dateStr = row[0].toString(); 
+            Long count = (Long) row[1];
+            activityMap.put(dateStr, count);
         }
+
+        List<String> labels = new ArrayList<>();
+        List<Long> data = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate date = LocalDate.now().minusDays(i);
+            String dateStr = date.toString();
+            labels.add(dateStr);
+            data.add(activityMap.getOrDefault(dateStr, 0L));
+        }
+        stats.setActivityLabels(labels);
+        stats.setActivityData(data);
         
         return stats;
     }

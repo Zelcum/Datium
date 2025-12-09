@@ -2,7 +2,7 @@ package com.Datium.Datium.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
+
 
 @Entity
 @Table(name = "system_fields")
@@ -32,8 +32,7 @@ public class SystemField {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "fieldId", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SystemFieldOption> options;
+
 
     @PrePersist
     protected void onCreate() {
@@ -104,11 +103,5 @@ public class SystemField {
         this.createdAt = createdAt;
     }
 
-    public List<SystemFieldOption> getOptions() {
-        return options;
-    }
 
-    public void setOptions(List<SystemFieldOption> options) {
-        this.options = options;
-    }
 }

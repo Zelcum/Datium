@@ -122,7 +122,7 @@ function renderSystemsTable() {
                 <td class="py-4 px-5 text-center">
                     <div class="flex items-center justify-center gap-1">
                         <span class="material-symbols-outlined text-gray-400 text-sm">group</span>
-                        <span class="text-white font-medium text-sm">${system.userCount || 1}</span>
+                        <span class="text-[#111418] dark:text-white font-medium text-sm">${system.userCount || 1}</span>
                     </div>
                 </td>
                 <td class="py-4 px-5">
@@ -161,7 +161,7 @@ function renderSystemsSlider() {
                  onclick="enterSystem(${system.id})">
                 <div class="flex items-center gap-3 mb-3">
                     <img src="${imageUrl}" alt="${system.name}" 
-                         class="w-12 h-12 rounded-lg object-cover border border-gray-700"
+                         class="w-24 h-24 rounded-lg object-cover border border-gray-700"
                          onerror="this.src='img/Isotipo modo claro.jpeg'">
                     <div class="flex-1 min-w-0">
                         <h4 class="text-[#111418] dark:text-white font-bold text-sm truncate">${system.name || 'Sin nombre'}</h4>
@@ -371,20 +371,20 @@ function renderPlanChart(usage) {
     const max = usage.max === -1 ? 100 : usage.max;
     const current = usage.current;
 
-    // Green solid style
+    // For unlimited, show all as available (Green)
     const data = usage.max === -1
-        ? [100, 0]
+        ? [0, 100]
         : [current, Math.max(0, max - current)];
 
     planChart = new Chart(ctx, {
-        type: 'pie', // Changed to Pie or Doughnut with small cutout
+        type: 'doughnut', // Better than pie for this
         data: {
             labels: ['Usado', 'Disponible'],
             datasets: [{
                 data: data,
                 backgroundColor: [
-                    '#22c55e', // Bright Green
-                    'rgba(255, 255, 255, 0.1)' // Faint
+                    '#ef4444', // Red (Used)
+                    '#22c55e', // Green (Available)
                 ],
                 borderWidth: 0,
                 hoverOffset: 4
@@ -393,6 +393,7 @@ function renderPlanChart(usage) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '75%', // Thinner ring
             plugins: {
                 legend: { display: false },
                 tooltip: { enabled: false }

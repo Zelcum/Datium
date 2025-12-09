@@ -24,8 +24,19 @@ async function getSystemId() {
         if (res.ok) {
             const table = await res.json();
             currentSystemId = table.systemId;
-            const nameEl = document.getElementById('tableName');
-            if (nameEl) nameEl.innerText = table.name || 'Tabla sin nombre';
+
+            // Fetch System Name
+            const sysRes = await apiFetch(`/systems/${currentSystemId}`);
+            let systemName = 'Sistema';
+            if (sysRes.ok) {
+                const sys = await sysRes.json();
+                systemName = sys.name;
+            }
+
+            const titleEl = document.getElementById('pageTitle');
+            if (titleEl) titleEl.innerText = `${systemName} - ${table.name || 'Tabla'}`;
+            document.title = `${table.name} - Datium`;
+
             return currentSystemId;
         }
     } catch (e) { console.error(e); }
@@ -37,7 +48,7 @@ async function loadData() {
     if (fieldsRes.ok) {
         currentFields = await fieldsRes.json();
         renderTableHead();
-        await renderRecordForm();
+        // await renderRecordForm(); // Form removed from UI
     }
 
     const recordsRes = await apiFetch(`/tables/${tableId}/records`);

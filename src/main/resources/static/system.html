@@ -60,7 +60,7 @@
         <aside
             class="w-64 h-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between flex-shrink-0 z-50 transition-all duration-300">
             <div>
-                <div class="p-4 flex justify-center items-center h-40">
+                <div class="p-4 flex justify-center items-center h-60">
                     <img src="img/Datium logo modo claro.jpeg"
                         class="h-full w-auto object-contain block dark:hidden hover:scale-105 transition-transform duration-300 p-2"
                         alt="Datium">
@@ -83,11 +83,7 @@
                         <span class="material-symbols-outlined">dns</span>
                         dashboard
                     </a>
-                    <a href="dashboard.html"
-                        class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-xl text-sm font-bold shadow-sm shadow-primary/10">
-                        <span class="material-symbols-outlined">grid_view</span>
-                        Sistemas
-                    </a>
+
                     <a href="#"
                         class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-colors">
                         <span class="material-symbols-outlined">cable</span>
@@ -133,29 +129,41 @@
             <div class="max-w-7xl mx-auto space-y-6">
 
                 <!-- Header -->
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h1 class="text-2xl font-bold text-[#111418] dark:text-white flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary">grid_view</span>
-                            Detalles del Sistema
-                        </h1>
-                        <div class="mt-2 pl-9 border-l-2 border-gray-200 dark:border-gray-700">
-                            <h2 id="systemName" class="text-lg font-bold text-[#111418] dark:text-white leading-tight">
-                                Cargando...</h2>
-                            <p id="systemDesc" class="text-sm text-gray-500 dark:text-gray-400">...</p>
-                        </div>
+                <!-- Navigation & Actions -->
+                <div class="flex justify-between items-center">
+                    <a href="dashboard.html"
+                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium text-sm">
+                        <span class="material-symbols-outlined text-lg">arrow_back</span>
+                        Volver
+                    </a>
+                    <button onclick="goToCreateTable()"
+                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold transition-colors shadow-lg shadow-primary/30 text-sm">
+                        <span class="material-symbols-outlined text-lg">add</span>
+                        Crear Tabla
+                    </button>
+                </div>
+
+                <!-- Centered Header -->
+                <div class="flex flex-col items-center justify-center text-center space-y-4 mb-8">
+                    <div class="relative group">
+                        <img id="systemLogo" src="img/Isotipo modo claro.jpeg" alt="Logo"
+                            class="w-24 h-24 rounded-2xl object-cover shadow-2xl border-4 border-white dark:border-gray-800">
                     </div>
-                    <div class="flex gap-3">
-                        <a href="dashboard.html"
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium text-sm">
-                            <span class="material-symbols-outlined text-lg">arrow_back</span>
-                            Volver
-                        </a>
-                        <button onclick="goToCreateTable()"
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold transition-colors shadow-lg shadow-primary/30 text-sm">
-                            <span class="material-symbols-outlined text-lg">add</span>
-                            Crear Tabla
-                        </button>
+
+                    <div>
+                        <h1 id="systemName" class="text-3xl font-black text-[#111418] dark:text-white mb-2">
+                            Cargando...
+                        </h1>
+                        <p id="systemDesc" class="text-gray-500 dark:text-gray-400 max-w-lg mx-auto">...</p>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="w-full max-w-md relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="material-symbols-outlined text-gray-400">search</span>
+                        </div>
+                        <input type="text" id="tableSearchInput" placeholder="Buscar tablas..." oninput="filterTables()"
+                            class="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#151f2b] border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white shadow-sm">
                     </div>
                 </div>
 
@@ -170,7 +178,74 @@
                     </div>
                 </div>
             </div>
-        </main>
+    </div>
+    </div>
+    </main>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"
+            onclick="closeRegisterModal()"></div>
+
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div
+                    class="relative transform overflow-hidden rounded-3xl bg-white dark:bg-[#1a2634] text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-xl border border-gray-200 dark:border-gray-700">
+
+                    <!-- Header -->
+                    <div
+                        class="bg-gray-50 dark:bg-[#151f2b] px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-primary/10 rounded-lg text-primary">
+                                <span class="material-symbols-outlined">post_add</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-[#111418] dark:text-white" id="modalTitle">Registrar
+                                </h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400" id="modalSubtitle">Ingresa los datos
+                                    del nuevo registro</p>
+                            </div>
+                        </div>
+                        <button onclick="closeRegisterModal()"
+                            class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="px-6 py-6 max-h-[70vh] overflow-y-auto">
+                        <form id="registerForm" class="space-y-4">
+                            <!-- Dynamic Fields -->
+                            <div id="modalFieldsContainer" class="flex flex-col gap-4">
+                                <div class="text-center py-8">
+                                    <div
+                                        class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2">
+                                    </div>
+                                    <p class="text-gray-400 text-sm">Cargando campos...</p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Footer -->
+                    <div
+                        class="bg-gray-50 dark:bg-[#151f2b] px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3">
+                        <button type="button" onclick="closeRegisterModal()"
+                            class="px-4 py-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="button" onclick="submitRegister()"
+                            class="px-4 py-2 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold text-sm transition-colors shadow-lg shadow-primary/20 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-lg">save</span>
+                            Guardar Registro
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->
