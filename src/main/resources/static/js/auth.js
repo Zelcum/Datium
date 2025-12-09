@@ -211,7 +211,7 @@ async function registro() {
 async function recuperarPassword() {
     const email = document.getElementById('login-email').value;
     if (!email) {
-        alert('Por favor ingresa tu email primero');
+        showError('Por favor ingresa tu email primero');
         return;
     }
     try {

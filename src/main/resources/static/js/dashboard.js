@@ -273,7 +273,7 @@ async function deleteSystem(event, id) {
             loadStatistics();
         } else {
             const errorData = await res.json();
-            alert(errorData.message || 'Error al eliminar sistema');
+            showError(errorData.message || 'Error al eliminar sistema');
         }
     });
 }

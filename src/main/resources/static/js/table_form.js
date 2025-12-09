@@ -8,8 +8,8 @@ let systemTables = [];
 
 async function init() {
     if (!systemId) {
-        alert('ID de sistema no proporcionado');
-        window.location.href = 'dashboard.html';
+        showError('ID de sistema no proporcionado');
+        setTimeout(() => window.location.href = 'dashboard.html', 1500);
         return;
     }
 
@@ -192,7 +192,7 @@ function addNewFieldRow(fieldData = null) {
 async function saveTable() {
     const name = document.getElementById('newTableName').value;
     const description = document.getElementById('newTableDesc').value;
-    if (!name) return alert('El nombre es requerido');
+    if (!name) return showError('El nombre es requerido');
 
     const fieldRows = document.getElementById('newFieldsContainer').children;
     let validationError = null;
@@ -234,7 +234,7 @@ async function saveTable() {
         };
     }).filter(f => f && f.name);
 
-    if (validationError) return alert(validationError);
+    if (validationError) return showError(validationError);
 
     const btn = document.getElementById('btnSubmit');
     const originalBtnContent = btn.innerHTML;

@@ -102,21 +102,60 @@ function showSuccess(message = '¡Éxito!', callback = null) {
 }
 
 function showError(message = 'Ha ocurrido un error') {
-    const spinner = document.getElementById('loading-spinner');
-    const cross = document.getElementById('cross');
-    const text = document.getElementById('loading-text');
+    hideLoading();
+    showToast(message, 'error');
+}
 
-    if (spinner) spinner.style.display = 'none';
-    if (cross) cross.classList.add('show');
-
-    if (text) {
-        text.innerText = message;
-        text.classList.add('error-text');
+function showToast(message, type = 'info') {
+    // Remove existing toasts to avoid stacking too many (optional, or allow stacking)
+    // Let's allow stacking but limit vertically
+    const containerId = 'toast-container';
+    let container = document.getElementById(containerId);
+    
+    if (!container) {
+        container = document.createElement('div');
+        container.id = containerId;
+        container.className = 'fixed top-4 right-4 z-[120] flex flex-col gap-3 pointer-events-none';
+        document.body.appendChild(container);
     }
-
+    
+    const toastId = 'toast-' + Date.now();
+    const isError = type === 'error';
+    const icon = isError ? 'error' : 'check_circle';
+    const bgColor = isError ? 'bg-white dark:bg-[#1e293b]' : 'bg-white dark:bg-[#1e293b]'; // Use white/dark bg with colored border/icon
+    const borderColor = isError ? 'border-l-4 border-red-500' : 'border-l-4 border-green-500';
+    const iconColor = isError ? 'text-red-500' : 'text-green-500';
+    
+    const html = `
+        <div id="${toastId}" class="pointer-events-auto min-w-[300px] max-w-md ${bgColor} ${borderColor} shadow-xl rounded-lg p-4 flex items-start gap-3 transform translate-x-full transition-all duration-300">
+            <span class="material-symbols-outlined ${iconColor} mt-0.5">${icon}</span>
+            <div class="flex-1">
+                <h4 class="font-bold text-[#111418] dark:text-white text-sm mb-0.5">${isError ? 'Error' : 'Notificación'}</h4>
+                <p class="text-gray-500 dark:text-gray-400 text-sm leading-tight">${message}</p>
+            </div>
+            <button onclick="document.getElementById('${toastId}').classList.add('translate-x-full', 'opacity-0'); setTimeout(() => document.getElementById('${toastId}').remove(), 300);" 
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', html);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        const toast = document.getElementById(toastId);
+        if(toast) toast.classList.remove('translate-x-full');
+    });
+    
+    // Auto remove
     setTimeout(() => {
-        hideLoading();
-    }, 2000);
+        const toast = document.getElementById(toastId);
+        if (toast) {
+            toast.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 5000);
 }
 
 function hideLoading() {
