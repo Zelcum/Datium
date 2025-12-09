@@ -47,7 +47,7 @@
     <div class="flex h-screen w-full">
 
         <aside
-            class="w-64 h-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between flex-shrink-0 z-50 transition-all duration-300">
+            class="fixed inset-y-0 left-0 z-50 w-64 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between flex-shrink-0 h-full">
             <div>
 
                 <div class="p-4 flex justify-center items-center h-60">
@@ -119,15 +119,23 @@
         </aside>
 
         <main
-            class="flex-1 h-full overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark relative scroll-smooth p-6">
+            class="flex-1 h-full overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark relative scroll-smooth p-4 md:p-6 w-full">
+
+            <!-- Mobile Header -->
+            <div class="flex items-center justify-between mb-6 md:hidden">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()"
+                        class="p-2 rounded-xl bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm">
+                        <span class="material-symbols-outlined">menu</span>
+                    </button>
+                    <img src="img/Datium logo modo claro.jpeg" class="h-8 w-auto block dark:hidden" alt="Datium">
+                    <img src="img/Datium logo modo oscuro.jpeg" class="h-8 w-auto hidden dark:block" alt="Datium">
+                </div>
+            </div>
+
             <div class="max-w-4xl mx-auto flex flex-col gap-6">
 
-                <div class="flex flex-col gap-2">
-                    <h1 class="text-2xl font-bold text-[#111418] dark:text-white flex items-center gap-3">
-                        <span class="material-symbols-outlined text-primary text-3xl">cable</span>
-                        Gestión de Conexiones
-                    </h1>
-                </div>
+
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start relative">
 

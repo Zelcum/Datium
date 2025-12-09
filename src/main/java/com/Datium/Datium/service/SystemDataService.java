@@ -798,101 +798,158 @@ public class SystemDataService {
         List<SystemRecordResponse> records = getRecordsByTable(tableId, userId);
         com.Datium.Datium.entity.SystemTable sysTable = systemTableRepository.findById(tableId).orElse(null);
         String tableName = sysTable != null ? sysTable.getName() : "Tabla " + tableId;
-        Integer sysId = sysTable != null ? sysTable.getSystemId() : null;
-        String systemName = "Sistema";
-        String systemImageUrl = null;
-        
-        if (sysId != null) {
-            com.Datium.Datium.entity.System sys = systemRepository.findById(sysId).orElse(null);
-            if (sys != null) {
-                systemName = sys.getName();
-                systemImageUrl = sys.getImageUrl();
-            }
+        String tableDesc = sysTable != null ? sysTable.getDescription() : "";
+        Integer systemId = sysTable != null ? sysTable.getSystemId() : null;
+
+        com.Datium.Datium.entity.System system = null;
+        if (systemId != null) {
+            system = systemRepository.findById(systemId).orElse(null);
         }
-        
+
         Map<String, Map<String, String>> resolvedValues = resolveRelationDisplayValues(tableId, fields, records);
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document();
-            PdfWriter.getInstance(document, out);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
             document.open();
 
-            PdfPTable headerTable = new PdfPTable(2);
+            // --- Header: Logos ---
+            com.lowagie.text.pdf.PdfPTable headerTable = new com.lowagie.text.pdf.PdfPTable(2);
             headerTable.setWidthPercentage(100);
-            headerTable.setWidths(new float[]{1, 4});
+            headerTable.setWidths(new float[]{1, 1});
+            headerTable.getDefaultCell().setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+            headerTable.getDefaultCell().setVerticalAlignment(com.lowagie.text.Element.ALIGN_MIDDLE);
 
-            com.lowagie.text.Image pdfLogo = null;
+            // System Logo
+            com.lowagie.text.Image sysLogo = null;
+            if (system != null && system.getImageUrl() != null && !system.getImageUrl().isEmpty()) {
+                try {
+                    // Try loading from URL or local path
+                    // If it's a relative path starting with 'img/', load from classpath resource
+                    if (system.getImageUrl().startsWith("img/")) {
+                         org.springframework.core.io.Resource res = new org.springframework.core.io.ClassPathResource("static/" + system.getImageUrl());
+                         sysLogo = com.lowagie.text.Image.getInstance(res.getURL());
+                    } else {
+                         sysLogo = com.lowagie.text.Image.getInstance(system.getImageUrl());
+                    }
+                    sysLogo.scaleToFit(50, 50);
+                } catch (Exception e) {
+                    // Ignore if fails
+                }
+            }
+            
+            com.lowagie.text.pdf.PdfPCell sysLogoCell = new com.lowagie.text.pdf.PdfPCell();
+            sysLogoCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+            if (sysLogo != null) {
+                sysLogoCell.addElement(sysLogo);
+            } else {
+                 // Placeholder or empty
+                 sysLogoCell.addElement(new Paragraph("")); 
+            }
+            headerTable.addCell(sysLogoCell);
+
+            // Datium Logo
+            com.lowagie.text.Image datiumLogo = null;
             try {
-                
+                org.springframework.core.io.Resource res = new org.springframework.core.io.ClassPathResource("static/img/Datium logo modo claro.jpeg");
+                datiumLogo = com.lowagie.text.Image.getInstance(res.getURL());
+                datiumLogo.scaleToFit(80, 50);
             } catch (Exception e) {}
+            
+            com.lowagie.text.pdf.PdfPCell datiumLogoCell = new com.lowagie.text.pdf.PdfPCell();
+            datiumLogoCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+            datiumLogoCell.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+            if (datiumLogo != null) {
+                datiumLogo.setAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+                datiumLogoCell.addElement(datiumLogo);
+            }
+            headerTable.addCell(datiumLogoCell);
+            
+            document.add(headerTable);
 
-            com.lowagie.text.Font titleFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 18, com.lowagie.text.Font.BOLD, java.awt.Color.BLACK);
-            com.lowagie.text.Font subtitleFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 12, com.lowagie.text.Font.NORMAL, java.awt.Color.GRAY);
+            // --- System Info ---
+            com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 14, java.awt.Color.BLACK);
+            com.lowagie.text.Font descFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 10, java.awt.Color.DARK_GRAY);
             
-            Paragraph title = new Paragraph("Datium - " + systemName, titleFont);
-            Paragraph subtitle = new Paragraph("Tabla: " + tableName, subtitleFont);
-            Paragraph date = new Paragraph("Generado el: " + new Date().toString(), new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 10));
-            
-            document.add(title);
-            document.add(subtitle);
-            document.add(date);
-            document.add(new Paragraph(" ")); 
+            String systemName = system != null ? system.getName() : "Sistema Desconocido";
+            Paragraph sysNamePara = new Paragraph(systemName + " - " + tableName, titleFont);
+            sysNamePara.setSpacingBefore(10);
+            sysNamePara.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+            document.add(sysNamePara);
 
-            int numCols = fields.size() + 1;
-            PdfPTable table = new PdfPTable(numCols);
-            table.setWidthPercentage(100);
-            
-            com.lowagie.text.Font headerFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 10, com.lowagie.text.Font.BOLD, java.awt.Color.WHITE);
-            java.awt.Color headerColor = new java.awt.Color(37, 99, 235); 
-
-            com.lowagie.text.pdf.PdfPCell idHeader = new com.lowagie.text.pdf.PdfPCell(new Paragraph("ID", headerFont));
-            idHeader.setBackgroundColor(headerColor);
-            idHeader.setPadding(5);
-            table.addCell(idHeader);
-            
-            for (SystemFieldResponse field : fields) {
-                com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new Paragraph(field.getName(), headerFont));
-                cell.setBackgroundColor(headerColor);
-                cell.setPadding(5);
-                table.addCell(cell);
+            if (system != null && system.getDescription() != null) {
+                Paragraph sysDescPara = new Paragraph(system.getDescription(), descFont);
+                sysDescPara.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+                sysDescPara.setSpacingAfter(5);
+                document.add(sysDescPara);
             }
 
-            com.lowagie.text.Font contentFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 9, com.lowagie.text.Font.NORMAL);
+            if (tableDesc != null && !tableDesc.isEmpty()) {
+                Paragraph descPara = new Paragraph(tableDesc, descFont);
+                descPara.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+                descPara.setSpacingAfter(15);
+                document.add(descPara);
+            } else {
+                 document.add(new Paragraph(" ")); // Spacer
+            }
 
-            boolean alternate = false;
-            java.awt.Color altColor = new java.awt.Color(245, 247, 250);
+            // --- Table Data ---
+            PdfPTable pdfTable = new PdfPTable(fields.size() + 1);
+            pdfTable.setWidthPercentage(100);
+            pdfTable.setSpacingBefore(10f);
+            
+            // Header Cells
+            com.lowagie.text.Font headerFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 9, java.awt.Color.WHITE);
+            com.lowagie.text.pdf.PdfPCell headerCell = new com.lowagie.text.pdf.PdfPCell();
+            headerCell.setBackgroundColor(new java.awt.Color(19, 127, 236)); // Primary Blue
+            headerCell.setPadding(5);
+            
+            headerCell.setPhrase(new com.lowagie.text.Phrase("ID", headerFont));
+            pdfTable.addCell(headerCell);
+            
+            for (SystemFieldResponse field : fields) {
+                headerCell.setPhrase(new com.lowagie.text.Phrase(field.getName(), headerFont));
+                pdfTable.addCell(headerCell);
+            }
 
+            // Data Cells
+            com.lowagie.text.Font cellFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 8, java.awt.Color.BLACK);
             for (SystemRecordResponse record : records) {
-                addCell(table, String.valueOf(record.getId()), contentFont, alternate, altColor);
-                
+                pdfTable.addCell(new com.lowagie.text.Phrase(String.valueOf(record.getId()), cellFont));
                 for (SystemFieldResponse field : fields) {
                     String val = record.getFieldValues().get(field.getName());
                     if (resolvedValues.containsKey(field.getName()) && val != null) {
                         String resolved = resolvedValues.get(field.getName()).get(val);
                         if (resolved != null) val = resolved;
                     }
-                    addCell(table, val != null ? val : "", contentFont, alternate, altColor);
+                    pdfTable.addCell(new com.lowagie.text.Phrase(val != null ? val : "", cellFont));
                 }
-                alternate = !alternate;
             }
+            
+            document.add(pdfTable);
 
-            document.add(table);
+            // --- Footer ---
+            String userName = "Desconocido";
+            if (userId != null) {
+                User u = userRepository.findById(userId).orElse(null);
+                if (u != null) userName = u.getName();
+            }
+            String dateStr = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").format(java.time.LocalDateTime.now());
+
+            Paragraph footer = new Paragraph("Exportado por: " + userName + " | Fecha: " + dateStr, 
+                com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_OBLIQUE, 8, java.awt.Color.GRAY));
+            footer.setAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+            footer.setSpacingBefore(20);
+            document.add(footer);
+
             document.close();
             return out.toByteArray();
         } catch (Exception e) {
-            e.printStackTrace();
+             e.printStackTrace(); // Log error
             throw new RuntimeException("Error creando PDF: " + e.getMessage());
         }
     }
 
-    private void addCell(PdfPTable table, String text, com.lowagie.text.Font font, boolean alternate, java.awt.Color altColor) {
-        com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new Paragraph(text, font));
-        cell.setPadding(4);
-        if (alternate) {
-            cell.setBackgroundColor(altColor);
-        }
-        table.addCell(cell);
-    }
 
     private String escapeCsv(String val) {
         if (val == null) return "";

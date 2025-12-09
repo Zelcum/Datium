@@ -202,7 +202,8 @@ async function saveTable() {
         if (!nameInput) return null;
 
         const idInput = row.querySelector('.new-field-id');
-        const fieldId = idInput ? parseInt(idInput.value) : null;
+        // Fix: Use ternary to check if idInput exists and has value
+        const fieldId = (idInput && idInput.value) ? parseInt(idInput.value) : null;
 
         const type = row.querySelector('.new-field-type').value;
         let options = [];
@@ -247,9 +248,26 @@ async function saveTable() {
         });
 
         if (res.ok) {
-            showSuccess('Tabla y campos actualizados correctamente.', () => {
-                window.location.href = `system.html?id=${systemId}`;
-            });
+            showSuccessModal(
+                '¡Tabla Actualizada!',
+                'La estructura de la tabla ha sido modificada correctamente.',
+                [
+                    {
+                        text: 'Volver al Sistema',
+                        primary: true,
+                        onClick: () => window.location.href = `system.html?id=${systemId}`
+                    },
+                    {
+                        text: 'Seguir Editando',
+                        primary: false,
+                        onClick: () => {
+                            const modal = document.getElementById('success-modal');
+                            modal.classList.add('opacity-0');
+                            setTimeout(() => modal.remove(), 300);
+                        }
+                    }
+                ]
+            );
         } else {
             btn.innerHTML = originalBtnContent;
             btn.disabled = false;
@@ -267,9 +285,23 @@ async function saveTable() {
         });
 
         if (res.ok) {
-            showSuccess('Tabla creada exitosamente', () => {
-                window.location.href = `system.html?id=${systemId}`;
-            });
+            const savedTable = await res.json();
+            showSuccessModal(
+                '¡Tabla Exitos!',
+                'La tabla se ha creado correctamente. Ahora puedes definir sus campos o volver al sistema.',
+                [
+                    {
+                        text: 'Volver al Sistema',
+                        primary: true,
+                        onClick: () => window.location.href = `system.html?id=${systemId}`
+                    },
+                    {
+                        text: 'Editar esta Tabla',
+                        primary: false,
+                        onClick: () => window.location.href = `table_form.html?systemId=${systemId}&tableId=${savedTable.id}`
+                    }
+                ]
+            );
         } else {
             btn.innerHTML = originalBtnContent;
             btn.disabled = false;

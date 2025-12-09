@@ -204,10 +204,29 @@ async function saveRecord() {
     });
 
     if (res.ok) {
-        showSuccess(editingRecordId ? 'Registro actualizado' : 'Registro guardado', () => {
-            closeRegisterModal();
-            loadData();
-        });
+        // showSuccess(editingRecordId ? 'Registro actualizado' : 'Registro guardado', () => {
+        //     closeRegisterModal();
+        //     loadData();
+        // });
+
+        const action = editingRecordId ? 'Actualizado' : 'Guardado';
+        showSuccessModal(
+            `¡Registro ${action}!`,
+            'Los datos se han guardado correctamente en la tabla.',
+            [
+                {
+                    text: 'Aceptar',
+                    primary: true,
+                    onClick: () => {
+                        const modal = document.getElementById('success-modal');
+                        modal.classList.add('opacity-0');
+                        setTimeout(() => modal.remove(), 300);
+                        closeRegisterModal();
+                        loadData();
+                    }
+                }
+            ]
+        );
     } else {
         try {
             const errorData = await res.json();

@@ -249,9 +249,38 @@ async function submitForm() {
 
         if (res.ok) {
             if (window.parent === window) {
-                showSuccess('Sistema guardado correctamente', () => {
-                    window.location.href = 'dashboard.html';
-                });
+                // Standalone mode
+                const action = editingSystemId ? 'Actualizado' : 'Creado';
+                showSuccessModal(
+                    `¡Sistema ${action}!`,
+                    `El sistema <b>${name}</b> ha sido ${action.toLowerCase()} correctamente. ¿Qué deseas hacer ahora?`,
+                    [
+                        {
+                            text: 'Ir al Dashboard',
+                            primary: true,
+                            onClick: () => window.location.href = 'dashboard.html'
+                        },
+                        {
+                            text: 'Seguir Editando',
+                            primary: false,
+                            onClick: () => {
+                                const modal = document.getElementById('success-modal');
+                                modal.classList.add('opacity-0');
+                                setTimeout(() => modal.remove(), 300);
+                                if (!editingSystemId) {
+                                    // If it was creation, maybe reload with ID? 
+                                    // For now just stay. But better to go to edit mode.
+                                    // Wait, we got OK but no ID returned in response body in Controller?
+                                    // Controller returns the saved System.
+                                    // Let's reload to edit mode.
+                                    res.json().then(savedSys => {
+                                        window.location.href = `system_form.html?id=${savedSys.id}`;
+                                    });
+                                }
+                            }
+                        }
+                    ]
+                );
             } else {
                 window.parent.postMessage({ type: 'systemSaved' }, '*');
                 resetForm();

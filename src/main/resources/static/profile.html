@@ -65,7 +65,7 @@
     <div class="flex h-screen w-full">
 
         <aside
-            class="w-64 h-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between flex-shrink-0 z-50 transition-all duration-300">
+            class="fixed inset-y-0 left-0 z-50 w-64 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between flex-shrink-0 h-full">
             <div>
 
                 <div class="p-4 flex justify-center items-center h-60">
@@ -131,19 +131,6 @@
                 <button onclick="logout()"
                     class="flex items-center gap-2 w-full justify-center px-4 py-2.5 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl text-sm font-bold transition-all shadow-sm">
                     <span class="material-symbols-outlined text-lg">logout</span>
-                    Cerrar Sesión
-                </button>
-            </div>
-        </aside>
-
-        <main
-            class="flex-1 h-full overflow-y-auto overflow-x-hidden bg-background-light dark:bg-background-dark relative scroll-smooth p-6">
-            <div class="max-w-5xl mx-auto h-full flex flex-col gap-6">
-
-                <h1 class="text-2xl font-bold text-[#111418] dark:text-white">Mi Perfil</h1>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
                     <div class="flex flex-col gap-6">
                         <div
                             class="bg-white dark:bg-[#151f2b] rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-xl flex flex-col items-center text-center">
@@ -305,10 +292,10 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
             </div>
-        </main>
+
+    </div>
+    </main>
     </div>
 
     <script src="js/auth.js"></script>

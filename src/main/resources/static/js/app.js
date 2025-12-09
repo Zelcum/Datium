@@ -266,6 +266,97 @@ function promptPassword(onSuccess) {
     };
 }
 
+
+function showSuccessModal(title, message, buttons = []) {
+    const existing = document.getElementById('success-modal');
+    if (existing) existing.remove();
+
+    let buttonsHtml = '';
+    buttons.forEach((btn, index) => {
+        const styleClass = btn.primary
+            ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg shadow-primary/30 hover:shadow-primary/50'
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700';
+
+        buttonsHtml += `
+            <button id="success-btn-${index}" class="w-full py-3 rounded-xl font-bold text-sm transition-all ${styleClass}">
+                ${btn.text}
+            </button>
+        `;
+    });
+
+    const html = `
+        <div id="success-modal" class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-white/90 dark:bg-[#0b1116]/90 backdrop-blur-md opacity-0 transition-opacity duration-300">
+            <div class="bg-white dark:bg-[#151f2b] rounded-3xl p-8 shadow-2xl max-w-md w-full transform scale-95 transition-transform duration-500 border border-gray-200 dark:border-gray-800 relative overflow-hidden">
+                
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-blue-600"></div>
+
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-6 relative">
+                        <div class="absolute inset-0 bg-green-500/20 blur-xl rounded-full"></div>
+                        <div class="h-20 w-20 bg-green-50 dark:bg-green-900/10 rounded-full flex items-center justify-center relative z-10 mx-auto">
+                            <span class="material-symbols-outlined text-5xl text-green-500 animate-bounce-slow">check_circle</span>
+                        </div>
+                    </div>
+                    
+                    <h2 class="text-2xl font-black text-[#111418] dark:text-white mb-3">${title}</h2>
+                    <p class="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">${message}</p>
+                    
+                    <div class="flex flex-col gap-3 w-full">
+                        ${buttonsHtml}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const modal = document.getElementById('success-modal');
+
+    // Bind events
+    buttons.forEach((btn, index) => {
+        document.getElementById(`success-btn-${index}`).onclick = () => {
+            // Close modal? Maybe user navigation handles it.
+            // If navigation, we don't need to close manually as checking out page destroys it.
+            // But if specific action, close it first.
+            if (btn.onClick) btn.onClick();
+        };
+    });
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        modal.querySelector('div').classList.remove('scale-95');
+        modal.querySelector('div').classList.add('scale-100');
+    });
+}
+
+
+function toggleSidebar() {
+    const sidebar = document.querySelector('aside');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    if (sidebar) {
+        if (sidebar.classList.contains('-translate-x-full')) {
+            // Open
+            sidebar.classList.remove('-translate-x-full');
+            if (overlay) overlay.classList.remove('hidden');
+        } else {
+            // Close
+            sidebar.classList.add('-translate-x-full');
+            if (overlay) overlay.classList.add('hidden');
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     injectLoadingHTML();
+
+    // Add overlay if not exists
+    if (!document.getElementById('sidebarOverlay')) {
+        const overlay = document.createElement('div');
+        overlay.id = 'sidebarOverlay';
+        overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden md:hidden transition-opacity';
+        overlay.onclick = toggleSidebar;
+        document.body.appendChild(overlay);
+    }
 });

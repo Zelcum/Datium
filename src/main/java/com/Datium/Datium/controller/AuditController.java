@@ -3,6 +3,7 @@ package com.Datium.Datium.controller;
 import com.Datium.Datium.entity.AuditLog;
 import com.Datium.Datium.entity.SecurityAudit;
 import com.Datium.Datium.entity.User;
+import com.Datium.Datium.dto.AuditExportRequest; // Added import
 import com.Datium.Datium.repository.AuditLogRepository;
 import com.Datium.Datium.repository.SecurityAuditRepository;
 import com.Datium.Datium.repository.UserRepository;
